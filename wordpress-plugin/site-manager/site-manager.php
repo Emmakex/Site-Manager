@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Site Manager
  * Description: Discovers the real WordPress installation and exposes a safe capability/governance map.
- * Version: 0.3.3
+ * Version: 0.4.0
  * Requires at least: 6.6
  * Requires PHP: 8.1
  * Author: Emmake
@@ -14,7 +14,7 @@ declare(strict_types=1);
 if (! defined('ABSPATH')) { exit; }
 
 if (! defined('SITE_MANAGER_VERSION')) {
-    define('SITE_MANAGER_VERSION', '0.3.3');
+    define('SITE_MANAGER_VERSION', '0.4.0');
 }
 if (! defined('SITE_MANAGER_PLUGIN_FILE')) {
     define('SITE_MANAGER_PLUGIN_FILE', __FILE__);
