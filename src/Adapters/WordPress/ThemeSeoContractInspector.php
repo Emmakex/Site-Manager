@@ -41,6 +41,7 @@ final class ThemeSeoContractInspector
                 break;
             }
         }
+        $files = array_keys($files);
         sort($files, SORT_STRING);
         $files = array_slice($files, 0, self::MAX_FILES);
 
