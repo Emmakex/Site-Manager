@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.5.0
+Stable tag: 0.5.1
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -16,7 +16,9 @@ On activation Site Manager performs a bounded local discovery of the installatio
 
 The WordPress admin surface follows the configured WordPress/user locale. English is the source language and Spanish (`es_ES`) is bundled.
 
-Version 0.5.0 introduces the generic SEO provider layer. One stable machine-facing capability (`seo.write` / `seo.update`) is routed to the SEO owner actually discovered on the site. Provider detection alone never grants write access, and multiple SEO owners block writes until the conflict is resolved.
+Version 0.5.1 fixes the WordPress dashboard reader for the persisted capability-graph envelope. A governable `seo.write` capability now renders the same provider-ready state and metadata shown by the capability counters, including after upgrades from 0.5.0.
+
+Version 0.5.0 introduced the generic SEO provider layer. One stable machine-facing capability (`seo.write` / `seo.update`) is routed to the SEO owner actually discovered on the site. Provider detection alone never grants write access, and multiple SEO owners block writes until the conflict is resolved.
 
 The provider registry currently includes:
 
@@ -31,12 +33,18 @@ Native WordPress content and navigation governance remains available with the sa
 
 == Installation ==
 
-1. Upload the official `site-manager-0.5.0.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.5.1.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review the dashboard and Site Manager > Diagnostics.
 
 == Changelog ==
+
+= 0.5.1 =
+* Fixes dashboard capability lookup when capabilities are persisted using `CapabilityGraph::jsonSerialize()`.
+* Keeps compatibility with direct capability-list input.
+* Makes the SEO ownership row, provider adapter, write mode and governable inputs reflect the same `seo.write` capability used by the capability counters.
+* Adds a regression contract for the persisted capability envelope discovered during EMMake `nuevaweb` acceptance.
 
 = 0.5.0 =
 * Adds the generic `SeoProviderAdapter` contract and provider registry.
