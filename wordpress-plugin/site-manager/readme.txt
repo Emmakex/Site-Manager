@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.3.2
+Stable tag: 0.3.3
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -16,22 +16,32 @@ On activation Site Manager performs a bounded local discovery of the installatio
 
 The WordPress admin surface follows the configured WordPress/user locale. English is the source language and Spanish (`es_ES`) is bundled.
 
-Version 0.3.2 continues SM-3A with a bounded, read-only inspection of the active theme/parent theme PHP source. The inspection looks only for structural SEO evidence: referenced post-meta/option keys, SEO-related hook registrations and recognizable output tokens. It never executes theme files, follows external symlinks, performs HTTP requests or persists source contents.
+Version 0.3.3 continues SM-3A with a second bounded, read-only SEO inspection layer. In addition to discovering SEO output hooks/tokens and referenced meta/options, Site Manager traces which WordPress data-source APIs, post fields and filter-pipeline entries are referenced by SEO-focused theme code. It never reads content/meta/option values and never executes scanned source.
 
-A dedicated Site Manager > Diagnostics screen shows the evidence so an SEO writer can be implemented from the real provider contract instead of guessed field names.
+This evidence is used to decide whether an SEO provider derives metadata from native WordPress content, permalinks, taxonomy/site identity, post meta, options, ACF, theme mods or custom database access before a writer is implemented. The goal is to govern the provider's real source of truth instead of inventing parallel SEO fields.
 
-The controlled `SEO GEO Starter` family remains recognized as the `seo-geo-theme` theme-native SEO authority with the historically documented output surfaces: title/meta, canonical, robots, Open Graph, schema, hreflang and sitemap. This recognition remains read-only. `seo.write` stays blocked until a provider-specific writer has snapshot, explicit confirmation, stale-target protection, verification and rollback.
+A dedicated Site Manager > Diagnostics screen shows both the output contract and data-source trace. `seo.write` remains blocked until a provider-specific writer has snapshot, explicit confirmation, stale-target protection, verification and rollback.
+
+The controlled `SEO GEO Starter` family remains recognized as the `seo-geo-theme` theme-native SEO authority with the historically documented output surfaces: title/meta, canonical, robots, Open Graph, schema, hreflang and sitemap.
 
 Native WordPress content and navigation governance from 0.2.0/0.3.0 remains available with plan, explicit confirmation, verification, stale-target protection and guarded rollback.
 
 == Installation ==
 
-1. Upload the official `site-manager-0.3.2.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.3.3.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review the dashboard and Site Manager > Diagnostics.
 
 == Changelog ==
+
+= 0.3.3 =
+* Adds bounded read-only tracing of data sources referenced by SEO-focused theme code.
+* Detects native WordPress content, permalink, taxonomy and site-identity API usage.
+* Detects post-meta, options, ACF, theme-mod and custom-database source usage without reading values.
+* Detects WordPress post-field references and SEO filter-pipeline entries.
+* Adds source classification and detailed source evidence to Site Manager > Diagnostics.
+* Keeps `seo.write` blocked; the trace cannot grant permissions or execute theme source.
 
 = 0.3.2 =
 * Adds bounded read-only static inspection of the active/parent theme PHP source.
