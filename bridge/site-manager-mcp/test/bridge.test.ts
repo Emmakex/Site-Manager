@@ -87,30 +87,55 @@ test('site_diagnostics uses only the diagnostics resource', async () => {
   assert.deepEqual(result.diagnostics, { ready_for_read: true });
 });
 
-test('content write methods use only fixed Site Manager write routes and POST JSON', async () => {
-  const requests: Array<{ path: string; method: string | undefined; body: unknown; auth: string | null }> = [];
+test('content and navigation write methods use only fixed Site Manager write routes and POST JSON', async () => {
+  const requests: Array<{ path: string; method: string | undefined; body: unknown; auth: string | null; userAgent: string | null }> = [];
   const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
     const url = input instanceof URL ? input : new URL(String(input));
     const headers = new Headers(init?.headers);
     const body = typeof init?.body === 'string' ? JSON.parse(init.body) : null;
-    requests.push({ path: url.pathname, method: init?.method, body, auth: headers.get('authorization') });
+    requests.push({
+      path: url.pathname,
+      method: init?.method,
+      body,
+      auth: headers.get('authorization'),
+      userAgent: headers.get('user-agent'),
+    });
     return new Response(JSON.stringify({ data: { ok: true, path: url.pathname } }), { status: 200 });
   }) as typeof fetch;
 
   const client = new SiteManagerClient(baseConfig(), fakeFetch);
   await client.contentUpdatePlan({ post_id: 77, fields: { title: 'New title' }, reason: 'Contract test' });
-  await client.contentUpdateApply({ plan_id: 'plan_1', confirmed: true });
-  await client.contentUpdateRollback({ plan_id: 'plan_1', confirmed: true });
+  await client.contentUpdateApply({ plan_id: 'plan_content_1', confirmed: true });
+  await client.contentUpdateRollback({ plan_id: 'plan_content_1', confirmed: true });
+  await client.navigationUpdatePlan({
+    provider: 'wordpress-classic-menu',
+    target_id: 88,
+    fields: { title: 'New navigation title' },
+    reason: 'Navigation contract test',
+  });
+  await client.navigationUpdateApply({ plan_id: 'plan_navigation_1', confirmed: true });
+  await client.navigationUpdateRollback({ plan_id: 'plan_navigation_1', confirmed: true });
 
   assert.deepEqual(requests.map((request) => request.path), [
     '/wp-json/site-manager/v1/write/content/plan',
     '/wp-json/site-manager/v1/write/content/apply',
     '/wp-json/site-manager/v1/write/content/rollback',
+    '/wp-json/site-manager/v1/write/navigation/plan',
+    '/wp-json/site-manager/v1/write/navigation/apply',
+    '/wp-json/site-manager/v1/write/navigation/rollback',
   ]);
   assert.ok(requests.every((request) => request.method === 'POST'));
   assert.ok(requests.every((request) => request.auth === `Bearer ${secret}`));
+  assert.ok(requests.every((request) => request.userAgent === 'site-manager-mcp/0.3.0'));
   assert.deepEqual(requests[0]?.body, { post_id: 77, fields: { title: 'New title' }, reason: 'Contract test' });
-  assert.deepEqual(requests[1]?.body, { plan_id: 'plan_1', confirmed: true });
+  assert.deepEqual(requests[1]?.body, { plan_id: 'plan_content_1', confirmed: true });
+  assert.deepEqual(requests[3]?.body, {
+    provider: 'wordpress-classic-menu',
+    target_id: 88,
+    fields: { title: 'New navigation title' },
+    reason: 'Navigation contract test',
+  });
+  assert.deepEqual(requests[4]?.body, { plan_id: 'plan_navigation_1', confirmed: true });
 });
 
 test('client errors are sanitized and never contain the bearer token', async () => {
@@ -129,6 +154,15 @@ test('client errors are sanitized and never contain the bearer token', async () 
 
   await assert.rejects(
     () => client.contentUpdateApply({ plan_id: secret, confirmed: true }),
+    (error: unknown) => {
+      assert.ok(error instanceof SiteManagerClientError);
+      assert.equal(error.message.includes(secret), false);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => client.navigationUpdateApply({ plan_id: secret, confirmed: true }),
     (error: unknown) => {
       assert.ok(error instanceof SiteManagerClientError);
       assert.equal(error.message.includes(secret), false);

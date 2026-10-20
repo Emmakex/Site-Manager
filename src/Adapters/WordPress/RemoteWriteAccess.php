@@ -17,15 +17,21 @@ final class RemoteWriteAccess
 
     public static function registerRest(): void
     {
-        foreach ([
-            'write/content/plan'=>'planContent',
-            'write/content/apply'=>'applyContent',
-            'write/content/rollback'=>'rollbackContent',
-        ] as $route => $callback) {
-            register_rest_route('site-manager/v1', '/' . $route, [
+        $routes = [
+            ['route'=>'write/content/plan','callback'=>'planContent','scope'=>'content.write'],
+            ['route'=>'write/content/apply','callback'=>'applyContent','scope'=>'content.write'],
+            ['route'=>'write/content/rollback','callback'=>'rollbackContent','scope'=>'content.write'],
+            ['route'=>'write/navigation/plan','callback'=>'planNavigation','scope'=>'navigation.write'],
+            ['route'=>'write/navigation/apply','callback'=>'applyNavigation','scope'=>'navigation.write'],
+            ['route'=>'write/navigation/rollback','callback'=>'rollbackNavigation','scope'=>'navigation.write'],
+        ];
+
+        foreach ($routes as $definition) {
+            $scope = (string) $definition['scope'];
+            register_rest_route('site-manager/v1', '/' . (string) $definition['route'], [
                 'methods'=>\WP_REST_Server::CREATABLE,
-                'permission_callback'=>static fn(\WP_REST_Request $request): bool => self::authorizeWriteRequest($request, 'content.write'),
-                'callback'=>[self::class, $callback],
+                'permission_callback'=>static fn(\WP_REST_Request $request): bool => self::authorizeWriteRequest($request, $scope),
+                'callback'=>[self::class, (string) $definition['callback']],
             ], true);
         }
     }
@@ -49,25 +55,72 @@ final class RemoteWriteAccess
 
     public static function planContent(\WP_REST_Request $request): \WP_REST_Response
     {
-        try {
-            $params = self::params($request);
-            $postId = (int) ($params['post_id'] ?? 0);
-            $fields = is_array($params['fields'] ?? null) ? $params['fields'] : [];
-            $reason = sanitize_text_field((string) ($params['reason'] ?? 'Remote Site Manager content update'));
+        $params = self::params($request);
+        $postId = (int) ($params['post_id'] ?? 0);
+        $fields = is_array($params['fields'] ?? null) ? $params['fields'] : [];
+        $reason = sanitize_text_field((string) ($params['reason'] ?? 'Remote Site Manager content update'));
 
+        return self::planOperation(
+            capabilityId: 'content.write',
+            operation: 'content.update',
+            payload: ['post_id'=>$postId,'fields'=>$fields],
+            reason: $reason,
+        );
+    }
+
+    public static function planNavigation(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $params = self::params($request);
+        $provider = sanitize_text_field((string) ($params['provider'] ?? ''));
+        $targetId = (int) ($params['target_id'] ?? 0);
+        $fields = is_array($params['fields'] ?? null) ? $params['fields'] : [];
+        $reason = sanitize_text_field((string) ($params['reason'] ?? 'Remote Site Manager navigation update'));
+
+        return self::planOperation(
+            capabilityId: 'navigation.write',
+            operation: 'navigation.update',
+            payload: ['provider'=>$provider,'target_id'=>$targetId,'fields'=>$fields],
+            reason: $reason,
+        );
+    }
+
+    public static function applyContent(\WP_REST_Request $request): \WP_REST_Response
+    {
+        return self::applyPlan($request, 'content.write', 'content.update');
+    }
+
+    public static function applyNavigation(\WP_REST_Request $request): \WP_REST_Response
+    {
+        return self::applyPlan($request, 'navigation.write', 'navigation.update');
+    }
+
+    public static function rollbackContent(\WP_REST_Request $request): \WP_REST_Response
+    {
+        return self::rollbackPlan($request, 'content.write', 'content.update');
+    }
+
+    public static function rollbackNavigation(\WP_REST_Request $request): \WP_REST_Response
+    {
+        return self::rollbackPlan($request, 'navigation.write', 'navigation.update');
+    }
+
+    /** @param array<string,mixed> $payload */
+    private static function planOperation(string $capabilityId, string $operation, array $payload, string $reason): \WP_REST_Response
+    {
+        try {
             $adapter = new WordPressAdapter();
             $snapshot = $adapter->discover();
             $graph = $adapter->capabilities($snapshot);
-            $operation = new OperationRequest(
-                capabilityId: 'content.write',
-                operation: 'content.update',
-                payload: ['post_id'=>$postId,'fields'=>$fields],
+            $request = new OperationRequest(
+                capabilityId: $capabilityId,
+                operation: $operation,
+                payload: $payload,
                 write: true,
                 riskClass: 'editorial-review',
                 confirmationClass: 'explicit',
                 reason: $reason,
             );
-            $plan = $adapter->plan($operation, $snapshot, $graph);
+            $plan = $adapter->plan($request, $snapshot, $graph);
             $connection = (new RemoteConnectionStore())->publicState();
             $audit = (new RemotePlanStore())->save(
                 $plan,
@@ -98,7 +151,7 @@ final class RemoteWriteAccess
         }
     }
 
-    public static function applyContent(\WP_REST_Request $request): \WP_REST_Response
+    private static function applyPlan(\WP_REST_Request $request, string $capabilityId, string $operation): \WP_REST_Response
     {
         $params = self::params($request);
         if (true !== ($params['confirmed'] ?? false)) {
@@ -112,6 +165,9 @@ final class RemoteWriteAccess
         $plan = $plans->pending($planId, $connectionId, $generation);
         if (null === $plan) {
             return self::error(409, 'plan_not_available');
+        }
+        if ($capabilityId !== $plan->request->capabilityId || $operation !== $plan->request->operation) {
+            return self::error(409, 'plan_scope_mismatch');
         }
 
         try {
@@ -157,7 +213,7 @@ final class RemoteWriteAccess
         }
     }
 
-    public static function rollbackContent(\WP_REST_Request $request): \WP_REST_Response
+    private static function rollbackPlan(\WP_REST_Request $request, string $capabilityId, string $operation): \WP_REST_Response
     {
         $params = self::params($request);
         if (true !== ($params['confirmed'] ?? false)) {
@@ -176,6 +232,9 @@ final class RemoteWriteAccess
         try {
             $plan = $stored['plan'];
             $execution = $stored['execution'];
+            if ($capabilityId !== $plan->request->capabilityId || $operation !== $plan->request->operation) {
+                return self::error(409, 'plan_scope_mismatch');
+            }
             $rollback = (new WordPressAdapter())->rollback($plan, $execution, true);
             $audit = $plans->markRolledBack($plan, $rollback);
             return self::response($rollback->success ? 200 : 409, [

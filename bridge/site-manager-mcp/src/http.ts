@@ -55,7 +55,7 @@ export async function startHttpServer(config: BridgeConfig) {
       json(res, 200, {
         ok: true,
         service: 'site-manager-mcp',
-        version: '0.2.0',
+        version: '0.3.0',
         mode: writeEnabled ? 'governed-write' : 'read-only',
         connection_id: config.connectionId,
       });

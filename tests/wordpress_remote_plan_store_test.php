@@ -70,6 +70,46 @@ $assert(null !== $store->pending('plan_contract_1', 'smc_contract', 4), 'matchin
 $assert(null === $store->pending('plan_contract_1', 'smc_contract', 5), 'rotated connection generation must invalidate pending plan');
 $assert(null === $store->pending('plan_contract_1', 'smc_other', 4), 'different connection id must not load plan');
 
+$navigationRequest = new OperationRequest(
+    capabilityId: 'navigation.write',
+    operation: 'navigation.update',
+    payload: [
+        'provider'=>'wordpress-classic-menu',
+        'target_id'=>88,
+        'fields'=>['title'=>'Updated navigation'],
+    ],
+    write: true,
+    riskClass: 'editorial-review',
+    confirmationClass: 'explicit',
+    reason: 'SM-4C navigation contract test',
+);
+$navigationPlan = new Plan(
+    id: 'plan_navigation_1',
+    adapter: 'wordpress-core',
+    fingerprint: 'site-fingerprint-navigation',
+    request: $navigationRequest,
+    changes: [
+        'target'=>['provider'=>'wordpress-classic-menu','target_id'=>88],
+        'fields'=>['title'=>'Updated navigation'],
+        'precondition_fingerprint'=>'navigation-before',
+    ],
+    snapshot: [
+        'target'=>['provider'=>'wordpress-classic-menu','ID'=>88,'title'=>'Original navigation'],
+        'target_fingerprint'=>'navigation-before',
+    ],
+    reversible: true,
+    createdAt: gmdate(DATE_W3C),
+);
+$navigationSummary = $store->save($navigationPlan, 'smc_contract', 4);
+$assert('navigation.write' === ($navigationSummary['capability_id'] ?? ''), 'navigation plan capability must be preserved');
+$assert('navigation.update' === ($navigationSummary['operation'] ?? ''), 'navigation plan operation must be preserved');
+$assert(['provider'=>'wordpress-classic-menu','target_id'=>88] === ($navigationSummary['target'] ?? []), 'navigation target must be preserved');
+$assert(['title'] === ($navigationSummary['fields'] ?? []), 'navigation audit summary must expose changed fields only');
+$pendingNavigation = $store->pending('plan_navigation_1', 'smc_contract', 4);
+$assert(null !== $pendingNavigation, 'navigation plan must hydrate through generic remote plan store');
+$assert('navigation.write' === $pendingNavigation->request->capabilityId, 'hydrated navigation plan must retain capability');
+$assert('navigation.update' === $pendingNavigation->request->operation, 'hydrated navigation plan must retain operation');
+
 $execution = new ExecutionResult(true, 'applied', [
     'plan_id'=>'plan_contract_1',
     'post_id'=>77,

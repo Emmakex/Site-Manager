@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.6.0
+Stable tag: 0.8.0
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -16,9 +16,11 @@ On activation Site Manager performs a bounded local discovery of the installatio
 
 The WordPress admin surface follows the configured WordPress/user locale. English is the source language and Spanish (`es_ES`) is bundled.
 
-Version 0.6.0 adds the neutral remote-connection contract required before MCP governance. Site Manager can issue one revocable scoped connection using a high-entropy bearer token that is displayed once; only its SHA-256 digest is stored. The connection has a stable `smc_` id, generation counter, explicit scopes, rotation, revocation and last-successful-use tracking.
+Version 0.8.0 extends the scoped remote governance surface with native WordPress navigation writes. `navigation.write` remains opt-in and is exposed only when the current installation has an actionable native navigation provider. Remote navigation operations use fixed plan/apply/rollback routes, explicit confirmation, connection-generation binding, site and target stale-plan protection, read-back verification and retained rollback evidence.
 
-The first remote REST surface remains read/control-plane only: discovery and capabilities require `site.read`; diagnostics requires `site.diagnostics`. No remote write endpoint is exposed in 0.6.0. Write scopes may be selected only when the corresponding capability is currently governable, but remain dormant until a later MCP/write surface explicitly consumes them.
+Version 0.7.0 introduced the first governed remote write surface for native posts/pages using `content.write`. Version 0.6.0 introduced the neutral remote-connection contract, one revocable scoped connection, high-entropy bearer token issuance, digest-only storage, stable `smc_` connection id, generation counter, explicit scopes, rotation, revocation and last-successful-use tracking.
+
+Remote discovery and capabilities require `site.read`; diagnostics requires `site.diagnostics`. Write scopes are never inferred from detection. They may be selected only when the corresponding capability is currently governable and are consumed only by their matching fixed remote/MCP tools.
 
 The provider registry currently includes:
 
@@ -29,17 +31,32 @@ The provider registry currently includes:
 
 All writable provider adapters retain Site Manager's guarded lifecycle: plan-only preview, explicit confirmation, stale-target protection, bounded apply, read-back verification and guarded rollback. Unsupported provider surfaces remain blocked instead of being guessed.
 
-Native WordPress content and navigation governance remains available with the same safety model.
+Native WordPress content and navigation governance use the same safety model.
 
 == Installation ==
 
-1. Upload the official `site-manager-0.6.0.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.8.0.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review Site Manager > Dashboard and Site Manager > Diagnostics.
 5. When remote access is required, open Site Manager > Connection and generate a scoped token. Copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.8.0 =
+* Adds fixed remote `navigation.write` plan/apply/rollback routes for discovered native WordPress navigation providers.
+* Supports classic-menu item updates and block-navigation targets through the existing provider-aware navigation governance service.
+* Requires explicit `navigation.write` scope and the administrator principal bound to the connection.
+* Preserves explicit confirmation, connection-generation binding, site and target stale-plan protection, verification and guarded rollback.
+* Adds plan capability/operation matching so a plan cannot be applied or rolled back through a different scoped write route.
+* Keeps SEO remote writes disabled until their separate implementation and acceptance slice.
+
+= 0.7.0 =
+* Adds the first governed remote write surface for native WordPress posts/pages behind `content.write`.
+* Adds fixed content plan/apply/rollback routes with short-lived plans and retained rollback evidence.
+* Binds write authorization to the administrator principal who grants write scopes.
+* Adds connection-generation binding, stale-site and stale-target protection, explicit confirmation, verification and rollback.
+* Adds the authenticated `/connection` introspection resource used by the MCP bridge to discover granted scopes.
 
 = 0.6.0 =
 * Adds `Site Manager > Connection` as the neutral remote-access control surface.
@@ -49,7 +66,6 @@ Native WordPress content and navigation governance remains available with the sa
 * Keeps write scopes opt-in and unavailable when their matching capability is not governable.
 * Adds scoped bearer access to existing read REST resources while preserving local WordPress administrator access.
 * Requires `site.read` for discovery/capabilities and `site.diagnostics` for diagnostics.
-* Adds no remote write endpoint in this release.
 * Makes dashboard authorization counts reflect the scopes of the active connection.
 * Adds regression contracts for token secrecy, scope enforcement, rotation, revocation and authorization summary.
 
