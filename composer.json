@@ -26,6 +26,7 @@
       "@php tests/wordpress_seo_registry_routing_test.php",
       "@php tests/wordpress_yoast_seo_governance_test.php",
       "@php tests/wordpress_rank_math_seo_governance_test.php",
+      "@php tests/wordpress_aioseo_governance_test.php",
       "@php tests/wordpress_seo_semantic_governance_test.php"
     ],
     "lint": [
