@@ -175,6 +175,10 @@ final class Plugin
           <p><?php echo esc_html($this->seoEvidenceSummary($seo)); ?></p>
           <?php $seoOutputs = array_keys((array) ($seo['outputs'] ?? [])); ?>
           <?php if ($seoOutputs) : ?><p><strong><?php echo esc_html__('Owned SEO outputs:', 'site-manager'); ?></strong> <code><?php echo esc_html(implode(', ', $seoOutputs)); ?></code></p><?php endif; ?>
+          <?php if (! empty($seo['write_adapter_ready'])) : ?>
+            <p><strong><?php echo esc_html__('SEO write mode:', 'site-manager'); ?></strong> <code><?php echo esc_html((string) ($seo['write_mode'] ?? '')); ?></code></p>
+            <p><strong><?php echo esc_html__('Governable SEO inputs:', 'site-manager'); ?></strong> <code><?php echo esc_html(implode(', ', array_keys((array) ($seo['writable_inputs'] ?? [])))); ?></code></p>
+          <?php endif; ?>
           <p class="description"><?php echo esc_html__('Ownership detection is read-only. A detected owner or declared provider contract never grants SEO write access by itself.', 'site-manager'); ?></p>
 
           <h2><?php echo esc_html__('Capability map', 'site-manager'); ?></h2>
@@ -262,6 +266,13 @@ final class Plugin
         $authority = is_array($seo['authority'] ?? null) ? $seo['authority'] : [];
         if (! empty($seo['authority_resolved'])) {
             $label = (string) ($authority['label'] ?? $authority['id'] ?? '');
+            if (! empty($seo['write_adapter_ready'])) {
+                return sprintf(
+                    /* translators: %s is the SEO owner label. */
+                    __('%s · ownership resolved · semantic writer ready', 'site-manager'),
+                    $label
+                );
+            }
             return sprintf(
                 /* translators: %s is the SEO owner label. */
                 __('%s · ownership resolved · write adapter pending', 'site-manager'),
