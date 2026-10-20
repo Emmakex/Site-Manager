@@ -44,6 +44,11 @@ final class CapabilityGraph implements \JsonSerializable
 
     public function jsonSerialize(): array
     {
-        return ['capabilities' => $this->all()];
+        return [
+            'capabilities' => array_map(
+                static fn (Capability $capability): array => $capability->jsonSerialize(),
+                $this->all()
+            ),
+        ];
     }
 }

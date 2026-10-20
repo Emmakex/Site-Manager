@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.5.1
+Stable tag: 0.5.2
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -16,9 +16,9 @@ On activation Site Manager performs a bounded local discovery of the installatio
 
 The WordPress admin surface follows the configured WordPress/user locale. English is the source language and Spanish (`es_ES`) is bundled.
 
-Version 0.5.1 fixes the WordPress dashboard reader for the persisted capability-graph envelope. A governable `seo.write` capability now renders the same provider-ready state and metadata shown by the capability counters, including after upgrades from 0.5.0.
+Version 0.5.2 normalizes `CapabilityGraph` persistence to plain arrays. This fixes the second EMMake `nuevaweb` regression where WordPress serialized nested `Capability` objects even though the graph envelope itself was correct. Dashboard, REST and future MCP consumers now receive one stable persisted representation.
 
-Version 0.5.0 introduced the generic SEO provider layer. One stable machine-facing capability (`seo.write` / `seo.update`) is routed to the SEO owner actually discovered on the site. Provider detection alone never grants write access, and multiple SEO owners block writes until the conflict is resolved.
+Version 0.5.1 added compatibility with the persisted capability-graph envelope. Version 0.5.0 introduced the generic SEO provider layer and provider registry.
 
 The provider registry currently includes:
 
@@ -33,18 +33,23 @@ Native WordPress content and navigation governance remains available with the sa
 
 == Installation ==
 
-1. Upload the official `site-manager-0.5.1.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.5.2.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review the dashboard and Site Manager > Diagnostics.
 
 == Changelog ==
 
+= 0.5.2 =
+* Normalizes `CapabilityGraph::jsonSerialize()` so persisted capabilities are plain arrays rather than nested `Capability` objects.
+* Aligns WordPress option persistence, dashboard reads, REST output and future MCP consumers on the same stable structure.
+* Replaces the 0.5.1 synthetic dashboard regression fixture with a test built from real `Capability` and `CapabilityGraph` objects.
+* Forces discovery refresh on upgrade through the normal version guard so legacy object-backed state is rewritten automatically.
+
 = 0.5.1 =
-* Fixes dashboard capability lookup when capabilities are persisted using `CapabilityGraph::jsonSerialize()`.
+* Fixes dashboard capability lookup when capabilities are persisted using the `CapabilityGraph` envelope.
 * Keeps compatibility with direct capability-list input.
 * Makes the SEO ownership row, provider adapter, write mode and governable inputs reflect the same `seo.write` capability used by the capability counters.
-* Adds a regression contract for the persisted capability envelope discovered during EMMake `nuevaweb` acceptance.
 
 = 0.5.0 =
 * Adds the generic `SeoProviderAdapter` contract and provider registry.
@@ -54,7 +59,6 @@ Native WordPress content and navigation governance remains available with the sa
 * Adds guarded AIOSEO support for title, description and canonical using the plugin's own `aioseo_meta_data` REST contract through local WordPress REST dispatch.
 * Preserves provider conflicts as write-blocking states.
 * Keeps unknown providers and unverified provider surfaces read/diagnostic only.
-* Updates the dashboard to use provider-registry readiness, so UI status matches the capability graph for theme and plugin SEO providers.
 * Exposes the resolved provider adapter, write mode and governable SEO inputs in the dashboard/capability metadata.
 
 = 0.4.0 =
@@ -63,45 +67,30 @@ Native WordPress content and navigation governance remains available with the sa
 * Maps SEO title to native `post_title` and SEO description to native `post_excerpt` instead of creating parallel metadata.
 * Keeps canonical, robots, Open Graph, schema, hreflang and sitemap as derived outputs unless a provider contract proves direct storage.
 * Adds plan, explicit confirmation, stale-target protection, verification and rollback for semantic SEO updates.
-* Exposes write mode, writable SEO inputs and derived outputs in capabilities/diagnostics.
 
 = 0.3.3 =
 * Adds bounded read-only tracing of data sources referenced by SEO-focused theme code.
 * Detects native WordPress content, permalink, taxonomy and site-identity API usage.
-* Detects post-meta, options, ACF, theme-mod and custom-database source usage without reading values.
-* Detects WordPress post-field references and SEO filter-pipeline entries.
-* Adds source classification and detailed source evidence to Site Manager > Diagnostics.
 
 = 0.3.2 =
 * Adds bounded read-only static inspection of the active/parent theme PHP source.
-* Detects SEO-related post-meta and option key references without reading their values.
-* Detects SEO surface hook registrations with callback and relative theme-file evidence.
 * Adds Site Manager > Diagnostics for detailed provider-contract evidence.
 
 = 0.3.1 =
 * Adds bounded local SEO ownership discovery.
-* Resolves the `SEO GEO Starter` theme family as the `seo-geo-theme` theme-native authority.
-* Detects known SEO plugin ownership candidates (Yoast SEO, Rank Math and AIOSEO).
-* Reports multi-owner SEO conflicts instead of selecting a writer silently.
+* Detects known SEO plugin ownership candidates and reports conflicts.
 
 = 0.3.0 =
 * Adds discovery and guarded governance for native WordPress classic menus and block navigation.
-* Requires explicit confirmation, verification and guarded rollback.
 
 = 0.2.0 =
 * Adds safe native WordPress content governance for posts and pages.
-* Supports title, slug, content, excerpt and publication-state updates.
-* Adds plan, explicit confirmation, stale-plan detection, verification and rollback.
 
 = 0.1.2 =
 * Adds English/Spanish localization for the WordPress dashboard.
-* Keeps machine-facing capability identifiers stable and untranslated.
 
 = 0.1.1 =
 * Fixes dashboard rendering and moves Site Manager into its own top-level WordPress admin menu.
 
 = 0.1.0 =
 * First installable WordPress acceptance build.
-* Automatic discovery on activation.
-* Structural fingerprint and drift refresh.
-* Read/diagnostics capability graph with writes blocked by default.
