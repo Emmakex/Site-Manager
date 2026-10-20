@@ -17,50 +17,70 @@ Detection or installation of a plugin never grants write access. Multiple SEO ow
 
 ## Provider contract
 
-Every writable SEO provider implements `SeoProviderAdapter` and must expose:
+Every writable SEO provider implements `SeoProviderAdapter` and exposes a stable provider id, persisted plan-adapter id, ownership support, runtime readiness, real writable inputs, planning, explicit-confirmation apply, verification and guarded rollback.
 
-- stable provider id;
-- stable persisted plan-adapter id;
-- snapshot ownership support;
-- runtime readiness and real writable inputs;
-- planning;
-- explicit-confirmation apply;
-- verification;
-- guarded rollback.
+`SeoProviderRegistry` resolves a provider from the discovery snapshot for planning and resolves a persisted plan adapter for apply/verify/rollback. Provider-specific storage details remain outside Site Manager Core.
 
-`SeoProviderRegistry` resolves a provider from the discovery snapshot for planning and resolves a persisted plan adapter for apply/verify/rollback. This keeps execution stable after the plan has been created.
-
-## Implementations
+## Implementations in 0.5.0
 
 ### SEO/GEO Theme
 
-Provider id: `seo-geo-theme`
+Provider: `seo-geo-theme`  
+Plan adapter: `seo-geo-theme-native`  
+Write mode: semantic native sources.
 
-Plan adapter: `seo-geo-theme-native`
+| Site Manager input | Provider source |
+| --- | --- |
+| `title` | `post_title` |
+| `description` | `post_excerpt` |
 
-Mode: semantic native sources. The proven writable inputs are SEO title and description mapped to the native WordPress sources used by that theme. Other outputs remain derived unless separately proven writable.
+Canonical, robots, Open Graph, schema, hreflang and sitemap remain derived outputs.
 
 ### Yoast SEO
 
-Provider id: `yoast-seo`
+Provider: `yoast-seo`  
+Plan adapter: `yoast-seo-meta-api`  
+Write mode: Yoast `WPSEO_Meta` API.
 
-Plan adapter: `yoast-seo-meta-api`
+| Site Manager input | Yoast field |
+| --- | --- |
+| `title` | `title` |
+| `description` | `metadesc` |
+| `canonical` | `canonical` |
+| `indexability=default` | `meta-robots-noindex=0` |
+| `indexability=index` | `meta-robots-noindex=2` |
+| `indexability=noindex` | `meta-robots-noindex=1` |
 
-Mode: Yoast metadata API. The adapter is ready only when Yoast's `WPSEO_Meta::get_value()` and `WPSEO_Meta::set_value()` API is available at runtime.
+Open Graph, schema and sitemap remain provider-derived in this adapter.
 
-Initial semantic mapping:
+### Rank Math
 
-| Site Manager input | Yoast internal field | Behaviour |
-| --- | --- | --- |
-| `title` | `title` | direct provider override |
-| `description` | `metadesc` | direct provider override |
-| `canonical` | `canonical` | absolute URL or empty |
-| `indexability=default` | `meta-robots-noindex=0` | return to post-type default |
-| `indexability=index` | `meta-robots-noindex=2` | explicit index |
-| `indexability=noindex` | `meta-robots-noindex=1` | explicit noindex |
+Provider: `rank-math`  
+Plan adapter: `rank-math-post-meta`  
+Write mode: verified Rank Math post metadata.
 
-Open Graph, schema and sitemap are treated as provider-derived outputs in this first adapter. Site Manager does not invent unsupported direct controls.
+| Site Manager input | Rank Math field |
+| --- | --- |
+| `title` | `rank_math_title` |
+| `description` | `rank_math_description` |
+| `canonical` | `rank_math_canonical_url` |
 
-## Next providers
+`rank_math_robots` is deliberately not writable in 0.5.0 because its array/default semantics require a separate acceptance contract. Robots, Open Graph, schema and sitemap therefore remain provider-derived/read-only here.
 
-Rank Math and AIOSEO must implement the same contract using their own verified storage/runtime semantics. Provider-specific storage details must not be moved into Site Manager Core.
+### All in One SEO (AIOSEO)
+
+Provider: `aioseo`  
+Plan adapter: `aioseo-rest-meta-data`  
+Write mode: AIOSEO's own `aioseo_meta_data` REST contract via local WordPress REST dispatch.
+
+| Site Manager input | AIOSEO field |
+| --- | --- |
+| `title` | `aioseo_meta_data.title` |
+| `description` | `aioseo_meta_data.description` |
+| `canonical` | `aioseo_meta_data.canonical_url` |
+
+Site Manager calls WordPress locally with `rest_do_request()`; it makes no network request and performs no direct write to AIOSEO custom tables. AIOSEO's own permissions, validation and sanitization remain authoritative. Robots, social metadata, schema and sitemap remain provider-derived/read-only in this first adapter.
+
+## Unknown providers
+
+An unknown or unsupported SEO provider may still be detected and diagnosed, but `seo.write` remains blocked until a dedicated adapter proves its real storage/runtime contract and passes the Site Manager safety lifecycle.
