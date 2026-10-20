@@ -1,1 +1,93 @@
-# placeholder
+msgid ""
+msgstr ""
+"Project-Id-Version: Site Manager 0.1.2\\nReport-Msgid-Bugs-To: \\nPOT-Creation-Date: 2026-10-20 12:10+0200\\nPO-Revision-Date: 2026-10-20 12:10+0200\\nLast-Translator: Emmake\\nLanguage-Team: Spanish\\nLanguage: es_ES\\nMIME-Version: 1.0\\nContent-Type: text/plain; charset=UTF-8\\nContent-Transfer-Encoding: 8bit\\nPlural-Forms: nplurals=2; plural=(n != 1);\\n"
+
+msgid "Active plugins"
+msgstr "Plugins activos"
+
+msgid "Capability map"
+msgstr "Mapa de capacidades"
+
+msgid "Content types"
+msgstr "Tipos de contenido"
+
+msgid "Detected"
+msgstr "Detectado"
+
+msgid "Detected %1$d · Understood %2$d · Governable %3$d · Authorized %4$d · Blocked %5$d"
+msgstr "Detectadas %1$d · Comprendidas %2$d · Gobernables %3$d · Autorizadas %4$d · Bloqueadas %5$d"
+
+msgid "Discovered"
+msgstr "Descubierto"
+
+msgid "Fingerprint"
+msgstr "Huella estructural"
+
+msgid "Forbidden"
+msgstr "Acceso denegado"
+
+msgid "Generation:"
+msgstr "Generación:"
+
+msgid "Known providers detected"
+msgstr "Proveedores conocidos detectados"
+
+msgid "Last discovery:"
+msgstr "Último descubrimiento:"
+
+msgid "Missing to govern"
+msgstr "Pendiente para gobernar"
+
+msgid "No governance gaps detected."
+msgstr "No se han detectado carencias de gobernanza."
+
+msgid "No known provider plugin detected."
+msgstr "No se ha detectado ningún plugin proveedor conocido."
+
+msgid "PHP"
+msgstr "PHP"
+
+msgid "Platform"
+msgstr "Plataforma"
+
+msgid "Provider"
+msgstr "Proveedor"
+
+msgid "Provider detected; dedicated adapter required before governance is exposed."
+msgstr "Proveedor detectado; se requiere un adaptador específico antes de habilitar su gobernanza."
+
+msgid "Re-detect site"
+msgstr "Volver a detectar el sitio"
+
+msgid "SEO ownership must be resolved to a provider adapter first."
+msgstr "La propiedad SEO debe resolverse primero mediante un adaptador de proveedor."
+
+msgid "SM-2 navigation ownership and rollback are not implemented yet."
+msgstr "La gestión de propiedad de navegación y el rollback de SM-2 aún no están implementados."
+
+msgid "SM-2 safe WordPress Core write adapter is not implemented yet."
+msgstr "El adaptador seguro de escritura de WordPress Core de SM-2 aún no está implementado."
+
+msgid "Site Manager"
+msgstr "Site Manager"
+
+msgid "Site Manager Dashboard"
+msgstr "Panel de Site Manager"
+
+msgid "State"
+msgstr "Estado"
+
+msgid "Taxonomies"
+msgstr "Taxonomías"
+
+msgid "Theme"
+msgstr "Tema"
+
+msgid "This installation was discovered automatically. Detection describes the site; it does not grant write access."
+msgstr "Esta instalación se ha descubierto automáticamente. La detección describe el sitio; no concede acceso de escritura."
+
+msgid "Version"
+msgstr "Versión"
+
+msgid "You do not have permission to access Site Manager."
+msgstr "No tienes permisos para acceder a Site Manager."
