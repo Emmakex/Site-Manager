@@ -39,7 +39,7 @@ $readyTheme = [
 ];
 
 $registry = new SeoProviderRegistry();
-$assert(['seo-geo-theme'] === $registry->ids(), 'default registry must contain the proven theme-native provider only');
+$assert(['seo-geo-theme','yoast-seo'] === $registry->ids(), 'default registry must contain theme-native and Yoast provider adapters');
 $themeAdapter = $registry->resolve($snapshot($readyTheme));
 $assert(null !== $themeAdapter, 'resolved SEO/GEO theme ownership must resolve a provider adapter');
 $assert('seo-geo-theme' === $themeAdapter?->id(), 'resolved provider id must remain stable');
@@ -55,7 +55,9 @@ $yoastPending = [
     'write_adapter_ready'=>false,
     'safe_to_write_seo_metadata'=>false,
 ];
-$assert(null === $registry->resolve($snapshot($yoastPending)), 'detected Yoast ownership must remain unresolved by the registry until a Yoast adapter exists');
+$yoastAdapter = $registry->resolve($snapshot($yoastPending));
+$assert('yoast-seo' === $yoastAdapter?->id(), 'detected Yoast ownership must resolve its registered adapter');
+$assert(false === (($yoastAdapter?->readiness($snapshot($yoastPending))['ready'] ?? true)), 'Yoast adapter must remain not-ready when WPSEO_Meta runtime API is unavailable');
 
 $conflict = [
     'authority_resolved'=>false,
@@ -65,8 +67,8 @@ $conflict = [
 ];
 $assert(null === $registry->resolve($snapshot($conflict)), 'conflicted SEO ownership must never resolve a writer');
 
-$plan = new Plan(
-    id: 'plan-provider-registry',
+$themePlan = new Plan(
+    id: 'plan-provider-registry-theme',
     adapter: 'seo-geo-theme-native',
     fingerprint: 'fixture',
     request: new OperationRequest('seo.write', 'seo.update', [], true, 'editorial-review', 'explicit'),
@@ -75,6 +77,18 @@ $plan = new Plan(
     reversible: true,
     createdAt: '2026-01-01T00:00:00+00:00',
 );
-$assert('seo-geo-theme' === $registry->resolvePlan($plan)?->id(), 'apply/verify/rollback routing must resolve provider from the persisted plan adapter id');
+$assert('seo-geo-theme' === $registry->resolvePlan($themePlan)?->id(), 'theme apply/verify/rollback routing must resolve provider from persisted plan adapter id');
+
+$yoastPlan = new Plan(
+    id: 'plan-provider-registry-yoast',
+    adapter: 'yoast-seo-meta-api',
+    fingerprint: 'fixture',
+    request: new OperationRequest('seo.write', 'seo.update', [], true, 'editorial-review', 'explicit'),
+    changes: [],
+    snapshot: [],
+    reversible: true,
+    createdAt: '2026-01-01T00:00:00+00:00',
+);
+$assert('yoast-seo' === $registry->resolvePlan($yoastPlan)?->id(), 'Yoast apply/verify/rollback routing must resolve provider from persisted plan adapter id');
 
 echo "PASS: WordPress SM-3B SEO provider registry contract\n";
