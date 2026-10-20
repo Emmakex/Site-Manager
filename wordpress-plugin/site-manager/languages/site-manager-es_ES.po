@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Site Manager 0.5.2\n"
+"Project-Id-Version: Site Manager 0.6.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-20 18:55+0200\n"
-"PO-Revision-Date: 2026-10-20 18:55+0200\n"
+"POT-Creation-Date: 2026-10-20 19:15+0200\n"
+"PO-Revision-Date: 2026-10-20 19:15+0200\n"
 "Last-Translator: Emmake\n"
 "Language-Team: Spanish\n"
 "Language: es_ES\n"
@@ -306,3 +306,87 @@ msgstr "Proveedor detectado; se necesita un adaptador dedicado antes de habilita
 
 msgid "Forbidden"
 msgstr "Prohibido"
+
+msgid "Site Manager Connection"
+msgstr "Conexión de Site Manager"
+
+msgid "Connection"
+msgstr "Conexión"
+
+msgid "Create a revocable scoped connection for an external Site Manager client such as an MCP service. Detection never grants scopes automatically."
+msgstr "Crea una conexión revocable y limitada por permisos para un cliente externo de Site Manager, como un servicio MCP. La detección nunca concede permisos automáticamente."
+
+msgid "One or more requested scopes are not governable on this installation and were not granted."
+msgstr "Uno o más permisos solicitados no son gobernables en esta instalación y no se han concedido."
+
+msgid "Connection token rotated. The previous token is invalid immediately."
+msgstr "El token de conexión se ha rotado. El token anterior queda invalidado inmediatamente."
+
+msgid "Connection token generated."
+msgstr "Token de conexión generado."
+
+msgid "Connection scopes saved."
+msgstr "Permisos de conexión guardados."
+
+msgid "Connection revoked. Its token can no longer authenticate."
+msgstr "Conexión revocada. Su token ya no puede autenticarse."
+
+msgid "Copy this token now. It is shown only once and Site Manager does not store the plaintext token."
+msgstr "Copia este token ahora. Solo se muestra una vez y Site Manager no almacena el token en texto plano."
+
+msgid "Store it in the external client secret store. Do not paste it into ordinary chat messages."
+msgstr "Guárdalo en el almacén de secretos del cliente externo. No lo pegues en mensajes normales del chat."
+
+msgid "Connection status"
+msgstr "Estado de la conexión"
+
+msgid "REST base"
+msgstr "Base REST"
+
+msgid "Connection ID"
+msgstr "ID de conexión"
+
+msgid "Enabled"
+msgstr "Habilitada"
+
+msgid "Granted scopes"
+msgstr "Permisos concedidos"
+
+msgid "Last used"
+msgstr "Último uso"
+
+msgid "Scopes"
+msgstr "Permisos"
+
+msgid "Only scopes backed by currently governable capabilities are offered. Write scopes are never selected automatically."
+msgstr "Solo se ofrecen permisos respaldados por capacidades gobernables actualmente. Los permisos de escritura nunca se seleccionan automáticamente."
+
+msgid "Grant"
+msgstr "Conceder"
+
+msgid "Scope"
+msgstr "Permiso"
+
+msgid "Type"
+msgstr "Tipo"
+
+msgid "Write"
+msgstr "Escritura"
+
+msgid "Read"
+msgstr "Lectura"
+
+msgid "Generate connection token"
+msgstr "Generar token de conexión"
+
+msgid "Save scopes"
+msgstr "Guardar permisos"
+
+msgid "Rotate connection token"
+msgstr "Rotar token de conexión"
+
+msgid "Revoke connection"
+msgstr "Revocar conexión"
+
+msgid "Revoke this connection?"
+msgstr "¿Revocar esta conexión?"
