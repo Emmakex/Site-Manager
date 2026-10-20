@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Site Manager 0.1.2\n"
+"Project-Id-Version: Site Manager 0.3.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-20 12:40+0200\n"
-"PO-Revision-Date: 2026-10-20 12:40+0200\n"
+"POT-Creation-Date: 2026-10-20 13:45+0200\n"
+"PO-Revision-Date: 2026-10-20 13:45+0200\n"
 "Last-Translator: Emmake\n"
 "Language-Team: Spanish\n"
 "Language: es_ES\n"
@@ -58,6 +58,21 @@ msgstr "Taxonomías"
 msgid "Active plugins"
 msgstr "Plugins activos"
 
+msgid "Navigation"
+msgstr "Navegación"
+
+msgid "No native navigation provider detected."
+msgstr "No se ha detectado ningún proveedor de navegación nativa."
+
+msgid "WordPress classic menus"
+msgstr "Menús clásicos de WordPress"
+
+msgid "WordPress block navigation"
+msgstr "Navegación por bloques de WordPress"
+
+msgid "%1$s (%2$d targets)"
+msgstr "%1$s (%2$d objetivos)"
+
 msgid "Fingerprint"
 msgstr "Huella estructural"
 
@@ -96,6 +111,12 @@ msgstr "El adaptador seguro de escritura de WordPress Core todavía no está imp
 
 msgid "Navigation ownership and rollback are not implemented yet."
 msgstr "La propiedad de navegación y el rollback todavía no están implementados."
+
+msgid "No native WordPress navigation provider was detected."
+msgstr "No se ha detectado ningún proveedor de navegación nativa de WordPress."
+
+msgid "Native WordPress navigation was detected but no existing target is safely governable yet."
+msgstr "Se ha detectado navegación nativa de WordPress, pero todavía no existe ningún objetivo que pueda gobernarse de forma segura."
 
 msgid "SEO ownership must be resolved to a provider adapter first."
 msgstr "Primero debe resolverse la propiedad del SEO mediante un adaptador de proveedor."
