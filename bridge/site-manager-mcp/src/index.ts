@@ -2,7 +2,7 @@ import { loadConfig } from './config.js';
 import { startHttpServer } from './http.js';
 
 const config = loadConfig();
-const { httpServer, mcp } = startHttpServer(config);
+const { httpServer, mcp } = await startHttpServer(config);
 
 async function shutdown(signal: string): Promise<void> {
   console.error(`[site-manager-mcp] ${signal}; shutting down`);

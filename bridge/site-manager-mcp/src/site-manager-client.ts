@@ -1,6 +1,7 @@
 import type { BridgeConfig } from './config.js';
 
-export type SiteManagerResource = 'discovery' | 'capabilities' | 'diagnostics';
+export type SiteManagerReadResource = 'connection' | 'discovery' | 'capabilities' | 'diagnostics';
+export type SiteManagerWriteResource = 'write/content/plan' | 'write/content/apply' | 'write/content/rollback';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -25,9 +26,24 @@ export class SiteManagerClient {
     this.fetchImpl = fetchImpl;
   }
 
+  public async connectionState(): Promise<JsonRecord> {
+    const data = await this.request('connection', 'GET');
+    if (!isRecord(data)) {
+      throw new SiteManagerClientError('Site Manager returned an invalid connection contract.');
+    }
+    return data;
+  }
+
+  public async grantedScopes(): Promise<string[]> {
+    const state = await this.connectionState();
+    const scopes = state.scopes;
+    if (!Array.isArray(scopes)) return [];
+    return scopes.filter((scope): scope is string => typeof scope === 'string');
+  }
+
   public async siteRead(): Promise<JsonRecord> {
-    const discovery = await this.readResource('discovery');
-    const capabilities = await this.readResource('capabilities');
+    const discovery = await this.request('discovery', 'GET');
+    const capabilities = await this.request('capabilities', 'GET');
     return {
       connection_id: this.config.connectionId,
       discovery,
@@ -36,31 +52,50 @@ export class SiteManagerClient {
   }
 
   public async diagnostics(): Promise<JsonRecord> {
-    const diagnostics = await this.readResource('diagnostics');
+    const diagnostics = await this.request('diagnostics', 'GET');
     return {
       connection_id: this.config.connectionId,
       diagnostics,
     };
   }
 
-  private async readResource(resource: SiteManagerResource): Promise<unknown> {
+  public async contentUpdatePlan(input: { post_id: number; fields: JsonRecord; reason?: string }): Promise<unknown> {
+    return this.request('write/content/plan', 'POST', input);
+  }
+
+  public async contentUpdateApply(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
+    return this.request('write/content/apply', 'POST', input);
+  }
+
+  public async contentUpdateRollback(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
+    return this.request('write/content/rollback', 'POST', input);
+  }
+
+  private async request(resource: SiteManagerReadResource | SiteManagerWriteResource, method: 'GET' | 'POST', body?: unknown): Promise<unknown> {
     const endpoint = new URL(resource, this.config.restBase);
     if (endpoint.origin !== this.config.restBase.origin) {
       throw new SiteManagerClientError('Site Manager target origin changed unexpectedly.');
     }
 
+    const headers: Record<string, string> = {
+      accept: 'application/json',
+      authorization: `Bearer ${this.config.token}`,
+      'user-agent': 'site-manager-mcp/0.2.0',
+    };
+    const init: RequestInit = {
+      method,
+      headers,
+      redirect: 'error',
+      signal: AbortSignal.timeout(this.config.timeoutMs),
+    };
+    if (method === 'POST') {
+      headers['content-type'] = 'application/json';
+      init.body = JSON.stringify(body ?? {});
+    }
+
     let response: Response;
     try {
-      response = await this.fetchImpl(endpoint, {
-        method: 'GET',
-        headers: {
-          accept: 'application/json',
-          authorization: `Bearer ${this.config.token}`,
-          'user-agent': 'site-manager-mcp/0.1.0',
-        },
-        redirect: 'error',
-        signal: AbortSignal.timeout(this.config.timeoutMs),
-      });
+      response = await this.fetchImpl(endpoint, init);
     } catch {
       throw new SiteManagerClientError('Site Manager request failed before a valid response was received.');
     }

@@ -39,6 +39,20 @@ final class RemoteAccess
                 },
             ], true);
         }
+
+        register_rest_route('site-manager/v1', '/connection', [
+            'methods'=>\WP_REST_Server::READABLE,
+            'permission_callback'=>static function (\WP_REST_Request $request): bool {
+                if (current_user_can('manage_options')) {
+                    return true;
+                }
+                $token = RemoteConnectionStore::bearerFromRequest($request);
+                return (new RemoteConnectionStore())->tokenIsValid($token);
+            },
+            'callback'=>static function (): \WP_REST_Response {
+                return new \WP_REST_Response(['data'=>(new RemoteConnectionStore())->publicState()], 200);
+            },
+        ], true);
     }
 
     public static function syncAuthorizationSummary(): void
