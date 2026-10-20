@@ -22,11 +22,13 @@ composer install \
 
 cp "$PLUGIN" "$PACKAGE/site-manager.php"
 cp "$ROOT/wordpress-plugin/site-manager/readme.txt" "$PACKAGE/readme.txt"
+cp -R "$ROOT/wordpress-plugin/site-manager/languages" "$PACKAGE/languages"
 cp -R "$ROOT/src" "$PACKAGE/src"
 cp -R "$ROOT/vendor" "$PACKAGE/vendor"
 
 find "$PACKAGE" -name '.DS_Store' -delete
 find "$PACKAGE" -type d -name '.git' -prune -exec rm -rf {} + || true
+find "$PACKAGE/languages" -name '.keep' -delete || true
 
 ZIP="$DIST/site-manager-$VERSION.zip"
 rm -f "$ZIP" "$ZIP.sha256"
