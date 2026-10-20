@@ -110,11 +110,93 @@ final class DiscoveryService
             ],
             'content_types'=>$postTypes,
             'taxonomies'=>$taxonomies,
+            'navigation'=>$this->navigationInventory(),
             'plugins'=>[
                 'active_count'=>count($plugins),
                 'items'=>$plugins,
             ],
             'providers'=>($this->providers ?? new ProviderDetector())->detect($plugins),
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    private function navigationInventory(): array
+    {
+        $classicMenus = [];
+        $classicTargetCount = 0;
+        if (function_exists('wp_get_nav_menus')) {
+            foreach (array_slice((array) wp_get_nav_menus(['hide_empty'=>false]), 0, 100) as $menu) {
+                $items = function_exists('wp_get_nav_menu_items') ? wp_get_nav_menu_items((int) $menu->term_id) : [];
+                $itemIds = [];
+                if (is_array($items)) {
+                    foreach (array_slice($items, 0, 200) as $item) {
+                        $itemIds[] = (int) ($item->ID ?? 0);
+                    }
+                    $itemIds = array_values(array_filter($itemIds));
+                }
+                $classicTargetCount += count($itemIds);
+                $classicMenus[] = [
+                    'term_id'=>(int) $menu->term_id,
+                    'name'=>(string) $menu->name,
+                    'slug'=>(string) $menu->slug,
+                    'item_ids'=>$itemIds,
+                    'item_count'=>(int) ($menu->count ?? count($itemIds)),
+                    'targets_truncated'=>(int) ($menu->count ?? 0) > count($itemIds),
+                ];
+            }
+        }
+
+        $blockNavigation = [];
+        if (post_type_exists('wp_navigation')) {
+            $ids = get_posts([
+                'post_type'=>'wp_navigation',
+                'post_status'=>['publish','draft','private'],
+                'posts_per_page'=>200,
+                'fields'=>'ids',
+                'orderby'=>'ID',
+                'order'=>'ASC',
+                'no_found_rows'=>true,
+                'suppress_filters'=>true,
+            ]);
+            foreach ((array) $ids as $id) {
+                $post = get_post((int) $id);
+                if (! $post) { continue; }
+                $blockNavigation[] = [
+                    'post_id'=>(int) $post->ID,
+                    'title'=>(string) $post->post_title,
+                    'status'=>(string) $post->post_status,
+                ];
+            }
+        }
+
+        $providers = [];
+        $classicDetected = current_theme_supports('menus') || [] !== $classicMenus;
+        if ($classicDetected) {
+            $providers[] = [
+                'id'=>NativeNavigationRuntime::CLASSIC,
+                'label'=>'WordPress classic menus',
+                'detected'=>true,
+                'actionable'=>$classicTargetCount > 0,
+                'target_count'=>$classicTargetCount,
+            ];
+        }
+        $blockTheme = function_exists('wp_is_block_theme') && wp_is_block_theme();
+        if ($blockTheme || [] !== $blockNavigation) {
+            $providers[] = [
+                'id'=>NativeNavigationRuntime::BLOCK,
+                'label'=>'WordPress block navigation',
+                'detected'=>true,
+                'actionable'=>[] !== $blockNavigation,
+                'target_count'=>count($blockNavigation),
+            ];
+        }
+
+        return [
+            'providers'=>$providers,
+            'registered_locations'=>function_exists('get_registered_nav_menus') ? get_registered_nav_menus() : [],
+            'assigned_locations'=>function_exists('get_nav_menu_locations') ? get_nav_menu_locations() : [],
+            'classic_menus'=>$classicMenus,
+            'block_navigation'=>$blockNavigation,
         ];
     }
 
@@ -150,6 +232,7 @@ final class DiscoveryService
             'theme'=>$inventory['theme'] ?? [],
             'content_types'=>$inventory['content_types'] ?? [],
             'taxonomies'=>$inventory['taxonomies'] ?? [],
+            'navigation'=>$inventory['navigation'] ?? [],
             'plugins'=>$inventory['plugins'] ?? [],
         ];
         return hash('sha256', CanonicalJson::encode($source));

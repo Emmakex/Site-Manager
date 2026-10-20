@@ -16,7 +16,8 @@
     "test": [
       "@php tests/core_contract_test.php",
       "@php tests/wordpress_adapter_contract_test.php",
-      "@php tests/wordpress_content_governance_test.php"
+      "@php tests/wordpress_content_governance_test.php",
+      "@php tests/wordpress_navigation_governance_test.php"
     ],
     "lint": [
       "@php scripts/lint.php"

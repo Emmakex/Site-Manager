@@ -20,6 +20,7 @@ final class WordPressAdapter implements PlatformAdapter
     public function __construct(
         private readonly ?DiscoveryService $discovery = null,
         private readonly ?ContentGovernanceService $content = null,
+        private readonly ?NavigationGovernanceService $navigation = null,
     ) {}
 
     public function id(): string { return 'wordpress-core'; }
@@ -44,6 +45,31 @@ final class WordPressAdapter implements PlatformAdapter
             }
         }
 
+        $navigationProviders = [];
+        $navigationDetected = false;
+        $navigationGovernable = false;
+        foreach ((array) ($snapshot->inventory['navigation']['providers'] ?? []) as $provider) {
+            if (! is_array($provider)) { continue; }
+            $id = (string) ($provider['id'] ?? '');
+            if (! in_array($id, [NativeNavigationRuntime::CLASSIC, NativeNavigationRuntime::BLOCK], true)) { continue; }
+            $navigationDetected = true;
+            $actionable = ! empty($provider['actionable']);
+            $navigationGovernable = $navigationGovernable || $actionable;
+            $navigationProviders[] = [
+                'id'=>$id,
+                'label'=>(string) ($provider['label'] ?? $id),
+                'actionable'=>$actionable,
+                'target_count'=>(int) ($provider['target_count'] ?? 0),
+            ];
+        }
+
+        $navigationBlockers = [];
+        if (! $navigationDetected) {
+            $navigationBlockers[] = 'No native WordPress navigation provider was detected.';
+        } elseif (! $navigationGovernable) {
+            $navigationBlockers[] = 'Native WordPress navigation was detected but no existing target is safely governable yet.';
+        }
+
         $caps = [
             new Capability('site.read', $this->id(), true, true, true, ['site.inspect'], ['site.read']),
             new Capability('site.diagnostics', $this->id(), true, true, true, ['site.diagnostics'], ['site.diagnostics']),
@@ -59,7 +85,24 @@ final class WordPressAdapter implements PlatformAdapter
                 $nativeContent ? [] : ['Native WordPress posts/pages were not detected.'],
                 ['owned_fields'=>['title','slug','content','excerpt','status'],'post_types'=>['post','page'],'confirmation'=>'explicit','reversible'=>true],
             ),
-            new Capability('navigation.write', $this->id(), true, true, false, ['navigation.update'], ['navigation.write'], ['SM-2 navigation ownership and rollback are not implemented yet.']),
+            new Capability(
+                'navigation.write',
+                $this->id(),
+                $navigationDetected,
+                $navigationDetected,
+                $navigationGovernable,
+                ['navigation.update'],
+                ['navigation.write'],
+                $navigationBlockers,
+                [
+                    'providers'=>$navigationProviders,
+                    'confirmation'=>'explicit',
+                    'reversible'=>true,
+                    'stale_plan_protection'=>true,
+                    'classic_fields'=>['title','url','description','attr_title','target','classes','xfn'],
+                    'block_fields'=>['title','content','status'],
+                ],
+            ),
             new Capability('seo.write', $this->id(), true, false, false, ['seo.update'], ['seo.write'], ['SEO ownership must be resolved to a provider adapter first.']),
         ];
 
@@ -102,6 +145,13 @@ final class WordPressAdapter implements PlatformAdapter
                 'rollback'=>true,
                 'post_types'=>['post','page'],
             ],
+            'navigation_write_guard'=>[
+                'confirmation'=>'explicit',
+                'stale_plan_protection'=>true,
+                'verification'=>true,
+                'rollback'=>true,
+                'providers'=>(array) ($inventory['navigation']['providers'] ?? []),
+            ],
         ];
     }
 
@@ -109,6 +159,9 @@ final class WordPressAdapter implements PlatformAdapter
     {
         if ('content.write' === $request->capabilityId && 'content.update' === $request->operation) {
             return $this->content()->plan($request, $snapshot, $graph);
+        }
+        if ('navigation.write' === $request->capabilityId && 'navigation.update' === $request->operation) {
+            return $this->navigation()->plan($request, $snapshot, $graph);
         }
         throw new LogicException('No WordPress Core planner is registered for the requested operation.');
     }
@@ -118,6 +171,9 @@ final class WordPressAdapter implements PlatformAdapter
         if ('content.write' === $plan->request->capabilityId && 'content.update' === $plan->request->operation) {
             return $this->content()->apply($plan, $confirmed);
         }
+        if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
+            return $this->navigation()->apply($plan, $confirmed);
+        }
         throw new LogicException('No WordPress Core executor is registered for this plan.');
     }
 
@@ -125,6 +181,9 @@ final class WordPressAdapter implements PlatformAdapter
     {
         if ('content.write' === $plan->request->capabilityId && 'content.update' === $plan->request->operation) {
             return $this->content()->verify($plan, $result);
+        }
+        if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
+            return $this->navigation()->verify($plan, $result);
         }
         throw new LogicException('No WordPress Core verifier is registered for this plan.');
     }
@@ -134,11 +193,19 @@ final class WordPressAdapter implements PlatformAdapter
         if ('content.write' === $plan->request->capabilityId && 'content.update' === $plan->request->operation) {
             return $this->content()->rollback($plan, $result, $confirmed);
         }
+        if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
+            return $this->navigation()->rollback($plan, $result, $confirmed);
+        }
         throw new LogicException('No WordPress Core rollback handler is registered for this plan.');
     }
 
     private function content(): ContentGovernanceService
     {
         return $this->content ?? new ContentGovernanceService();
+    }
+
+    private function navigation(): NavigationGovernanceService
+    {
+        return $this->navigation ?? new NavigationGovernanceService();
     }
 }
