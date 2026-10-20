@@ -71,8 +71,18 @@ export function startHttpServer(config: BridgeConfig) {
       return;
     }
 
+    if (!req.method) {
+      json(res, 400, { ok: false, code: 'method_required' });
+      return;
+    }
+    if (!req.url) {
+      json(res, 400, { ok: false, code: 'url_required' });
+      return;
+    }
+
     try {
-      await handle(req, res);
+      const mcpRequest = req as IncomingMessage & { method: string; url: string };
+      await handle(mcpRequest, res);
     } catch {
       console.error('[site-manager-mcp] request failed');
       if (!res.headersSent) {
