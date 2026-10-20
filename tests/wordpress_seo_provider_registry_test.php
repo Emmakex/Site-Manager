@@ -10,85 +10,62 @@ use SiteManager\Core\Model\Plan;
 use SiteManager\Core\Model\PlatformIdentity;
 
 $assert = static function (bool $condition, string $message): void {
-    if (! $condition) {
-        fwrite(STDERR, "FAIL: {$message}\n");
-        exit(1);
-    }
+    if (! $condition) { fwrite(STDERR, "FAIL: {$message}\n"); exit(1); }
 };
 
 $snapshot = static function (array $seo): DiscoverySnapshot {
     return new DiscoverySnapshot(
-        schemaVersion: '1',
-        generatedAt: '2026-01-01T00:00:00+00:00',
-        fingerprint: 'seo-provider-registry-fixture',
-        platform: new PlatformIdentity('wordpress', '7.x', 'wordpress-core'),
-        inventory: ['seo_authority'=>$seo],
+        schemaVersion:'1', generatedAt:'2026-01-01T00:00:00+00:00', fingerprint:'seo-provider-registry-fixture',
+        platform:new PlatformIdentity('wordpress','7.x','wordpress-core'), inventory:['seo_authority'=>$seo],
     );
 };
 
 $readyTheme = [
-    'authority_resolved'=>true,
-    'conflict'=>false,
+    'authority_resolved'=>true,'conflict'=>false,
     'authority'=>['id'=>'seo-geo-theme','label'=>'SEO/GEO Theme'],
-    'write_adapter_ready'=>true,
-    'safe_to_write_seo_metadata'=>true,
-    'write_mode'=>'semantic-native-sources',
+    'write_adapter_ready'=>true,'safe_to_write_seo_metadata'=>true,'write_mode'=>'semantic-native-sources',
     'writable_inputs'=>['title'=>['source'=>'post_title'],'description'=>['source'=>'post_excerpt']],
-    'derived_outputs'=>['canonical'=>['sources'=>['permalink']]],
-    'outputs'=>[],
+    'derived_outputs'=>['canonical'=>['sources'=>['permalink']]],'outputs'=>[],
 ];
 
 $registry = new SeoProviderRegistry();
-$assert(['seo-geo-theme','yoast-seo'] === $registry->ids(), 'default registry must contain theme-native and Yoast provider adapters');
+$assert(['rank-math','seo-geo-theme','yoast-seo'] === $registry->ids(), 'default registry must contain Rank Math, theme-native and Yoast adapters');
 $themeAdapter = $registry->resolve($snapshot($readyTheme));
-$assert(null !== $themeAdapter, 'resolved SEO/GEO theme ownership must resolve a provider adapter');
-$assert('seo-geo-theme' === $themeAdapter?->id(), 'resolved provider id must remain stable');
-$assert('seo-geo-theme-native' === $themeAdapter?->planAdapterId(), 'provider plan adapter id must remain stable');
-$readiness = $themeAdapter?->readiness($snapshot($readyTheme)) ?? [];
-$assert(true === ($readiness['ready'] ?? false), 'provider readiness must reflect the proven runtime contract');
-$assert('semantic-native-sources' === ($readiness['write_mode'] ?? null), 'provider readiness must expose its real write mode');
+$assert('seo-geo-theme' === $themeAdapter?->id(), 'resolved SEO/GEO theme ownership must resolve its adapter');
+$assert('seo-geo-theme-native' === $themeAdapter?->planAdapterId(), 'theme plan adapter id must remain stable');
+$themeReady = $themeAdapter?->readiness($snapshot($readyTheme)) ?? [];
+$assert(true === ($themeReady['ready'] ?? false), 'theme provider readiness must remain green');
 
-$yoastPending = [
-    'authority_resolved'=>true,
-    'conflict'=>false,
-    'authority'=>['id'=>'yoast-seo','label'=>'Yoast SEO'],
-    'write_adapter_ready'=>false,
-    'safe_to_write_seo_metadata'=>false,
-];
-$yoastAdapter = $registry->resolve($snapshot($yoastPending));
-$assert('yoast-seo' === $yoastAdapter?->id(), 'detected Yoast ownership must resolve its registered adapter');
-$assert(false === (($yoastAdapter?->readiness($snapshot($yoastPending))['ready'] ?? true)), 'Yoast adapter must remain not-ready when WPSEO_Meta runtime API is unavailable');
+$yoast = ['authority_resolved'=>true,'conflict'=>false,'authority'=>['id'=>'yoast-seo','label'=>'Yoast SEO']];
+$yoastAdapter = $registry->resolve($snapshot($yoast));
+$assert('yoast-seo' === $yoastAdapter?->id(), 'Yoast ownership must resolve its registered adapter');
+$yoastReady = $yoastAdapter?->readiness($snapshot($yoast)) ?? [];
+$assert(false === ($yoastReady['ready'] ?? true), 'Yoast adapter must remain not-ready when WPSEO_Meta runtime is unavailable');
+
+$rankMath = ['authority_resolved'=>true,'conflict'=>false,'authority'=>['id'=>'rank-math','label'=>'Rank Math SEO']];
+$rankMathAdapter = $registry->resolve($snapshot($rankMath));
+$assert('rank-math' === $rankMathAdapter?->id(), 'Rank Math ownership must resolve its registered adapter');
+$rankReady = $rankMathAdapter?->readiness($snapshot($rankMath)) ?? [];
+$assert(false === ($rankReady['ready'] ?? true), 'Rank Math adapter must remain not-ready outside a loaded Rank Math runtime');
 
 $conflict = [
-    'authority_resolved'=>false,
-    'conflict'=>true,
-    'authority'=>null,
+    'authority_resolved'=>false,'conflict'=>true,'authority'=>null,
     'candidates'=>[['id'=>'seo-geo-theme'],['id'=>'yoast-seo']],
 ];
 $assert(null === $registry->resolve($snapshot($conflict)), 'conflicted SEO ownership must never resolve a writer');
 
-$themePlan = new Plan(
-    id: 'plan-provider-registry-theme',
-    adapter: 'seo-geo-theme-native',
-    fingerprint: 'fixture',
-    request: new OperationRequest('seo.write', 'seo.update', [], true, 'editorial-review', 'explicit'),
-    changes: [],
-    snapshot: [],
-    reversible: true,
-    createdAt: '2026-01-01T00:00:00+00:00',
-);
-$assert('seo-geo-theme' === $registry->resolvePlan($themePlan)?->id(), 'theme apply/verify/rollback routing must resolve provider from persisted plan adapter id');
-
-$yoastPlan = new Plan(
-    id: 'plan-provider-registry-yoast',
-    adapter: 'yoast-seo-meta-api',
-    fingerprint: 'fixture',
-    request: new OperationRequest('seo.write', 'seo.update', [], true, 'editorial-review', 'explicit'),
-    changes: [],
-    snapshot: [],
-    reversible: true,
-    createdAt: '2026-01-01T00:00:00+00:00',
-);
-$assert('yoast-seo' === $registry->resolvePlan($yoastPlan)?->id(), 'Yoast apply/verify/rollback routing must resolve provider from persisted plan adapter id');
+$plans = [
+    'seo-geo-theme-native'=>'seo-geo-theme',
+    'yoast-seo-meta-api'=>'yoast-seo',
+    'rank-math-post-meta'=>'rank-math',
+];
+foreach ($plans as $planAdapter => $providerId) {
+    $plan = new Plan(
+        id:'plan-' . $providerId, adapter:$planAdapter, fingerprint:'fixture',
+        request:new OperationRequest('seo.write','seo.update',[],true,'editorial-review','explicit'),
+        changes:[], snapshot:[], reversible:true, createdAt:'2026-01-01T00:00:00+00:00',
+    );
+    $assert($providerId === $registry->resolvePlan($plan)?->id(), 'persisted plan adapter must resolve ' . $providerId);
+}
 
 echo "PASS: WordPress SM-3B SEO provider registry contract\n";

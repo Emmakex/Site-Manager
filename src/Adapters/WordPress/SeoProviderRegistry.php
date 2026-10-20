@@ -18,6 +18,7 @@ final class SeoProviderRegistry
         $adapters ??= [
             new SeoGeoThemeProviderAdapter(),
             new YoastSeoProviderAdapter(),
+            new RankMathSeoProviderAdapter(),
         ];
         foreach ($adapters as $adapter) {
             if (! $adapter instanceof SeoProviderAdapter) {
