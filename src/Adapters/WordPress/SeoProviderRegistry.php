@@ -15,7 +15,10 @@ final class SeoProviderRegistry
     /** @param list<SeoProviderAdapter>|null $adapters */
     public function __construct(?array $adapters = null)
     {
-        $adapters ??= [new SeoGeoThemeProviderAdapter()];
+        $adapters ??= [
+            new SeoGeoThemeProviderAdapter(),
+            new YoastSeoProviderAdapter(),
+        ];
         foreach ($adapters as $adapter) {
             if (! $adapter instanceof SeoProviderAdapter) {
                 throw new InvalidArgumentException('SEO provider registry accepts SeoProviderAdapter implementations only.');
