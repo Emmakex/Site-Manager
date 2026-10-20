@@ -73,9 +73,8 @@ final class Plugin
     {
         $adapter = new WordPressAdapter();
         $graph = $adapter->capabilities($snapshot);
-        $capabilities = $graph->all();
         $gaps = [];
-        foreach ($capabilities as $capability) {
+        foreach ($graph->all() as $capability) {
             if ($capability->detected && ! $capability->governable) {
                 $gaps[] = [
                     'id'=>$capability->id,
@@ -113,6 +112,14 @@ final class Plugin
             'dashicons-admin-site-alt3',
             58
         );
+        add_submenu_page(
+            'site-manager',
+            __('Site Manager Dashboard', 'site-manager'),
+            __('Dashboard', 'site-manager'),
+            'manage_options',
+            'site-manager',
+            [$this, 'renderAdmin']
+        );
     }
 
     public function renderAdmin(): void
@@ -143,33 +150,58 @@ final class Plugin
 
           <h2><?php echo esc_html__('Discovered', 'site-manager'); ?></h2>
           <table class="widefat striped"><tbody>
-            <tr><th>Platform</th><td><?php echo esc_html((string) ($platform['platform'] ?? '')); ?> <?php echo esc_html((string) ($platform['version'] ?? '')); ?></td></tr>
-            <tr><th>PHP</th><td><?php echo esc_html((string) ($inventory['runtime']['php'] ?? '')); ?></td></tr>
-            <tr><th>Theme</th><td><?php echo esc_html((string) ($theme['name'] ?? '')); ?> <?php echo esc_html((string) ($theme['version'] ?? '')); ?> <code><?php echo esc_html((string) ($theme['stylesheet'] ?? '')); ?></code></td></tr>
-            <tr><th>Content types</th><td><?php echo esc_html((string) count((array) ($inventory['content_types'] ?? []))); ?></td></tr>
-            <tr><th>Taxonomies</th><td><?php echo esc_html((string) count((array) ($inventory['taxonomies'] ?? []))); ?></td></tr>
-            <tr><th>Active plugins</th><td><?php echo esc_html((string) ($inventory['plugins']['active_count'] ?? 0)); ?></td></tr>
-            <tr><th>Fingerprint</th><td><code style="word-break:break-all"><?php echo esc_html((string) ($snapshot['fingerprint'] ?? '')); ?></code></td></tr>
+            <tr><th><?php echo esc_html__('Platform', 'site-manager'); ?></th><td><?php echo esc_html((string) ($platform['platform'] ?? '')); ?> <?php echo esc_html((string) ($platform['version'] ?? '')); ?></td></tr>
+            <tr><th><?php echo esc_html__('PHP', 'site-manager'); ?></th><td><?php echo esc_html((string) ($inventory['runtime']['php'] ?? '')); ?></td></tr>
+            <tr><th><?php echo esc_html__('Theme', 'site-manager'); ?></th><td><?php echo esc_html((string) ($theme['name'] ?? '')); ?> <?php echo esc_html((string) ($theme['version'] ?? '')); ?> <code><?php echo esc_html((string) ($theme['stylesheet'] ?? '')); ?></code></td></tr>
+            <tr><th><?php echo esc_html__('Content types', 'site-manager'); ?></th><td><?php echo esc_html((string) count((array) ($inventory['content_types'] ?? []))); ?></td></tr>
+            <tr><th><?php echo esc_html__('Taxonomies', 'site-manager'); ?></th><td><?php echo esc_html((string) count((array) ($inventory['taxonomies'] ?? []))); ?></td></tr>
+            <tr><th><?php echo esc_html__('Active plugins', 'site-manager'); ?></th><td><?php echo esc_html((string) ($inventory['plugins']['active_count'] ?? 0)); ?></td></tr>
+            <tr><th><?php echo esc_html__('Fingerprint', 'site-manager'); ?></th><td><code style="word-break:break-all"><?php echo esc_html((string) ($snapshot['fingerprint'] ?? '')); ?></code></td></tr>
           </tbody></table>
 
           <h2><?php echo esc_html__('Known providers detected', 'site-manager'); ?></h2>
           <?php if (! $providers) : ?><p><?php echo esc_html__('No known provider plugin detected.', 'site-manager'); ?></p><?php else : ?>
-          <table class="widefat striped"><thead><tr><th>Provider</th><th>Version</th><th>State</th></tr></thead><tbody>
-          <?php foreach ($providers as $provider) : ?><tr><td><?php echo esc_html((string) ($provider['label'] ?? $provider['id'] ?? '')); ?></td><td><?php echo esc_html(implode(', ', (array) ($provider['versions'] ?? []))); ?></td><td>DETECTED</td></tr><?php endforeach; ?>
+          <table class="widefat striped"><thead><tr><th><?php echo esc_html__('Provider', 'site-manager'); ?></th><th><?php echo esc_html__('Version', 'site-manager'); ?></th><th><?php echo esc_html__('State', 'site-manager'); ?></th></tr></thead><tbody>
+          <?php foreach ($providers as $provider) : ?><tr><td><?php echo esc_html((string) ($provider['label'] ?? $provider['id'] ?? '')); ?></td><td><?php echo esc_html(implode(', ', (array) ($provider['versions'] ?? []))); ?></td><td><?php echo esc_html__('DETECTED', 'site-manager'); ?></td></tr><?php endforeach; ?>
           </tbody></table><?php endif; ?>
 
           <h2><?php echo esc_html__('Capability map', 'site-manager'); ?></h2>
-          <p><?php echo esc_html(sprintf('Detected %d · Understood %d · Governable %d · Authorized %d · Blocked %d', (int) ($summary['detected'] ?? 0), (int) ($summary['understood'] ?? 0), (int) ($summary['governable'] ?? 0), (int) ($summary['authorized'] ?? 0), (int) ($summary['blocked'] ?? 0))); ?></p>
+          <p><?php echo esc_html(sprintf(
+              /* translators: 1-5 are capability counters. */
+              __('Detected %1$d · Understood %2$d · Governable %3$d · Authorized %4$d · Blocked %5$d', 'site-manager'),
+              (int) ($summary['detected'] ?? 0),
+              (int) ($summary['understood'] ?? 0),
+              (int) ($summary['governable'] ?? 0),
+              (int) ($summary['authorized'] ?? 0),
+              (int) ($summary['blocked'] ?? 0)
+          )); ?></p>
 
           <h2><?php echo esc_html__('Missing to govern', 'site-manager'); ?></h2>
-          <?php if (! $gaps) : ?><p><?php echo esc_html__('No governance gaps detected.', 'site-manager'); ?></p><?php else : ?><ul><?php foreach ($gaps as $gap) : ?><li><code><?php echo esc_html((string) ($gap['id'] ?? '')); ?></code> — <?php echo esc_html(implode(' ', (array) ($gap['blockers'] ?? []))); ?></li><?php endforeach; ?></ul><?php endif; ?>
+          <?php if (! $gaps) : ?><p><?php echo esc_html__('No governance gaps detected.', 'site-manager'); ?></p><?php else : ?><ul><?php foreach ($gaps as $gap) : ?><li><code><?php echo esc_html((string) ($gap['id'] ?? '')); ?></code> — <?php echo esc_html($this->localizedBlockers((array) ($gap['blockers'] ?? []))); ?></li><?php endforeach; ?></ul><?php endif; ?>
         </div>
         <?php
     }
 
+    /** @param list<mixed> $blockers */
+    private function localizedBlockers(array $blockers): string
+    {
+        $localized = [];
+        foreach ($blockers as $blocker) {
+            $text = (string) $blocker;
+            $localized[] = match ($text) {
+                'SM-2 safe WordPress Core write adapter is not implemented yet.' => __('The safe WordPress Core write adapter is not implemented yet.', 'site-manager'),
+                'SM-2 navigation ownership and rollback are not implemented yet.' => __('Navigation ownership and rollback are not implemented yet.', 'site-manager'),
+                'SEO ownership must be resolved to a provider adapter first.' => __('SEO ownership must be resolved to a provider adapter first.', 'site-manager'),
+                'Provider detected; dedicated adapter required before governance is exposed.' => __('Provider detected; a dedicated adapter is required before governance is exposed.', 'site-manager'),
+                default => $text,
+            };
+        }
+        return implode(' ', $localized);
+    }
+
     public function handleRefresh(): void
     {
-        if (! current_user_can('manage_options')) { wp_die('Forbidden'); }
+        if (! current_user_can('manage_options')) { wp_die(esc_html__('Forbidden', 'site-manager')); }
         check_admin_referer('site_manager_refresh');
         $this->refresh('manual');
         wp_safe_redirect(admin_url('admin.php?page=site-manager'));
