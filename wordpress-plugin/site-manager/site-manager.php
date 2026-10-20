@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Site Manager
  * Description: Discovers the real WordPress installation and exposes a safe capability/governance map.
- * Version: 0.1.0-dev
+ * Version: 0.1.0
  * Requires at least: 6.6
  * Requires PHP: 8.1
  * Author: Emmake
@@ -12,9 +12,16 @@ declare(strict_types=1);
 
 if (! defined('ABSPATH')) { exit; }
 
+if (! defined('SITE_MANAGER_VERSION')) {
+    define('SITE_MANAGER_VERSION', '0.1.0');
+}
+if (! defined('SITE_MANAGER_PLUGIN_FILE')) {
+    define('SITE_MANAGER_PLUGIN_FILE', __FILE__);
+}
+
 $autoloaders = [
     __DIR__ . '/vendor/autoload.php',
-    dirname(__DIR__, 2) . '/vendor/autoload.php',
+    dirname(__DIR__, 2) . '/vendor/autoload.php', // repository checkout only
 ];
 $loaded = false;
 foreach ($autoloaders as $autoload) {
@@ -26,7 +33,7 @@ foreach ($autoloaders as $autoload) {
 }
 if (! $loaded) {
     add_action('admin_notices', static function (): void {
-        echo '<div class="notice notice-error"><p><strong>Site Manager:</strong> Composer autoload is missing. Use a built release package or install dependencies in the repository checkout.</p></div>';
+        echo '<div class="notice notice-error"><p><strong>Site Manager:</strong> runtime autoload is missing. Install an official Site Manager release ZIP.</p></div>';
     });
     return;
 }
