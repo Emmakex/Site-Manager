@@ -1,1 +1,107 @@
-# placeholder
+msgid ""
+msgstr ""
+"Project-Id-Version: Site Manager 0.1.2\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-20 12:40+0200\n"
+"PO-Revision-Date: 2026-10-20 12:40+0200\n"
+"Last-Translator: Emmake\n"
+"Language-Team: Spanish\n"
+"Language: es_ES\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: site-manager\n"
+
+msgid "Site Manager Dashboard"
+msgstr "Panel de Site Manager"
+
+msgid "Site Manager"
+msgstr "Site Manager"
+
+msgid "Dashboard"
+msgstr "Panel"
+
+msgid "You do not have permission to access Site Manager."
+msgstr "No tienes permisos para acceder a Site Manager."
+
+msgid "This installation was discovered automatically. Detection describes the site; it does not grant write access."
+msgstr "Esta instalación se ha descubierto automáticamente. La detección describe el sitio; no concede permisos de escritura."
+
+msgid "Last discovery:"
+msgstr "Último descubrimiento:"
+
+msgid "Generation:"
+msgstr "Generación:"
+
+msgid "Re-detect site"
+msgstr "Volver a detectar el sitio"
+
+msgid "Discovered"
+msgstr "Detectado"
+
+msgid "Platform"
+msgstr "Plataforma"
+
+msgid "PHP"
+msgstr "PHP"
+
+msgid "Theme"
+msgstr "Tema"
+
+msgid "Content types"
+msgstr "Tipos de contenido"
+
+msgid "Taxonomies"
+msgstr "Taxonomías"
+
+msgid "Active plugins"
+msgstr "Plugins activos"
+
+msgid "Fingerprint"
+msgstr "Huella estructural"
+
+msgid "Known providers detected"
+msgstr "Proveedores conocidos detectados"
+
+msgid "No known provider plugin detected."
+msgstr "No se ha detectado ningún plugin proveedor conocido."
+
+msgid "Provider"
+msgstr "Proveedor"
+
+msgid "Version"
+msgstr "Versión"
+
+msgid "State"
+msgstr "Estado"
+
+msgid "DETECTED"
+msgstr "DETECTADO"
+
+msgid "Capability map"
+msgstr "Mapa de capacidades"
+
+msgid "Detected %1$d · Understood %2$d · Governable %3$d · Authorized %4$d · Blocked %5$d"
+msgstr "Detectadas %1$d · Comprendidas %2$d · Gobernables %3$d · Autorizadas %4$d · Bloqueadas %5$d"
+
+msgid "Missing to govern"
+msgstr "Pendiente para gobernar"
+
+msgid "No governance gaps detected."
+msgstr "No se han detectado carencias de gobernanza."
+
+msgid "The safe WordPress Core write adapter is not implemented yet."
+msgstr "El adaptador seguro de escritura de WordPress Core todavía no está implementado."
+
+msgid "Navigation ownership and rollback are not implemented yet."
+msgstr "La propiedad de navegación y el rollback todavía no están implementados."
+
+msgid "SEO ownership must be resolved to a provider adapter first."
+msgstr "Primero debe resolverse la propiedad del SEO mediante un adaptador de proveedor."
+
+msgid "Provider detected; a dedicated adapter is required before governance is exposed."
+msgstr "Proveedor detectado; se necesita un adaptador dedicado antes de habilitar su gobernanza."
+
+msgid "Forbidden"
+msgstr "Prohibido"
