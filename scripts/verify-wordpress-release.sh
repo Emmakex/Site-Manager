@@ -35,8 +35,8 @@ while IFS= read -r -d '' file; do
 done < <(find "$TMP/site-manager" -type f -name '*.php' -print0)
 
 php -r '
-$loader = require $argv[1];
-if (!class_exists("SiteManager\\Core\\Contracts\\PlatformAdapter")) { fwrite(STDERR, "Core autoload failed\n"); exit(1); }
+require $argv[1];
+if (!interface_exists("SiteManager\\Core\\Contracts\\PlatformAdapter")) { fwrite(STDERR, "Core contract autoload failed\n"); exit(1); }
 if (!class_exists("SiteManager\\Adapters\\WordPress\\WordPressAdapter")) { fwrite(STDERR, "WordPress adapter autoload failed\n"); exit(1); }
 ' "$TMP/site-manager/vendor/autoload.php"
 
