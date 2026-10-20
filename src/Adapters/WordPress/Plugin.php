@@ -27,6 +27,8 @@ final class Plugin
         add_action('deactivated_plugin', [$plugin, 'markDirty'], 10, 2);
         add_action('switch_theme', [$plugin, 'markDirty'], 10, 2);
         add_action('upgrader_process_complete', [$plugin, 'markDirty'], 10, 2);
+        add_action('wp_update_nav_menu', [$plugin, 'markDirty'], 10, 2);
+        add_action('save_post_wp_navigation', [$plugin, 'markDirty'], 10, 3);
 
         foreach (['permalink_structure','show_on_front','page_on_front','page_for_posts','active_plugins'] as $option) {
             add_action('update_option_' . $option, [$plugin, 'markDirty'], 10, 3);
@@ -136,6 +138,7 @@ final class Plugin
         $inventory = is_array($snapshot['inventory'] ?? null) ? $snapshot['inventory'] : [];
         $theme = is_array($inventory['theme'] ?? null) ? $inventory['theme'] : [];
         $providers = is_array($inventory['providers'] ?? null) ? $inventory['providers'] : [];
+        $navigationProviders = is_array($inventory['navigation']['providers'] ?? null) ? $inventory['navigation']['providers'] : [];
         $summary = is_array($state['summary'] ?? null) ? $state['summary'] : [];
         $gaps = is_array($state['gaps'] ?? null) ? $state['gaps'] : [];
         ?>
@@ -156,6 +159,7 @@ final class Plugin
             <tr><th><?php echo esc_html__('Content types', 'site-manager'); ?></th><td><?php echo esc_html((string) count((array) ($inventory['content_types'] ?? []))); ?></td></tr>
             <tr><th><?php echo esc_html__('Taxonomies', 'site-manager'); ?></th><td><?php echo esc_html((string) count((array) ($inventory['taxonomies'] ?? []))); ?></td></tr>
             <tr><th><?php echo esc_html__('Active plugins', 'site-manager'); ?></th><td><?php echo esc_html((string) ($inventory['plugins']['active_count'] ?? 0)); ?></td></tr>
+            <tr><th><?php echo esc_html__('Navigation', 'site-manager'); ?></th><td><?php echo esc_html($this->navigationSummary($navigationProviders)); ?></td></tr>
             <tr><th><?php echo esc_html__('Fingerprint', 'site-manager'); ?></th><td><code style="word-break:break-all"><?php echo esc_html((string) ($snapshot['fingerprint'] ?? '')); ?></code></td></tr>
           </tbody></table>
 
@@ -191,12 +195,39 @@ final class Plugin
             $localized[] = match ($text) {
                 'SM-2 safe WordPress Core write adapter is not implemented yet.' => __('The safe WordPress Core write adapter is not implemented yet.', 'site-manager'),
                 'SM-2 navigation ownership and rollback are not implemented yet.' => __('Navigation ownership and rollback are not implemented yet.', 'site-manager'),
+                'No native WordPress navigation provider was detected.' => __('No native WordPress navigation provider was detected.', 'site-manager'),
+                'Native WordPress navigation was detected but no existing target is safely governable yet.' => __('Native WordPress navigation was detected but no existing target is safely governable yet.', 'site-manager'),
                 'SEO ownership must be resolved to a provider adapter first.' => __('SEO ownership must be resolved to a provider adapter first.', 'site-manager'),
                 'Provider detected; dedicated adapter required before governance is exposed.' => __('Provider detected; a dedicated adapter is required before governance is exposed.', 'site-manager'),
                 default => $text,
             };
         }
         return implode(' ', $localized);
+    }
+
+    /** @param list<mixed> $providers */
+    private function navigationSummary(array $providers): string
+    {
+        if (! $providers) {
+            return __('No native navigation provider detected.', 'site-manager');
+        }
+        $labels = [];
+        foreach ($providers as $provider) {
+            if (! is_array($provider)) { continue; }
+            $id = (string) ($provider['id'] ?? '');
+            $label = match ($id) {
+                NativeNavigationRuntime::CLASSIC => __('WordPress classic menus', 'site-manager'),
+                NativeNavigationRuntime::BLOCK => __('WordPress block navigation', 'site-manager'),
+                default => (string) ($provider['label'] ?? $id),
+            };
+            $labels[] = sprintf(
+                /* translators: 1: navigation provider label, 2: number of writable targets. */
+                __('%1$s (%2$d targets)', 'site-manager'),
+                $label,
+                (int) ($provider['target_count'] ?? 0)
+            );
+        }
+        return implode(' · ', $labels);
     }
 
     public function handleRefresh(): void
