@@ -19,6 +19,7 @@ final class SeoProviderRegistry
             new SeoGeoThemeProviderAdapter(),
             new YoastSeoProviderAdapter(),
             new RankMathSeoProviderAdapter(),
+            new AioseoSeoProviderAdapter(),
         ];
         foreach ($adapters as $adapter) {
             if (! $adapter instanceof SeoProviderAdapter) {
@@ -68,7 +69,7 @@ final class SeoProviderRegistry
     public function ids(): array
     {
         $ids = array_keys($this->adapters);
-        sort($ids, SORT_STRING);
+        sort($ids,SORT_STRING);
         return $ids;
     }
 }
