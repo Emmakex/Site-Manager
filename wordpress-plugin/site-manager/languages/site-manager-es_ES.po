@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Site Manager 0.3.1\n"
+"Project-Id-Version: Site Manager 0.3.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-20 14:45+0200\n"
-"PO-Revision-Date: 2026-10-20 14:45+0200\n"
+"POT-Creation-Date: 2026-10-20 15:00+0200\n"
+"PO-Revision-Date: 2026-10-20 15:00+0200\n"
 "Last-Translator: Emmake\n"
 "Language-Team: Spanish\n"
 "Language: es_ES\n"
@@ -21,6 +21,81 @@ msgstr "Site Manager"
 
 msgid "Dashboard"
 msgstr "Panel"
+
+msgid "Diagnostics"
+msgstr "Diagnóstico"
+
+msgid "Site Manager Diagnostics"
+msgstr "Diagnóstico de Site Manager"
+
+msgid "Diagnostics are read-only evidence used to decide which adapters can be enabled safely."
+msgstr "El diagnóstico contiene evidencias de solo lectura para decidir qué adaptadores se pueden habilitar de forma segura."
+
+msgid "SEO theme contract inspection"
+msgstr "Inspección del contrato SEO del tema"
+
+msgid "No bounded theme-source inspection is available for the current snapshot."
+msgstr "No hay disponible una inspección acotada del código del tema para la instantánea actual."
+
+msgid "Inspection mode"
+msgstr "Modo de inspección"
+
+msgid "Theme PHP files scanned"
+msgstr "Archivos PHP del tema analizados"
+
+msgid "Bytes scanned"
+msgstr "Bytes analizados"
+
+msgid "SEO-related post meta keys"
+msgstr "Claves post meta relacionadas con SEO"
+
+msgid "SEO-related option keys"
+msgstr "Claves de opciones relacionadas con SEO"
+
+msgid "SEO hook registrations"
+msgstr "Registros de hooks SEO"
+
+msgid "SEO output tokens"
+msgstr "Tokens de salida SEO"
+
+msgid "Post meta evidence"
+msgstr "Evidencia de post meta"
+
+msgid "Option evidence"
+msgstr "Evidencia de opciones"
+
+msgid "Hook evidence"
+msgstr "Evidencia de hooks"
+
+msgid "Output evidence"
+msgstr "Evidencia de salidas"
+
+msgid "No SEO-related hook registrations were found in the bounded theme scan."
+msgstr "No se encontraron registros de hooks relacionados con SEO en el análisis acotado del tema."
+
+msgid "Kind"
+msgstr "Tipo"
+
+msgid "Hook"
+msgstr "Hook"
+
+msgid "Callback"
+msgstr "Callback"
+
+msgid "Theme file"
+msgstr "Archivo del tema"
+
+msgid "No matching evidence found."
+msgstr "No se encontraron evidencias coincidentes."
+
+msgid "Key / token"
+msgstr "Clave / token"
+
+msgid "Theme files"
+msgstr "Archivos del tema"
+
+msgid "This inspection reads only bounded PHP source from the active theme/parent theme. It does not execute files, follow external symlinks, perform network requests or grant write access."
+msgstr "Esta inspección solo lee código PHP de forma acotada del tema activo/tema padre. No ejecuta archivos, no sigue enlaces simbólicos externos, no realiza peticiones de red ni concede permisos de escritura."
 
 msgid "You do not have permission to access Site Manager."
 msgstr "No tienes permisos para acceder a Site Manager."
