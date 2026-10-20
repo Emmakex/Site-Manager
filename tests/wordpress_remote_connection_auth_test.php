@@ -57,9 +57,12 @@ $connection1 = (array) $issued['connection'];
 $stored1 = (array) get_option(RemoteConnectionStore::OPTION, []);
 $assert(str_starts_with((string) ($connection1['connection_id'] ?? ''), 'smc_'), 'connection id must use neutral smc_ prefix');
 $assert(1 === ($connection1['generation'] ?? 0), 'first token must be generation 1');
+$assert(false === ($connection1['write_principal_bound'] ?? true), 'read-only connection must not bind a write principal');
 $assert(! array_key_exists('token_hash', $connection1), 'public connection state must not expose token hash');
 $assert(! in_array($token1, $stored1, true), 'plaintext token must never be persisted as an option value');
 $assert(hash('sha256', $token1) === ($stored1['token_hash'] ?? ''), 'only token digest must be persisted');
+$assert(true === $store->tokenIsValid($token1), 'valid token must be introspectable without a capability scope');
+$assert(false === $store->tokenIsValid('wrong-token'), 'invalid token must fail introspection');
 $assert(false === $store->authorize('wrong-token', 'site.read'), 'wrong token must be denied');
 $assert('' === (string) ($store->publicState()['last_used_at'] ?? ''), 'failed authentication must not update last_used_at');
 $assert(false === $store->authorize($token1, 'seo.write'), 'valid token without required scope must be denied');
@@ -76,6 +79,17 @@ $assert(2 === ($connection2['generation'] ?? 0), 'rotation must increment genera
 $assert(false === $store->authorize($token1, 'site.read'), 'rotated token must become invalid immediately');
 $assert(true === $store->authorize($token2, 'site.read'), 'new rotated token must authorize');
 
+$issued3 = $store->issue(['site.read','content.write'], 42);
+$token3 = (string) $issued3['token'];
+$connection3 = (array) $issued3['connection'];
+$assert(3 === ($connection3['generation'] ?? 0), 'write-capable rotation must increment generation');
+$assert(true === ($connection3['write_principal_bound'] ?? false), 'write scope must expose only a non-secret bound-principal flag');
+$assert(42 === $store->writePrincipalUserId(), 'write scopes must bind to the administrator who granted them');
+$assert(true === $store->authorize($token3, 'content.write'), 'bound write token must authorize its granted scope');
+$store->saveScopes(['site.read'], 42);
+$assert(0 === $store->writePrincipalUserId(), 'removing all write scopes must remove write-principal binding');
+$assert(false === ($store->publicState()['write_principal_bound'] ?? true), 'public state must show no write principal after write scopes are removed');
+
 $summary = RemoteAccess::summarize($serialized, ['site.read','seo.write']);
 $assert(6 === $summary['detected'], 'summary must count detected capabilities');
 $assert(5 === $summary['governable'], 'summary must count governable capabilities');
@@ -83,10 +97,10 @@ $assert(3 === $summary['authorized'], 'site.read must authorize site.read + cont
 $assert(1 === $summary['blocked'], 'non-governable understood navigation must remain blocked');
 
 $store->revoke();
-$assert(false === $store->authorize($token2, 'site.read'), 'revoked connection must deny its token');
+$assert(false === $store->authorize($token3, 'site.read'), 'revoked connection must deny its token');
 $assert([] === $store->grantedScopes(), 'revoked connection must expose no granted scopes');
 
 $assert('abc' === RemoteConnectionStore::bearerFromHeader('Bearer abc'), 'bearer header parser must return token');
 $assert('' === RemoteConnectionStore::bearerFromHeader('Basic abc'), 'non-bearer header must be rejected');
 
-echo "PASS: WordPress SM-4A remote connection authorization contract\n";
+echo "PASS: WordPress SM-4A/4C remote connection authorization contract\n";
