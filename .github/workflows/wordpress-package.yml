@@ -37,18 +37,26 @@ jobs:
           composer install --no-interaction --prefer-dist
           composer test
 
+      - name: Resolve plugin version
+        id: version
+        shell: bash
+        run: |
+          VERSION="$(awk -F': ' '/^ \* Version: / {print $2; exit}' wordpress-plugin/site-manager/site-manager.php | tr -d '\r')"
+          test -n "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Build installable WordPress ZIP
         run: bash scripts/build-wordpress-release.sh
 
       - name: Verify release package
-        run: bash scripts/verify-wordpress-release.sh dist/site-manager-0.1.0.zip
+        run: bash scripts/verify-wordpress-release.sh "dist/site-manager-${{ steps.version.outputs.version }}.zip"
 
       - name: Upload WordPress package
         uses: actions/upload-artifact@v4
         with:
-          name: site-manager-wordpress-0.1.0
+          name: site-manager-wordpress-${{ steps.version.outputs.version }}
           path: |
-            dist/site-manager-0.1.0.zip
-            dist/site-manager-0.1.0.zip.sha256
+            dist/site-manager-${{ steps.version.outputs.version }}.zip
+            dist/site-manager-${{ steps.version.outputs.version }}.zip.sha256
           if-no-files-found: error
           retention-days: 30
