@@ -23,6 +23,7 @@ final class RemoteConnectionStore
             'enabled'=>! empty($state['enabled']),
             'generation'=>(int) ($state['generation'] ?? 0),
             'scopes'=>$this->normalizeScopes((array) ($state['scopes'] ?? [])),
+            'write_principal_bound'=>(int) ($state['write_principal_user_id'] ?? 0) > 0,
             'created_at'=>(string) ($state['created_at'] ?? ''),
             'rotated_at'=>(string) ($state['rotated_at'] ?? ''),
             'last_used_at'=>(string) ($state['last_used_at'] ?? ''),
@@ -32,11 +33,12 @@ final class RemoteConnectionStore
 
     /**
      * Generate/rotate credentials. Plaintext token is returned once and never persisted.
+     * A write-capable connection is bound to the WordPress administrator who grants it.
      *
      * @param list<string> $scopes
      * @return array{token:string,connection:array<string,mixed>}
      */
-    public function issue(array $scopes): array
+    public function issue(array $scopes, ?int $writePrincipalUserId = null): array
     {
         $previous = $this->state();
         $now = gmdate(DATE_W3C);
@@ -45,14 +47,16 @@ final class RemoteConnectionStore
         if ('' === $connectionId) {
             $connectionId = 'smc_' . bin2hex(random_bytes(16));
         }
+        $normalizedScopes = $this->normalizeScopes($scopes);
 
         $state = [
-            'schema_version'=>1,
+            'schema_version'=>2,
             'connection_id'=>$connectionId,
             'enabled'=>true,
             'generation'=>(int) ($previous['generation'] ?? 0) + 1,
-            'scopes'=>$this->normalizeScopes($scopes),
+            'scopes'=>$normalizedScopes,
             'token_hash'=>hash('sha256', $token),
+            'write_principal_user_id'=>$this->resolveWritePrincipal($normalizedScopes, $writePrincipalUserId, $previous),
             'created_at'=>(string) ($previous['created_at'] ?? $now),
             'rotated_at'=>$now,
             'last_used_at'=>'',
@@ -64,13 +68,16 @@ final class RemoteConnectionStore
     }
 
     /** @param list<string> $scopes */
-    public function saveScopes(array $scopes): array
+    public function saveScopes(array $scopes, ?int $writePrincipalUserId = null): array
     {
         $state = $this->state();
         if ('' === (string) ($state['connection_id'] ?? '')) {
             return $this->publicState($state);
         }
-        $state['scopes'] = $this->normalizeScopes($scopes);
+        $normalizedScopes = $this->normalizeScopes($scopes);
+        $state['schema_version'] = 2;
+        $state['scopes'] = $normalizedScopes;
+        $state['write_principal_user_id'] = $this->resolveWritePrincipal($normalizedScopes, $writePrincipalUserId, $state);
         update_option(self::OPTION, $state, false);
         return $this->publicState($state);
     }
@@ -83,6 +90,7 @@ final class RemoteConnectionStore
         }
         $state['enabled'] = false;
         $state['token_hash'] = '';
+        $state['write_principal_user_id'] = 0;
         $state['last_used_at'] = '';
         $state['last_used_scope'] = '';
         update_option(self::OPTION, $state, false);
@@ -99,17 +107,29 @@ final class RemoteConnectionStore
         return $this->normalizeScopes((array) ($state['scopes'] ?? []));
     }
 
+    public function writePrincipalUserId(): int
+    {
+        $state = $this->state();
+        if (empty($state['enabled'])) {
+            return 0;
+        }
+        return max(0, (int) ($state['write_principal_user_id'] ?? 0));
+    }
+
+    /** Verify a connection token without granting a site capability scope. */
+    public function tokenIsValid(string $token): bool
+    {
+        $state = $this->state();
+        return $this->tokenMatchesState($token, $state);
+    }
+
     public function authorize(string $token, string $requiredScope): bool
     {
         $state = $this->state();
-        if (empty($state['enabled']) || '' === $token || '' === $requiredScope) {
+        if ('' === $requiredScope || ! $this->tokenMatchesState($token, $state)) {
             return false;
         }
         if (! in_array($requiredScope, (array) ($state['scopes'] ?? []), true)) {
-            return false;
-        }
-        $storedHash = (string) ($state['token_hash'] ?? '');
-        if (64 !== strlen($storedHash) || ! hash_equals($storedHash, hash('sha256', $token))) {
             return false;
         }
 
@@ -137,6 +157,39 @@ final class RemoteConnectionStore
             $header = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
         }
         return self::bearerFromHeader($header);
+    }
+
+    /** @param array<string,mixed> $state */
+    private function tokenMatchesState(string $token, array $state): bool
+    {
+        if (empty($state['enabled']) || '' === $token) {
+            return false;
+        }
+        $storedHash = (string) ($state['token_hash'] ?? '');
+        return 64 === strlen($storedHash) && hash_equals($storedHash, hash('sha256', $token));
+    }
+
+    /** @param list<string> $scopes @param array<string,mixed> $previous */
+    private function resolveWritePrincipal(array $scopes, ?int $requestedUserId, array $previous): int
+    {
+        if (! $this->hasWriteScope($scopes)) {
+            return 0;
+        }
+        if (null !== $requestedUserId && $requestedUserId > 0) {
+            return $requestedUserId;
+        }
+        return max(0, (int) ($previous['write_principal_user_id'] ?? 0));
+    }
+
+    /** @param list<string> $scopes */
+    private function hasWriteScope(array $scopes): bool
+    {
+        foreach ($scopes as $scope) {
+            if (str_ends_with($scope, '.write')) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** @param list<mixed> $scopes @return list<string> */
