@@ -31,6 +31,20 @@ test('configuration requires HTTPS for non-local Site Manager targets', () => {
   assert.equal(local.restBase.protocol, 'http:');
 });
 
+test('connection scope discovery uses only authenticated connection endpoint', async () => {
+  const requests: Array<{ path: string; auth: string | null }> = [];
+  const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const url = input instanceof URL ? input : new URL(String(input));
+    const headers = new Headers(init?.headers);
+    requests.push({ path: url.pathname, auth: headers.get('authorization') });
+    return new Response(JSON.stringify({ data: { connection_id: connectionId, scopes: ['site.read', 'content.write'] } }), { status: 200 });
+  }) as typeof fetch;
+
+  const client = new SiteManagerClient(baseConfig(), fakeFetch);
+  assert.deepEqual(await client.grantedScopes(), ['site.read', 'content.write']);
+  assert.deepEqual(requests, [{ path: '/wp-json/site-manager/v1/connection', auth: `Bearer ${secret}` }]);
+});
+
 test('site_read uses only discovery and capabilities with the configured bearer', async () => {
   const requests: Array<{ url: string; auth: string | null; redirect: RequestRedirect | undefined }> = [];
   const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
@@ -73,6 +87,32 @@ test('site_diagnostics uses only the diagnostics resource', async () => {
   assert.deepEqual(result.diagnostics, { ready_for_read: true });
 });
 
+test('content write methods use only fixed Site Manager write routes and POST JSON', async () => {
+  const requests: Array<{ path: string; method: string | undefined; body: unknown; auth: string | null }> = [];
+  const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const url = input instanceof URL ? input : new URL(String(input));
+    const headers = new Headers(init?.headers);
+    const body = typeof init?.body === 'string' ? JSON.parse(init.body) : null;
+    requests.push({ path: url.pathname, method: init?.method, body, auth: headers.get('authorization') });
+    return new Response(JSON.stringify({ data: { ok: true, path: url.pathname } }), { status: 200 });
+  }) as typeof fetch;
+
+  const client = new SiteManagerClient(baseConfig(), fakeFetch);
+  await client.contentUpdatePlan({ post_id: 77, fields: { title: 'New title' }, reason: 'Contract test' });
+  await client.contentUpdateApply({ plan_id: 'plan_1', confirmed: true });
+  await client.contentUpdateRollback({ plan_id: 'plan_1', confirmed: true });
+
+  assert.deepEqual(requests.map((request) => request.path), [
+    '/wp-json/site-manager/v1/write/content/plan',
+    '/wp-json/site-manager/v1/write/content/apply',
+    '/wp-json/site-manager/v1/write/content/rollback',
+  ]);
+  assert.ok(requests.every((request) => request.method === 'POST'));
+  assert.ok(requests.every((request) => request.auth === `Bearer ${secret}`));
+  assert.deepEqual(requests[0]?.body, { post_id: 77, fields: { title: 'New title' }, reason: 'Contract test' });
+  assert.deepEqual(requests[1]?.body, { plan_id: 'plan_1', confirmed: true });
+});
+
 test('client errors are sanitized and never contain the bearer token', async () => {
   const fakeFetch = (async () => new Response(JSON.stringify({ message: secret }), { status: 403 })) as typeof fetch;
   const client = new SiteManagerClient(baseConfig(), fakeFetch);
@@ -83,6 +123,15 @@ test('client errors are sanitized and never contain the bearer token', async () 
       assert.ok(error instanceof SiteManagerClientError);
       assert.equal(error.message.includes(secret), false);
       assert.match(error.message, /HTTP 403/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => client.contentUpdateApply({ plan_id: secret, confirmed: true }),
+    (error: unknown) => {
+      assert.ok(error instanceof SiteManagerClientError);
+      assert.equal(error.message.includes(secret), false);
       return true;
     },
   );
