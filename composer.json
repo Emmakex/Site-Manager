@@ -18,7 +18,8 @@
       "@php tests/wordpress_adapter_contract_test.php",
       "@php tests/wordpress_content_governance_test.php",
       "@php tests/wordpress_navigation_governance_test.php",
-      "@php tests/wordpress_seo_ownership_test.php"
+      "@php tests/wordpress_seo_ownership_test.php",
+      "@php tests/wordpress_theme_seo_contract_inspector_test.php"
     ],
     "lint": [
       "@php scripts/lint.php"
