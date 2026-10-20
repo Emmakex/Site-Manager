@@ -102,7 +102,7 @@ The remote layer must be able to answer:
 
 Site Manager must be functionally complete as a generic WordPress control plane before final acceptance begins. Do not use acceptance sites to drive site-specific Core logic.
 
-Definitive acceptance order:
+Definitive acceptance order (do not reorder):
 
 1. **Finish Site Manager for generic WordPress first.** Complete discovery, Core governance, provider ownership/adapters, optional migration handoff, MCP authorization, audit, verification, stale-plan protection and rollback before treating any site as final acceptance.
 2. **EMMake `/nuevaweb` — first acceptance.** Complete end-to-end acceptance on the controlled Mode A rebuild. This proves the rebuild/migration-assisted path and our SEO/GEO Starter integration without making that theme a Core dependency.
