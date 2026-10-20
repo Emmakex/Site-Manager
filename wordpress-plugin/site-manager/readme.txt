@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.3.3
+Stable tag: 0.4.0
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -16,24 +16,34 @@ On activation Site Manager performs a bounded local discovery of the installatio
 
 The WordPress admin surface follows the configured WordPress/user locale. English is the source language and Spanish (`es_ES`) is bundled.
 
-Version 0.3.3 continues SM-3A with a second bounded, read-only SEO inspection layer. In addition to discovering SEO output hooks/tokens and referenced meta/options, Site Manager traces which WordPress data-source APIs, post fields and filter-pipeline entries are referenced by SEO-focused theme code. It never reads content/meta/option values and never executes scanned source.
+Version 0.4.0 completes the first theme-native SEO governance path for the controlled `SEO GEO Starter` family. The 0.3.x diagnostics established that this provider derives SEO output primarily from native WordPress content, permalink, taxonomy and site-identity sources instead of a dedicated per-page SEO metadata store.
 
-This evidence is used to decide whether an SEO provider derives metadata from native WordPress content, permalinks, taxonomy/site identity, post meta, options, ACF, theme mods or custom database access before a writer is implemented. The goal is to govern the provider's real source of truth instead of inventing parallel SEO fields.
+Site Manager therefore does not invent parallel SEO fields. For this evidenced provider, `seo.write` becomes a semantic adapter over the real native sources. The first directly governable SEO inputs are title -> `post_title` and description -> `post_excerpt`. Canonical, robots, Open Graph, schema, hreflang and sitemap remain derived outputs and are not silently converted into new metadata fields.
 
-A dedicated Site Manager > Diagnostics screen shows both the output contract and data-source trace. `seo.write` remains blocked until a provider-specific writer has snapshot, explicit confirmation, stale-target protection, verification and rollback.
+SEO writes use the same guarded lifecycle as native content/navigation governance: plan-only preview, explicit confirmation, target fingerprint protection, bounded apply, verification and rollback. Plans disclose that changing the SEO title changes the native WordPress title and that changing the SEO description changes the native excerpt, which may also be visible on theme surfaces.
 
-The controlled `SEO GEO Starter` family remains recognized as the `seo-geo-theme` theme-native SEO authority with the historically documented output surfaces: title/meta, canonical, robots, Open Graph, schema, hreflang and sitemap.
+The adapter is enabled only when bounded evidence resolves the SEO owner to `seo-geo-theme`, detects native post/permalink sources, finds no SEO-specific post-meta storage, and does not detect ACF/theme-mod/custom-database ownership. Other SEO providers remain blocked until their own adapters are proven.
 
-Native WordPress content and navigation governance from 0.2.0/0.3.0 remains available with plan, explicit confirmation, verification, stale-target protection and guarded rollback.
+Native WordPress content and navigation governance remains available with plan, explicit confirmation, verification, stale-target protection and guarded rollback.
 
 == Installation ==
 
-1. Upload the official `site-manager-0.3.3.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.4.0.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review the dashboard and Site Manager > Diagnostics.
 
 == Changelog ==
+
+= 0.4.0 =
+* Adds the first verified theme-native semantic SEO writer for `seo-geo-theme`.
+* Promotes `seo.write` to governable only when source evidence proves the native-derived contract.
+* Maps SEO title to native `post_title` and SEO description to native `post_excerpt` instead of creating parallel metadata.
+* Keeps canonical, robots, Open Graph, schema, hreflang and sitemap as derived outputs unless a future provider contract proves direct storage.
+* Adds plan, explicit confirmation, stale-target protection, verification and rollback for semantic SEO updates.
+* Exposes write mode, writable SEO inputs and derived outputs in capabilities/diagnostics.
+* Shows semantic-writer readiness in the Site Manager dashboard.
+* Rejects unsupported direct SEO fields such as arbitrary canonical URLs.
 
 = 0.3.3 =
 * Adds bounded read-only tracing of data sources referenced by SEO-focused theme code.
