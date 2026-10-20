@@ -100,12 +100,16 @@ The remote layer must be able to answer:
 
 ## SM-5 — WordPress acceptance
 
-Use controlled environments first. Acceptance must cover both onboarding modes before client rollout:
+Site Manager must be functionally complete as a generic WordPress control plane before final acceptance begins. Do not use acceptance sites to drive site-specific Core logic.
 
-- Mode A: rebuilt/migrated WordPress with optional handoff
-- Mode B: existing WordPress with Site Manager installed directly
+Definitive acceptance order:
 
-No client rollout until generic WordPress discovery, governance guards, verification and rollback have passed end-to-end acceptance in both modes.
+1. **Finish the generic WordPress product first**: discovery, Core governance, provider ownership/adapters, optional migration handoff, MCP authorization, audit, verification, stale-plan protection and rollback.
+2. **EMMake `/nuevaweb`**: first complete end-to-end acceptance on the controlled Mode A rebuild. This proves the rebuild/migration-assisted path and our SEO/GEO Starter provider integration without making that theme a Core dependency.
+3. **`eduardoyauriluna.com`**: second acceptance. Use it as the known, demanding regression target because the specialized Research Manager already governs it. Prove Site Manager + adapters can reach parity without moving Research/site-specific behavior into Core.
+4. **Independent different WordPress**: final portability/adaptability acceptance. Install the exact same finished Site Manager on a site with a different theme/plugin/provider stack and no Research Manager history or Site Manager preparation. This is the final proof that the product adapts to an unknown WordPress rather than merely reproducing its origin environments.
+
+No client rollout until all four stages are complete.
 
 ## SM-6 — PrestaShop adapter
 
