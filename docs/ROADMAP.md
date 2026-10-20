@@ -1,5 +1,35 @@
 # Roadmap
 
+## Product entry modes
+
+Site Manager supports two first-class onboarding paths. Migration is optional and must never be a prerequisite for governance.
+
+### Mode A — Rebuild / migration-assisted onboarding
+
+Use when a client wants to renew or rebuild the website.
+
+1. Scan the legacy site.
+2. Clone or create a clean target installation.
+3. Rescue only the useful URLs, SEO signals, content, internal links, media and redirect intent.
+4. Reset / rebuild on the chosen target stack or theme.
+5. Emit an optional neutral migration handoff manifest.
+6. Install Site Manager on the rebuilt site.
+7. Site Manager discovers the resulting installation, validates the handoff when present, and becomes the permanent control plane.
+
+The theme or migration tooling used during the rebuild is not a Site Manager dependency.
+
+### Mode B — Direct Site Manager onboarding
+
+Use when the client keeps the existing website.
+
+1. Install Site Manager directly on the existing WordPress / future supported platform.
+2. Discover the installation without reset, clone, migration or theme replacement.
+3. Build the capability and ownership map from the live structure.
+4. Add only the adapters required by what is actually detected.
+5. Govern the existing installation in place with the same planning, verification, rollback and audit contracts.
+
+The absence of a migration handoff is a normal state and must not reduce ordinary Site Manager discovery or governance.
+
 ## SM-0 — Repository foundation
 
 - Product-neutral naming.
@@ -37,6 +67,10 @@ Initial bounded surfaces:
 
 Every write must support plan, policy check, apply, verify and rollback when technically reversible.
 
+### SM-2C — Optional migration handoff
+
+When Mode A was used, Site Manager may consume a neutral, versioned migration handoff manifest to validate provenance and preserved surfaces. The manifest is optional, never grants authorization and must not be required for Mode B.
+
 ## SM-3 — WordPress provider adapters
 
 Add specialized adapters independently:
@@ -47,6 +81,8 @@ Add specialized adapters independently:
 - Elementor
 - WooCommerce
 - Research Theme as a compatibility adapter, not as the product core
+
+A custom rebuild theme may have its own provider adapter, but Site Manager Core must not depend on that theme.
 
 ## SM-4 — MCP bridge
 
@@ -60,10 +96,16 @@ The remote layer must be able to answer:
 - what is blocked and why?
 - what scopes are missing?
 - what adapter must be added?
+- whether the installation came from a migration handoff or direct onboarding
 
 ## SM-5 — WordPress acceptance
 
-Use controlled environments first. No client rollout until generic WordPress discovery, governance guards, verification and rollback have passed end-to-end acceptance.
+Use controlled environments first. Acceptance must cover both onboarding modes before client rollout:
+
+- Mode A: rebuilt/migrated WordPress with optional handoff
+- Mode B: existing WordPress with Site Manager installed directly
+
+No client rollout until generic WordPress discovery, governance guards, verification and rollback have passed end-to-end acceptance in both modes.
 
 ## SM-6 — PrestaShop adapter
 
@@ -80,6 +122,8 @@ Suggested first surfaces:
 - languages
 - themes / modules
 - configuration inventory
+
+PrestaShop must support the same two entry principles where applicable: migration-assisted onboarding when rebuilding, or direct Site Manager onboarding on an existing store.
 
 ## SM-7 — Platform SDK
 
