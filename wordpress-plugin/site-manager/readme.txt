@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.5.2
+Stable tag: 0.6.0
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -16,9 +16,9 @@ On activation Site Manager performs a bounded local discovery of the installatio
 
 The WordPress admin surface follows the configured WordPress/user locale. English is the source language and Spanish (`es_ES`) is bundled.
 
-Version 0.5.2 normalizes `CapabilityGraph` persistence to plain arrays. This fixes the second EMMake `nuevaweb` regression where WordPress serialized nested `Capability` objects even though the graph envelope itself was correct. Dashboard, REST and future MCP consumers now receive one stable persisted representation.
+Version 0.6.0 adds the neutral remote-connection contract required before MCP governance. Site Manager can issue one revocable scoped connection using a high-entropy bearer token that is displayed once; only its SHA-256 digest is stored. The connection has a stable `smc_` id, generation counter, explicit scopes, rotation, revocation and last-successful-use tracking.
 
-Version 0.5.1 added compatibility with the persisted capability-graph envelope. Version 0.5.0 introduced the generic SEO provider layer and provider registry.
+The first remote REST surface remains read/control-plane only: discovery and capabilities require `site.read`; diagnostics requires `site.diagnostics`. No remote write endpoint is exposed in 0.6.0. Write scopes may be selected only when the corresponding capability is currently governable, but remain dormant until a later MCP/write surface explicitly consumes them.
 
 The provider registry currently includes:
 
@@ -33,12 +33,25 @@ Native WordPress content and navigation governance remains available with the sa
 
 == Installation ==
 
-1. Upload the official `site-manager-0.5.2.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.6.0.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
-4. Review the dashboard and Site Manager > Diagnostics.
+4. Review Site Manager > Dashboard and Site Manager > Diagnostics.
+5. When remote access is required, open Site Manager > Connection and generate a scoped token. Copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.6.0 =
+* Adds `Site Manager > Connection` as the neutral remote-access control surface.
+* Adds stable `smc_` connection ids, token generation/rotation, revocation, generation and last-use tracking.
+* Stores only SHA-256 bearer-token digests; plaintext tokens are returned once and never persisted.
+* Adds scope policy derived from the current governable capability graph.
+* Keeps write scopes opt-in and unavailable when their matching capability is not governable.
+* Adds scoped bearer access to existing read REST resources while preserving local WordPress administrator access.
+* Requires `site.read` for discovery/capabilities and `site.diagnostics` for diagnostics.
+* Adds no remote write endpoint in this release.
+* Makes dashboard authorization counts reflect the scopes of the active connection.
+* Adds regression contracts for token secrecy, scope enforcement, rotation, revocation and authorization summary.
 
 = 0.5.2 =
 * Normalizes `CapabilityGraph::jsonSerialize()` so persisted capabilities are plain arrays rather than nested `Capability` objects.
