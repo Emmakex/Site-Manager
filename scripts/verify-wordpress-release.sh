@@ -23,7 +23,9 @@ for path in "${required[@]}"; do
   [[ -e "$TMP/$path" ]] || { echo "Missing packaged path: $path" >&2; exit 1; }
 done
 
-grep -q '^ \* Version: 0\.1\.0$' "$PLUGIN" || { echo "Unexpected plugin version" >&2; exit 1; }
+VERSION="$(awk -F': ' '/^ \* Version: / {print $2; exit}' "$PLUGIN" | tr -d '\r')"
+[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Unexpected plugin version: $VERSION" >&2; exit 1; }
+[[ "$(basename "$ZIP")" == "site-manager-$VERSION.zip" ]] || { echo "ZIP/version mismatch" >&2; exit 1; }
 ! grep -q -- '-dev' "$PLUGIN" || { echo "Development version leaked into release" >&2; exit 1; }
 
 for forbidden in tests docs .github composer.json composer.lock; do
@@ -39,5 +41,8 @@ require $argv[1];
 if (!interface_exists("SiteManager\\Core\\Contracts\\PlatformAdapter")) { fwrite(STDERR, "Core contract autoload failed\n"); exit(1); }
 if (!class_exists("SiteManager\\Adapters\\WordPress\\WordPressAdapter")) { fwrite(STDERR, "WordPress adapter autoload failed\n"); exit(1); }
 ' "$TMP/site-manager/vendor/autoload.php"
+
+grep -q "add_menu_page" "$TMP/site-manager/src/Adapters/WordPress/Plugin.php" || { echo "Top-level Site Manager menu missing" >&2; exit 1; }
+! grep -q "add_management_page" "$TMP/site-manager/src/Adapters/WordPress/Plugin.php" || { echo "Legacy Tools menu registration leaked into release" >&2; exit 1; }
 
 echo "PASS: installable Site Manager WordPress package $(basename "$ZIP")"

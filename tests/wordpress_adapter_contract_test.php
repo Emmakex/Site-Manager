@@ -29,6 +29,10 @@ $snapshot = new DiscoverySnapshot(
     ],
 );
 
+$serialized = $snapshot->jsonSerialize();
+$assert(is_array($serialized['platform'] ?? null), 'serialized platform identity must be plain dashboard-safe data');
+$assert('wordpress' === ($serialized['platform']['platform'] ?? null), 'serialized platform identity must retain platform id');
+
 $adapter = new WordPressAdapter();
 $graph = $adapter->capabilities($snapshot);
 

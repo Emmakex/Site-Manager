@@ -24,7 +24,7 @@ final class DiscoverySnapshot implements \JsonSerializable
             'schema_version' => $this->schemaVersion,
             'generated_at' => $this->generatedAt,
             'fingerprint' => $this->fingerprint,
-            'platform' => $this->platform,
+            'platform' => $this->platform->jsonSerialize(),
             'inventory' => $this->inventory,
             'metadata' => $this->metadata,
         ];

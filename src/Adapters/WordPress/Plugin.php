@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace SiteManager\Adapters\WordPress;
 
+use SiteManager\Core\Model\DiscoverySnapshot;
+use SiteManager\Core\Model\PlatformIdentity;
+
 final class Plugin
 {
     private const SNAPSHOT_OPTION = 'site_manager_discovery';
@@ -46,6 +49,11 @@ final class Plugin
             return $this->refresh('structure-changed');
         }
 
+        $storedPlatform = $stored['snapshot']['platform'] ?? null;
+        if ($storedPlatform instanceof PlatformIdentity || ! is_array($storedPlatform)) {
+            return $this->refresh('schema-normalization');
+        }
+
         $current = (new WordPressAdapter())->discover();
         $knownFingerprint = (string) ($stored['snapshot']['fingerprint'] ?? '');
         if ($current->fingerprint !== $knownFingerprint) {
@@ -61,7 +69,7 @@ final class Plugin
     }
 
     /** @return array<string,mixed> */
-    private function persist(\SiteManager\Core\Model\DiscoverySnapshot $snapshot, string $reason): array
+    private function persist(DiscoverySnapshot $snapshot, string $reason): array
     {
         $adapter = new WordPressAdapter();
         $graph = $adapter->capabilities($snapshot);
@@ -96,7 +104,15 @@ final class Plugin
 
     public function adminMenu(): void
     {
-        add_management_page('Site Manager', 'Site Manager', 'manage_options', 'site-manager', [$this, 'renderAdmin']);
+        add_menu_page(
+            __('Site Manager Dashboard', 'site-manager'),
+            __('Site Manager', 'site-manager'),
+            'manage_options',
+            'site-manager',
+            [$this, 'renderAdmin'],
+            'dashicons-admin-site-alt3',
+            58
+        );
     }
 
     public function renderAdmin(): void
@@ -106,6 +122,10 @@ final class Plugin
         }
         $state = $this->ensureCurrent();
         $snapshot = is_array($state['snapshot'] ?? null) ? $state['snapshot'] : [];
+        $platformRaw = $snapshot['platform'] ?? [];
+        $platform = is_array($platformRaw)
+            ? $platformRaw
+            : ($platformRaw instanceof PlatformIdentity ? $platformRaw->jsonSerialize() : []);
         $inventory = is_array($snapshot['inventory'] ?? null) ? $snapshot['inventory'] : [];
         $theme = is_array($inventory['theme'] ?? null) ? $inventory['theme'] : [];
         $providers = is_array($inventory['providers'] ?? null) ? $inventory['providers'] : [];
@@ -113,7 +133,7 @@ final class Plugin
         $gaps = is_array($state['gaps'] ?? null) ? $state['gaps'] : [];
         ?>
         <div class="wrap" style="max-width:1100px">
-          <h1><?php echo esc_html__('Site Manager', 'site-manager'); ?></h1>
+          <h1><?php echo esc_html__('Site Manager Dashboard', 'site-manager'); ?></h1>
           <p><?php echo esc_html__('This installation was discovered automatically. Detection describes the site; it does not grant write access.', 'site-manager'); ?></p>
           <p><strong><?php echo esc_html__('Last discovery:', 'site-manager'); ?></strong> <?php echo esc_html((string) ($state['generated_at'] ?? '')); ?> · <strong><?php echo esc_html__('Generation:', 'site-manager'); ?></strong> <?php echo esc_html((string) ($state['generation'] ?? 0)); ?></p>
           <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
@@ -123,7 +143,7 @@ final class Plugin
 
           <h2><?php echo esc_html__('Discovered', 'site-manager'); ?></h2>
           <table class="widefat striped"><tbody>
-            <tr><th>Platform</th><td><?php echo esc_html((string) ($snapshot['platform']['platform'] ?? '')); ?> <?php echo esc_html((string) ($snapshot['platform']['version'] ?? '')); ?></td></tr>
+            <tr><th>Platform</th><td><?php echo esc_html((string) ($platform['platform'] ?? '')); ?> <?php echo esc_html((string) ($platform['version'] ?? '')); ?></td></tr>
             <tr><th>PHP</th><td><?php echo esc_html((string) ($inventory['runtime']['php'] ?? '')); ?></td></tr>
             <tr><th>Theme</th><td><?php echo esc_html((string) ($theme['name'] ?? '')); ?> <?php echo esc_html((string) ($theme['version'] ?? '')); ?> <code><?php echo esc_html((string) ($theme['stylesheet'] ?? '')); ?></code></td></tr>
             <tr><th>Content types</th><td><?php echo esc_html((string) count((array) ($inventory['content_types'] ?? []))); ?></td></tr>
@@ -152,7 +172,7 @@ final class Plugin
         if (! current_user_can('manage_options')) { wp_die('Forbidden'); }
         check_admin_referer('site_manager_refresh');
         $this->refresh('manual');
-        wp_safe_redirect(admin_url('tools.php?page=site-manager'));
+        wp_safe_redirect(admin_url('admin.php?page=site-manager'));
         exit;
     }
 
