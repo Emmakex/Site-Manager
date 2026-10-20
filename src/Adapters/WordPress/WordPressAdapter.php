@@ -22,6 +22,7 @@ final class WordPressAdapter implements PlatformAdapter
         private readonly ?ContentGovernanceService $content = null,
         private readonly ?NavigationGovernanceService $navigation = null,
         private readonly ?SeoGovernanceService $seo = null,
+        private readonly ?SeoProviderRegistry $seoProviders = null,
     ) {}
 
     public function id(): string { return 'wordpress-core'; }
@@ -71,23 +72,25 @@ final class WordPressAdapter implements PlatformAdapter
             $navigationBlockers[] = 'Native WordPress navigation was detected but no existing target is safely governable yet.';
         }
 
-        $seo = is_array($snapshot->inventory['seo_authority'] ?? null) ? $snapshot->inventory['seo_authority'] : [];
+        $seo = $this->seoInventory($snapshot);
         $seoAuthority = is_array($seo['authority'] ?? null) ? $seo['authority'] : null;
         $seoCandidates = is_array($seo['candidates'] ?? null) ? $seo['candidates'] : [];
         $seoDetected = ! empty($seo['authority_resolved']) || [] !== $seoCandidates;
         $seoUnderstood = ! empty($seo['authority_resolved']) && empty($seo['conflict']);
-        $seoGovernable = $seoUnderstood && ! empty($seo['safe_to_write_seo_metadata']);
         $seoProvider = $seoUnderstood ? (string) ($seoAuthority['id'] ?? $this->id()) : $this->id();
+        $providerAdapter = $seoUnderstood ? $this->seoRegistry()->resolve($snapshot) : null;
+        $providerReadiness = $providerAdapter?->readiness($snapshot) ?? [];
+        $seoGovernable = $seoUnderstood && null !== $providerAdapter && ! empty($providerReadiness['ready']);
+
         $seoBlockers = [];
         if (! $seoDetected) {
             $seoBlockers[] = 'SEO ownership could not be resolved from the current WordPress runtime.';
         } elseif (! empty($seo['conflict'])) {
             $seoBlockers[] = 'Multiple SEO ownership candidates were detected; writes remain blocked until the conflict is resolved.';
-        } elseif ($seoUnderstood && empty($seo['write_adapter_ready'])) {
-            $owner = (string) ($seoAuthority['id'] ?? 'detected-provider');
-            $seoBlockers[] = 'SEO ownership is resolved to ' . $owner . ', but its write adapter is not ready.';
-        } elseif (! $seoGovernable) {
-            $seoBlockers[] = 'SEO ownership is understood, but no verified safe write path is available.';
+        } elseif ($seoUnderstood && null === $providerAdapter) {
+            $seoBlockers[] = 'SEO ownership is resolved to ' . $seoProvider . ', but no registered provider adapter is available.';
+        } elseif ($seoUnderstood && ! $seoGovernable) {
+            $seoBlockers[] = 'SEO ownership is resolved to ' . $seoProvider . ', but its provider adapter is not ready for safe writes.';
         }
 
         $caps = [
@@ -136,13 +139,19 @@ final class WordPressAdapter implements PlatformAdapter
                     'authority'=>$seoAuthority,
                     'candidates'=>$seoCandidates,
                     'outputs'=>is_array($seo['outputs'] ?? null) ? $seo['outputs'] : [],
-                    'write_adapter_ready'=>! empty($seo['write_adapter_ready']),
-                    'write_mode'=>$seo['write_mode'] ?? null,
-                    'writable_inputs'=>is_array($seo['writable_inputs'] ?? null) ? $seo['writable_inputs'] : [],
-                    'derived_outputs'=>is_array($seo['derived_outputs'] ?? null) ? $seo['derived_outputs'] : [],
+                    'provider_adapter'=>$providerAdapter?->id(),
+                    'plan_adapter'=>$providerAdapter?->planAdapterId(),
+                    'write_adapter_ready'=>$seoGovernable,
+                    'write_mode'=>$providerReadiness['write_mode'] ?? ($seo['write_mode'] ?? null),
+                    'writable_inputs'=>is_array($providerReadiness['writable_inputs'] ?? null)
+                        ? $providerReadiness['writable_inputs']
+                        : (is_array($seo['writable_inputs'] ?? null) ? $seo['writable_inputs'] : []),
+                    'derived_outputs'=>is_array($providerReadiness['derived_outputs'] ?? null)
+                        ? $providerReadiness['derived_outputs']
+                        : (is_array($seo['derived_outputs'] ?? null) ? $seo['derived_outputs'] : []),
                     'confirmation'=>'explicit',
-                    'reversible'=>$seoGovernable,
-                    'stale_plan_protection'=>$seoGovernable,
+                    'reversible'=>$seoGovernable && ! empty($providerReadiness['reversible']),
+                    'stale_plan_protection'=>$seoGovernable && ! empty($providerReadiness['stale_plan_protection']),
                 ],
             ),
         ];
@@ -174,7 +183,10 @@ final class WordPressAdapter implements PlatformAdapter
             'permalinks'=>'' !== (string) ($inventory['routing']['permalink_structure'] ?? ''),
             'search_visible'=>'index' === (string) ($inventory['indexability']['search_visibility'] ?? ''),
         ];
-        $seo = is_array($inventory['seo_authority'] ?? null) ? $inventory['seo_authority'] : [];
+        $seo = $this->seoInventory($snapshot);
+        $seoAdapter = $this->seoRegistry()->resolve($snapshot);
+        $readiness = $seoAdapter?->readiness($snapshot) ?? [];
+
         return [
             'ready_for_read'=>! in_array(false, [$checks['rest_url']], true),
             'checks'=>$checks,
@@ -196,13 +208,16 @@ final class WordPressAdapter implements PlatformAdapter
             ],
             'seo_write_guard'=>[
                 'provider'=>(string) (($seo['authority']['id'] ?? '')),
-                'write_mode'=>$seo['write_mode'] ?? null,
-                'writable_inputs'=>is_array($seo['writable_inputs'] ?? null) ? $seo['writable_inputs'] : [],
-                'derived_outputs'=>is_array($seo['derived_outputs'] ?? null) ? $seo['derived_outputs'] : [],
+                'registered_provider_adapters'=>$this->seoRegistry()->ids(),
+                'resolved_provider_adapter'=>$seoAdapter?->id(),
+                'plan_adapter'=>$seoAdapter?->planAdapterId(),
+                'write_mode'=>$readiness['write_mode'] ?? ($seo['write_mode'] ?? null),
+                'writable_inputs'=>is_array($readiness['writable_inputs'] ?? null) ? $readiness['writable_inputs'] : [],
+                'derived_outputs'=>is_array($readiness['derived_outputs'] ?? null) ? $readiness['derived_outputs'] : [],
                 'confirmation'=>'explicit',
-                'stale_plan_protection'=>! empty($seo['write_adapter_ready']),
-                'verification'=>! empty($seo['write_adapter_ready']),
-                'rollback'=>! empty($seo['write_adapter_ready']),
+                'stale_plan_protection'=>! empty($readiness['stale_plan_protection']),
+                'verification'=>! empty($readiness['verification']),
+                'rollback'=>! empty($readiness['reversible']),
             ],
             'seo_ownership'=>$seo,
         ];
@@ -217,7 +232,11 @@ final class WordPressAdapter implements PlatformAdapter
             return $this->navigation()->plan($request, $snapshot, $graph);
         }
         if ('seo.write' === $request->capabilityId && 'seo.update' === $request->operation) {
-            return $this->seo()->plan($request, $snapshot, $graph);
+            $provider = $this->seoRegistry()->resolve($snapshot);
+            if (null === $provider) {
+                throw new LogicException('No registered SEO provider adapter can plan this operation.');
+            }
+            return $provider->plan($request, $snapshot, $graph);
         }
         throw new LogicException('No WordPress planner is registered for the requested operation.');
     }
@@ -231,7 +250,11 @@ final class WordPressAdapter implements PlatformAdapter
             return $this->navigation()->apply($plan, $confirmed);
         }
         if ('seo.write' === $plan->request->capabilityId && 'seo.update' === $plan->request->operation) {
-            return $this->seo()->apply($plan, $confirmed);
+            $provider = $this->seoRegistry()->resolvePlan($plan);
+            if (null === $provider) {
+                throw new LogicException('No registered SEO provider adapter can execute this plan.');
+            }
+            return $provider->apply($plan, $confirmed);
         }
         throw new LogicException('No WordPress executor is registered for this plan.');
     }
@@ -245,7 +268,11 @@ final class WordPressAdapter implements PlatformAdapter
             return $this->navigation()->verify($plan, $result);
         }
         if ('seo.write' === $plan->request->capabilityId && 'seo.update' === $plan->request->operation) {
-            return $this->seo()->verify($plan, $result);
+            $provider = $this->seoRegistry()->resolvePlan($plan);
+            if (null === $provider) {
+                throw new LogicException('No registered SEO provider adapter can verify this plan.');
+            }
+            return $provider->verify($plan, $result);
         }
         throw new LogicException('No WordPress verifier is registered for this plan.');
     }
@@ -259,7 +286,11 @@ final class WordPressAdapter implements PlatformAdapter
             return $this->navigation()->rollback($plan, $result, $confirmed);
         }
         if ('seo.write' === $plan->request->capabilityId && 'seo.update' === $plan->request->operation) {
-            return $this->seo()->rollback($plan, $result, $confirmed);
+            $provider = $this->seoRegistry()->resolvePlan($plan);
+            if (null === $provider) {
+                throw new LogicException('No registered SEO provider adapter can roll back this plan.');
+            }
+            return $provider->rollback($plan, $result, $confirmed);
         }
         throw new LogicException('No WordPress rollback handler is registered for this plan.');
     }
@@ -274,8 +305,22 @@ final class WordPressAdapter implements PlatformAdapter
         return $this->navigation ?? new NavigationGovernanceService();
     }
 
-    private function seo(): SeoGovernanceService
+    private function seoRegistry(): SeoProviderRegistry
     {
-        return $this->seo ?? new SeoGovernanceService();
+        if (null !== $this->seoProviders) {
+            return $this->seoProviders;
+        }
+        if (null !== $this->seo) {
+            return new SeoProviderRegistry([new SeoGeoThemeProviderAdapter($this->seo)]);
+        }
+        return new SeoProviderRegistry();
+    }
+
+    /** @return array<string,mixed> */
+    private function seoInventory(DiscoverySnapshot $snapshot): array
+    {
+        return is_array($snapshot->inventory['seo_authority'] ?? null)
+            ? $snapshot->inventory['seo_authority']
+            : [];
     }
 }

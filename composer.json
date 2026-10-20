@@ -23,6 +23,7 @@
       "@php tests/wordpress_seo_data_source_tracer_test.php",
       "@php tests/wordpress_seo_provider_readiness_test.php",
       "@php tests/wordpress_seo_provider_registry_test.php",
+      "@php tests/wordpress_seo_registry_routing_test.php",
       "@php tests/wordpress_seo_semantic_governance_test.php"
     ],
     "lint": [
