@@ -17,7 +17,8 @@ final class SeoOwnershipProbe
     ];
 
     /**
-     * Inspect only local WordPress runtime metadata. This method never writes and never performs HTTP requests.
+     * Inspect only local WordPress runtime metadata and bounded active-theme source evidence.
+     * This method never writes and never performs HTTP requests.
      *
      * @param array<string,mixed> $theme
      * @param list<array<string,mixed>> $providers
@@ -25,13 +26,15 @@ final class SeoOwnershipProbe
      */
     public function inspect(array $theme, array $providers): array
     {
-        return $this->resolve(
+        $result = $this->resolve(
             theme: $theme,
             providers: $providers,
             registeredMeta: $this->registeredMetaCandidates(),
             hookNames: $this->seoHookNames(),
             contracts: $this->declaredContracts(),
         );
+        $result['evidence']['theme_contract_inspection'] = (new ThemeSeoContractInspector())->inspect();
+        return $result;
     }
 
     /**
@@ -130,7 +133,7 @@ final class SeoOwnershipProbe
                 'declared_contract_count'=>count($contractCandidates),
             ],
             'next_action'=>$authorityResolved
-                ? 'implement-and-verify-provider-seo-write-adapter'
+                ? 'inspect-provider-storage-and-implement-write-adapter'
                 : ($conflict ? 'resolve-seo-owner-conflict' : 'identify-seo-owner'),
         ];
     }
