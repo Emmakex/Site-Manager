@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Site Manager 0.3.3\n"
+"Project-Id-Version: Site Manager 0.4.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-20 15:30+0200\n"
-"PO-Revision-Date: 2026-10-20 15:30+0200\n"
+"POT-Creation-Date: 2026-10-20 16:30+0200\n"
+"PO-Revision-Date: 2026-10-20 16:30+0200\n"
 "Last-Translator: Emmake\n"
 "Language-Team: Spanish\n"
 "Language: es_ES\n"
@@ -205,6 +205,12 @@ msgstr "Evidencia de propiedad SEO"
 msgid "Owned SEO outputs:"
 msgstr "Salidas SEO bajo propiedad:"
 
+msgid "SEO write mode:"
+msgstr "Modo de escritura SEO:"
+
+msgid "Governable SEO inputs:"
+msgstr "Entradas SEO gobernables:"
+
 msgid "Ownership detection is read-only. A detected owner or declared provider contract never grants SEO write access by itself."
 msgstr "La detección de propiedad es de solo lectura. Detectar un propietario o un contrato de proveedor declarado nunca concede por sí solo permisos de escritura SEO."
 
@@ -216,6 +222,9 @@ msgstr "Conflicto: %d candidatos a propietario SEO"
 
 msgid "%s · ownership resolved · write adapter pending"
 msgstr "%s · propiedad resuelta · adaptador de escritura pendiente"
+
+msgid "%s · ownership resolved · semantic writer ready"
+msgstr "%s · propiedad resuelta · escritor semántico listo"
 
 msgid "Registered SEO meta candidates: %1$d · SEO-related hooks: %2$d · matched provider contracts: %3$d"
 msgstr "Metadatos SEO registrados candidatos: %1$d · hooks relacionados con SEO: %2$d · contratos de proveedor coincidentes: %3$d"
