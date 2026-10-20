@@ -35,10 +35,16 @@ final class DiagnosticsPage
         $seo = is_array($inventory['seo_authority'] ?? null) ? $inventory['seo_authority'] : [];
         $evidence = is_array($seo['evidence'] ?? null) ? $seo['evidence'] : [];
         $inspection = is_array($evidence['theme_contract_inspection'] ?? null) ? $evidence['theme_contract_inspection'] : [];
+        $trace = (new ThemeSeoDataSourceTracer())->inspect();
+
         $meta = array_slice((array) ($inspection['meta_keys'] ?? []), 0, 100);
         $options = array_slice((array) ($inspection['option_keys'] ?? []), 0, 100);
         $hooks = array_slice((array) ($inspection['hook_registrations'] ?? []), 0, 100);
         $tokens = array_slice((array) ($inspection['output_tokens'] ?? []), 0, 100);
+        $apiCalls = array_slice((array) ($trace['api_calls'] ?? []), 0, 100);
+        $postFields = array_slice((array) ($trace['post_fields'] ?? []), 0, 100);
+        $filterPipeline = array_slice((array) ($trace['filter_pipeline'] ?? []), 0, 100);
+        $classification = is_array($trace['classification'] ?? null) ? $trace['classification'] : [];
         ?>
         <div class="wrap" style="max-width:1200px">
           <h1><?php echo esc_html__('Site Manager Diagnostics', 'site-manager'); ?></h1>
@@ -82,7 +88,36 @@ final class DiagnosticsPage
             <?php $this->renderKeyEvidence($tokens); ?>
           <?php endif; ?>
 
-          <p class="description" style="margin-top:16px"><?php echo esc_html__('This inspection reads only bounded PHP source from the active theme/parent theme. It does not execute files, follow external symlinks, perform network requests or grant write access.', 'site-manager'); ?></p>
+          <h2><?php echo esc_html__('SEO data-source trace', 'site-manager'); ?></h2>
+          <?php if (empty($trace['available'])) : ?>
+            <p><?php echo esc_html__('No bounded SEO data-source trace is available for the current theme.', 'site-manager'); ?></p>
+          <?php else : ?>
+            <table class="widefat striped"><tbody>
+              <tr><th><?php echo esc_html__('Trace mode', 'site-manager'); ?></th><td><code><?php echo esc_html((string) ($trace['mode'] ?? '')); ?></code></td></tr>
+              <tr><th><?php echo esc_html__('SEO-focused PHP files scanned', 'site-manager'); ?></th><td><?php echo esc_html((string) ($trace['focus_files_scanned'] ?? 0)); ?></td></tr>
+              <tr><th><?php echo esc_html__('SEO data-source API calls', 'site-manager'); ?></th><td><?php echo esc_html((string) count($apiCalls)); ?></td></tr>
+              <tr><th><?php echo esc_html__('WordPress post-field references', 'site-manager'); ?></th><td><?php echo esc_html((string) count($postFields)); ?></td></tr>
+              <tr><th><?php echo esc_html__('SEO filter pipeline entries', 'site-manager'); ?></th><td><?php echo esc_html((string) count($filterPipeline)); ?></td></tr>
+            </tbody></table>
+
+            <h3><?php echo esc_html__('Source classification', 'site-manager'); ?></h3>
+            <table class="widefat striped"><thead><tr><th><?php echo esc_html__('Source', 'site-manager'); ?></th><th><?php echo esc_html__('Detected', 'site-manager'); ?></th></tr></thead><tbody>
+            <?php foreach ($classification as $source => $detected) : ?>
+              <tr><td><code><?php echo esc_html((string) $source); ?></code></td><td><?php echo esc_html($detected ? __('YES', 'site-manager') : __('NO', 'site-manager')); ?></td></tr>
+            <?php endforeach; ?>
+            </tbody></table>
+
+            <h3><?php echo esc_html__('Data-source API evidence', 'site-manager'); ?></h3>
+            <?php $this->renderKeyEvidence($apiCalls); ?>
+
+            <h3><?php echo esc_html__('Post-field evidence', 'site-manager'); ?></h3>
+            <?php $this->renderKeyEvidence($postFields); ?>
+
+            <h3><?php echo esc_html__('SEO filter-pipeline evidence', 'site-manager'); ?></h3>
+            <?php $this->renderKeyEvidence($filterPipeline); ?>
+          <?php endif; ?>
+
+          <p class="description" style="margin-top:16px"><?php echo esc_html__('This inspection reads only bounded PHP source from the active theme/parent theme. It does not execute files, read content values, follow external symlinks, perform network requests or grant write access.', 'site-manager'); ?></p>
         </div>
         <?php
     }
