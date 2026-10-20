@@ -33,7 +33,7 @@ final class NativeNavigationRuntime implements NavigationRuntime
                 'title', 'description', 'attr_title', 'xfn' => sanitize_text_field(is_scalar($value) ? (string) $value : ''),
                 'url' => esc_url_raw(is_scalar($value) ? (string) $value : ''),
                 'target' => '_blank' === (string) $value ? '_blank' : '',
-                'classes' => array_values(array_filter(array_map('sanitize_html_class', is_array($value) ? $value : preg_split('/\s+/', (string) $value) ?: []))),
+                'classes' => array_values(array_filter(array_map('sanitize_html_class', is_array($value) ? $value : (preg_split('/\s+/', (string) $value) ?: [])))),
                 'menu_item_parent', 'menu_order' => max(0, (int) $value),
                 'status' => in_array((string) $value, ['publish','draft'], true) ? (string) $value : 'publish',
                 default => '',
