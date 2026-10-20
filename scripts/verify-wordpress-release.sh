@@ -18,6 +18,8 @@ required=(
   "site-manager/src/Core/Contracts/PlatformAdapter.php"
   "site-manager/src/Adapters/WordPress/Plugin.php"
   "site-manager/src/Adapters/WordPress/DiscoveryService.php"
+  "site-manager/languages/site-manager-es_ES.po"
+  "site-manager/languages/site-manager-es_ES.mo"
 )
 for path in "${required[@]}"; do
   [[ -e "$TMP/$path" ]] || { echo "Missing packaged path: $path" >&2; exit 1; }
@@ -44,5 +46,9 @@ if (!class_exists("SiteManager\\Adapters\\WordPress\\WordPressAdapter")) { fwrit
 
 grep -q "add_menu_page" "$TMP/site-manager/src/Adapters/WordPress/Plugin.php" || { echo "Top-level Site Manager menu missing" >&2; exit 1; }
 ! grep -q "add_management_page" "$TMP/site-manager/src/Adapters/WordPress/Plugin.php" || { echo "Legacy Tools menu registration leaked into release" >&2; exit 1; }
+grep -q "loadTranslations" "$TMP/site-manager/src/Adapters/WordPress/Plugin.php" || { echo "WordPress translation loader missing" >&2; exit 1; }
+grep -q 'msgstr "Plataforma"' "$TMP/site-manager/languages/site-manager-es_ES.po" || { echo "Spanish dashboard catalogue is incomplete" >&2; exit 1; }
+grep -q 'msgstr "Panel de Site Manager"' "$TMP/site-manager/languages/site-manager-es_ES.po" || { echo "Spanish dashboard title is missing" >&2; exit 1; }
+[[ -s "$TMP/site-manager/languages/site-manager-es_ES.mo" ]] || { echo "Compiled Spanish catalogue is empty" >&2; exit 1; }
 
 echo "PASS: installable Site Manager WordPress package $(basename "$ZIP")"
