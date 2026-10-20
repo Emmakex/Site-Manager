@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Site Manager 0.3.2\n"
+"Project-Id-Version: Site Manager 0.3.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-20 15:00+0200\n"
-"PO-Revision-Date: 2026-10-20 15:00+0200\n"
+"POT-Creation-Date: 2026-10-20 15:30+0200\n"
+"PO-Revision-Date: 2026-10-20 15:30+0200\n"
 "Last-Translator: Emmake\n"
 "Language-Team: Spanish\n"
 "Language: es_ES\n"
@@ -85,6 +85,51 @@ msgstr "Callback"
 msgid "Theme file"
 msgstr "Archivo del tema"
 
+msgid "SEO data-source trace"
+msgstr "Trazado de fuentes de datos SEO"
+
+msgid "No bounded SEO data-source trace is available for the current theme."
+msgstr "No hay disponible un trazado acotado de fuentes de datos SEO para el tema actual."
+
+msgid "Trace mode"
+msgstr "Modo de trazado"
+
+msgid "SEO-focused PHP files scanned"
+msgstr "Archivos PHP centrados en SEO analizados"
+
+msgid "SEO data-source API calls"
+msgstr "Llamadas API de fuentes de datos SEO"
+
+msgid "WordPress post-field references"
+msgstr "Referencias a campos de contenido de WordPress"
+
+msgid "SEO filter pipeline entries"
+msgstr "Entradas del pipeline de filtros SEO"
+
+msgid "Source classification"
+msgstr "Clasificación de fuentes"
+
+msgid "Source"
+msgstr "Fuente"
+
+msgid "Detected"
+msgstr "Detectado"
+
+msgid "YES"
+msgstr "SÍ"
+
+msgid "NO"
+msgstr "NO"
+
+msgid "Data-source API evidence"
+msgstr "Evidencia de APIs de fuentes de datos"
+
+msgid "Post-field evidence"
+msgstr "Evidencia de campos de contenido"
+
+msgid "SEO filter-pipeline evidence"
+msgstr "Evidencia del pipeline de filtros SEO"
+
 msgid "No matching evidence found."
 msgstr "No se encontraron evidencias coincidentes."
 
@@ -96,6 +141,9 @@ msgstr "Archivos del tema"
 
 msgid "This inspection reads only bounded PHP source from the active theme/parent theme. It does not execute files, follow external symlinks, perform network requests or grant write access."
 msgstr "Esta inspección solo lee código PHP de forma acotada del tema activo/tema padre. No ejecuta archivos, no sigue enlaces simbólicos externos, no realiza peticiones de red ni concede permisos de escritura."
+
+msgid "This inspection reads only bounded PHP source from the active theme/parent theme. It does not execute files, read content values, follow external symlinks, perform network requests or grant write access."
+msgstr "Esta inspección solo lee código PHP de forma acotada del tema activo/tema padre. No ejecuta archivos, no lee valores de contenido, no sigue enlaces simbólicos externos, no realiza peticiones de red ni concede permisos de escritura."
 
 msgid "You do not have permission to access Site Manager."
 msgstr "No tienes permisos para acceder a Site Manager."

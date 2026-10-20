@@ -10,6 +10,11 @@ function demo_theme_seo($post_id) {
     update_post_meta($post_id, '_demo_seo_description', $description);
     $canonical = get_option('demo_seo_canonical_base', '');
     update_option('demo_seo_canonical_base', $canonical);
+    $title = get_the_title($post_id);
+    $excerpt = get_post_field('post_excerpt', $post_id);
+    $url = get_permalink($post_id);
+    $terms = get_the_terms($post_id, 'category');
+    return apply_filters('seo_geo_meta_description', $excerpt, $post_id, $title, $url, $terms);
 }
 add_action('wp_head', 'demo_theme_seo_head');
 add_filter('wp_robots', 'demo_theme_robots');
@@ -37,6 +42,7 @@ if (! function_exists('wp_get_theme')) {
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use SiteManager\Adapters\WordPress\ThemeSeoContractInspector;
+use SiteManager\Adapters\WordPress\ThemeSeoDataSourceTracer;
 
 $assert = static function (bool $condition, string $message): void {
     if (! $condition) {
@@ -65,10 +71,30 @@ $assert(in_array('rel="canonical"', $tokens, true), 'canonical output token must
 $assert(in_array('property="og:', $tokens, true), 'Open Graph output token must be discovered');
 $assert(in_array('application/ld+json', $tokens, true), 'JSON-LD output token must be discovered');
 
-$encoded = json_encode($result);
+$trace = (new ThemeSeoDataSourceTracer())->inspect();
+$assert(true === ($trace['available'] ?? false), 'SEO data-source trace must be available');
+$assert(1 === (int) ($trace['focus_files_scanned'] ?? 0), 'fixture must trace exactly one SEO-focused PHP file');
+$assert(false === ($trace['write_adapter_ready'] ?? true), 'data-source trace must never grant writes');
+
+$apiCalls = array_column((array) ($trace['api_calls'] ?? []), 'key');
+foreach (['get_post_meta','get_option','get_the_title','get_post_field','get_permalink','get_the_terms'] as $function) {
+    $assert(in_array($function, $apiCalls, true), "{$function} data source must be discovered");
+}
+$postFields = array_column((array) ($trace['post_fields'] ?? []), 'key');
+$assert(in_array('post_excerpt', $postFields, true), 'native post_excerpt source must be discovered');
+$filters = array_column((array) ($trace['filter_pipeline'] ?? []), 'key');
+$assert(in_array('seo_geo_meta_description', $filters, true), 'SEO filter pipeline must be discovered');
+$class = (array) ($trace['classification'] ?? []);
+$assert(true === ($class['native_post_content'] ?? false), 'native post content must be classified');
+$assert(true === ($class['native_permalink'] ?? false), 'native permalink must be classified');
+$assert(true === ($class['native_taxonomy'] ?? false), 'native taxonomy must be classified');
+$assert(true === ($class['post_meta'] ?? false), 'post meta use must be classified');
+$assert(true === ($class['options'] ?? false), 'option use must be classified');
+
+$encoded = json_encode([$result, $trace]);
 $assert(is_string($encoded) && false === strpos($encoded, 'Example'), 'inspection must not persist arbitrary source content');
 
 @unlink($themeRoot . '/functions.php');
 @rmdir($themeRoot);
 
-echo "PASS: bounded WordPress theme SEO contract inspection\n";
+echo "PASS: bounded WordPress theme SEO contract and data-source inspection\n";
