@@ -1,7 +1,13 @@
 import type { BridgeConfig } from './config.js';
 
 export type SiteManagerReadResource = 'connection' | 'discovery' | 'capabilities' | 'diagnostics';
-export type SiteManagerWriteResource = 'write/content/plan' | 'write/content/apply' | 'write/content/rollback';
+export type SiteManagerWriteResource =
+  | 'write/content/plan'
+  | 'write/content/apply'
+  | 'write/content/rollback'
+  | 'write/navigation/plan'
+  | 'write/navigation/apply'
+  | 'write/navigation/rollback';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -71,6 +77,18 @@ export class SiteManagerClient {
     return this.request('write/content/rollback', 'POST', input);
   }
 
+  public async navigationUpdatePlan(input: { provider: string; target_id: number; fields: JsonRecord; reason?: string }): Promise<unknown> {
+    return this.request('write/navigation/plan', 'POST', input);
+  }
+
+  public async navigationUpdateApply(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
+    return this.request('write/navigation/apply', 'POST', input);
+  }
+
+  public async navigationUpdateRollback(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
+    return this.request('write/navigation/rollback', 'POST', input);
+  }
+
   private async request(resource: SiteManagerReadResource | SiteManagerWriteResource, method: 'GET' | 'POST', body?: unknown): Promise<unknown> {
     const endpoint = new URL(resource, this.config.restBase);
     if (endpoint.origin !== this.config.restBase.origin) {
@@ -80,7 +98,7 @@ export class SiteManagerClient {
     const headers: Record<string, string> = {
       accept: 'application/json',
       authorization: `Bearer ${this.config.token}`,
-      'user-agent': 'site-manager-mcp/0.2.0',
+      'user-agent': 'site-manager-mcp/0.3.0',
     };
     const init: RequestInit = {
       method,
