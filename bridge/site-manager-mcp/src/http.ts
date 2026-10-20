@@ -27,9 +27,11 @@ export function secureBearerMatches(header: string | undefined, token: string): 
   return presented !== '' && secureEqual(presented, token);
 }
 
-export function startHttpServer(config: BridgeConfig) {
+export async function startHttpServer(config: BridgeConfig) {
   const client = new SiteManagerClient(config);
-  const mcp = createMcpHandler(() => createSiteManagerMcpServer(client, config.connectionId));
+  const grantedScopes = await client.grantedScopes();
+  const writeEnabled = grantedScopes.some((scope) => scope.endsWith('.write'));
+  const mcp = createMcpHandler(() => createSiteManagerMcpServer(client, config.connectionId, grantedScopes));
   const handle = toNodeHandler(mcp, {
     onerror() {
       console.error('[site-manager-mcp] MCP transport error');
@@ -53,8 +55,8 @@ export function startHttpServer(config: BridgeConfig) {
       json(res, 200, {
         ok: true,
         service: 'site-manager-mcp',
-        version: '0.1.0',
-        mode: 'read-only',
+        version: '0.2.0',
+        mode: writeEnabled ? 'governed-write' : 'read-only',
         connection_id: config.connectionId,
       });
       return;
@@ -94,8 +96,8 @@ export function startHttpServer(config: BridgeConfig) {
   });
 
   httpServer.listen(config.port, config.host, () => {
-    console.error(`[site-manager-mcp] read-only bridge connection=${config.connectionId} listening on ${config.host}:${config.port}`);
+    console.error(`[site-manager-mcp] ${writeEnabled ? 'governed-write' : 'read-only'} bridge connection=${config.connectionId} listening on ${config.host}:${config.port}`);
   });
 
-  return { httpServer, mcp };
+  return { httpServer, mcp, grantedScopes };
 }
