@@ -202,10 +202,14 @@ final class Plugin
         <?php
     }
 
-    /** @param list<array<string,mixed>> $capabilities @return array<string,mixed> */
+    /** @param array<string,mixed>|list<array<string,mixed>> $capabilities @return array<string,mixed> */
     private function capabilityById(array $capabilities, string $id): array
     {
-        foreach ($capabilities as $capability) {
+        $items = isset($capabilities['capabilities']) && is_array($capabilities['capabilities'])
+            ? $capabilities['capabilities']
+            : $capabilities;
+
+        foreach ($items as $capability) {
             if (is_array($capability) && $id === (string) ($capability['id'] ?? '')) {
                 return $capability;
             }
