@@ -87,7 +87,7 @@ test('site_diagnostics uses only the diagnostics resource', async () => {
   assert.deepEqual(result.diagnostics, { ready_for_read: true });
 });
 
-test('content and navigation write methods use only fixed Site Manager write routes and POST JSON', async () => {
+test('content, navigation and SEO write methods use only fixed Site Manager write routes and POST JSON', async () => {
   const requests: Array<{ path: string; method: string | undefined; body: unknown; auth: string | null; userAgent: string | null }> = [];
   const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
     const url = input instanceof URL ? input : new URL(String(input));
@@ -115,6 +115,13 @@ test('content and navigation write methods use only fixed Site Manager write rou
   });
   await client.navigationUpdateApply({ plan_id: 'plan_navigation_1', confirmed: true });
   await client.navigationUpdateRollback({ plan_id: 'plan_navigation_1', confirmed: true });
+  await client.seoUpdatePlan({
+    post_id: 99,
+    fields: { description: 'Updated SEO description' },
+    reason: 'SEO contract test',
+  });
+  await client.seoUpdateApply({ plan_id: 'plan_seo_1', confirmed: true });
+  await client.seoUpdateRollback({ plan_id: 'plan_seo_1', confirmed: true });
 
   assert.deepEqual(requests.map((request) => request.path), [
     '/wp-json/site-manager/v1/write/content/plan',
@@ -123,10 +130,13 @@ test('content and navigation write methods use only fixed Site Manager write rou
     '/wp-json/site-manager/v1/write/navigation/plan',
     '/wp-json/site-manager/v1/write/navigation/apply',
     '/wp-json/site-manager/v1/write/navigation/rollback',
+    '/wp-json/site-manager/v1/write/seo/plan',
+    '/wp-json/site-manager/v1/write/seo/apply',
+    '/wp-json/site-manager/v1/write/seo/rollback',
   ]);
   assert.ok(requests.every((request) => request.method === 'POST'));
   assert.ok(requests.every((request) => request.auth === `Bearer ${secret}`));
-  assert.ok(requests.every((request) => request.userAgent === 'site-manager-mcp/0.3.0'));
+  assert.ok(requests.every((request) => request.userAgent === 'site-manager-mcp/0.4.0'));
   assert.deepEqual(requests[0]?.body, { post_id: 77, fields: { title: 'New title' }, reason: 'Contract test' });
   assert.deepEqual(requests[1]?.body, { plan_id: 'plan_content_1', confirmed: true });
   assert.deepEqual(requests[3]?.body, {
@@ -136,6 +146,12 @@ test('content and navigation write methods use only fixed Site Manager write rou
     reason: 'Navigation contract test',
   });
   assert.deepEqual(requests[4]?.body, { plan_id: 'plan_navigation_1', confirmed: true });
+  assert.deepEqual(requests[6]?.body, {
+    post_id: 99,
+    fields: { description: 'Updated SEO description' },
+    reason: 'SEO contract test',
+  });
+  assert.deepEqual(requests[7]?.body, { plan_id: 'plan_seo_1', confirmed: true });
 });
 
 test('client errors are sanitized and never contain the bearer token', async () => {
@@ -163,6 +179,15 @@ test('client errors are sanitized and never contain the bearer token', async () 
 
   await assert.rejects(
     () => client.navigationUpdateApply({ plan_id: secret, confirmed: true }),
+    (error: unknown) => {
+      assert.ok(error instanceof SiteManagerClientError);
+      assert.equal(error.message.includes(secret), false);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => client.seoUpdateApply({ plan_id: secret, confirmed: true }),
     (error: unknown) => {
       assert.ok(error instanceof SiteManagerClientError);
       assert.equal(error.message.includes(secret), false);

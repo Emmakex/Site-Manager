@@ -110,6 +110,47 @@ $assert(null !== $pendingNavigation, 'navigation plan must hydrate through gener
 $assert('navigation.write' === $pendingNavigation->request->capabilityId, 'hydrated navigation plan must retain capability');
 $assert('navigation.update' === $pendingNavigation->request->operation, 'hydrated navigation plan must retain operation');
 
+$seoRequest = new OperationRequest(
+    capabilityId: 'seo.write',
+    operation: 'seo.update',
+    payload: [
+        'post_id'=>99,
+        'fields'=>['description'=>'SEO description'],
+    ],
+    write: true,
+    riskClass: 'editorial-review',
+    confirmationClass: 'explicit',
+    reason: 'SM-4C SEO contract test',
+);
+$seoPlan = new Plan(
+    id: 'plan_seo_1',
+    adapter: 'seo-geo-theme-native',
+    fingerprint: 'site-fingerprint-seo',
+    request: $seoRequest,
+    changes: [
+        'target'=>['post_id'=>99,'post_type'=>'page'],
+        'semantic_fields'=>['description'=>'SEO description'],
+        'native_fields'=>['post_excerpt'=>'SEO description'],
+        'precondition_fingerprint'=>'seo-before',
+        'derived_outputs'=>['open-graph','schema'],
+    ],
+    snapshot: [
+        'target'=>['ID'=>99,'post_type'=>'page','post_title'=>'Page','post_excerpt'=>'Original description'],
+        'target_fingerprint'=>'seo-before',
+    ],
+    reversible: true,
+    createdAt: gmdate(DATE_W3C),
+);
+$seoSummary = $store->save($seoPlan, 'smc_contract', 4);
+$assert('seo.write' === ($seoSummary['capability_id'] ?? ''), 'SEO plan capability must be preserved');
+$assert('seo.update' === ($seoSummary['operation'] ?? ''), 'SEO plan operation must be preserved');
+$assert(['post_id'=>99,'post_type'=>'page'] === ($seoSummary['target'] ?? []), 'SEO target must be preserved');
+$assert(['description'] === ($seoSummary['fields'] ?? []), 'SEO audit summary must expose semantic field names');
+$pendingSeo = $store->pending('plan_seo_1', 'smc_contract', 4);
+$assert(null !== $pendingSeo, 'SEO plan must hydrate through generic remote plan store');
+$assert('seo.write' === $pendingSeo->request->capabilityId, 'hydrated SEO plan must retain capability');
+$assert('seo.update' === $pendingSeo->request->operation, 'hydrated SEO plan must retain operation');
+
 $execution = new ExecutionResult(true, 'applied', [
     'plan_id'=>'plan_contract_1',
     'post_id'=>77,

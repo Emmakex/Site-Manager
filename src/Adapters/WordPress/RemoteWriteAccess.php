@@ -24,6 +24,9 @@ final class RemoteWriteAccess
             ['route'=>'write/navigation/plan','callback'=>'planNavigation','scope'=>'navigation.write'],
             ['route'=>'write/navigation/apply','callback'=>'applyNavigation','scope'=>'navigation.write'],
             ['route'=>'write/navigation/rollback','callback'=>'rollbackNavigation','scope'=>'navigation.write'],
+            ['route'=>'write/seo/plan','callback'=>'planSeo','scope'=>'seo.write'],
+            ['route'=>'write/seo/apply','callback'=>'applySeo','scope'=>'seo.write'],
+            ['route'=>'write/seo/rollback','callback'=>'rollbackSeo','scope'=>'seo.write'],
         ];
 
         foreach ($routes as $definition) {
@@ -84,6 +87,21 @@ final class RemoteWriteAccess
         );
     }
 
+    public static function planSeo(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $params = self::params($request);
+        $postId = (int) ($params['post_id'] ?? 0);
+        $fields = is_array($params['fields'] ?? null) ? $params['fields'] : [];
+        $reason = sanitize_text_field((string) ($params['reason'] ?? 'Remote Site Manager SEO update'));
+
+        return self::planOperation(
+            capabilityId: 'seo.write',
+            operation: 'seo.update',
+            payload: ['post_id'=>$postId,'fields'=>$fields],
+            reason: $reason,
+        );
+    }
+
     public static function applyContent(\WP_REST_Request $request): \WP_REST_Response
     {
         return self::applyPlan($request, 'content.write', 'content.update');
@@ -94,6 +112,11 @@ final class RemoteWriteAccess
         return self::applyPlan($request, 'navigation.write', 'navigation.update');
     }
 
+    public static function applySeo(\WP_REST_Request $request): \WP_REST_Response
+    {
+        return self::applyPlan($request, 'seo.write', 'seo.update');
+    }
+
     public static function rollbackContent(\WP_REST_Request $request): \WP_REST_Response
     {
         return self::rollbackPlan($request, 'content.write', 'content.update');
@@ -102,6 +125,11 @@ final class RemoteWriteAccess
     public static function rollbackNavigation(\WP_REST_Request $request): \WP_REST_Response
     {
         return self::rollbackPlan($request, 'navigation.write', 'navigation.update');
+    }
+
+    public static function rollbackSeo(\WP_REST_Request $request): \WP_REST_Response
+    {
+        return self::rollbackPlan($request, 'seo.write', 'seo.update');
     }
 
     /** @param array<string,mixed> $payload */
@@ -128,19 +156,9 @@ final class RemoteWriteAccess
                 (int) ($connection['generation'] ?? 0),
             );
 
-            $before = is_array($plan->snapshot['target'] ?? null) ? $plan->snapshot['target'] : [];
-            $after = is_array($plan->changes['fields'] ?? null) ? $plan->changes['fields'] : [];
-            $changedBefore = [];
-            foreach (array_keys($after) as $field) {
-                $changedBefore[$field] = $before[$field] ?? null;
-            }
-
             return self::response(200, [
                 'plan'=>$audit,
-                'changes'=>[
-                    'before'=>$changedBefore,
-                    'after'=>$after,
-                ],
+                'changes'=>self::planPreview($plan),
             ]);
         } catch (InvalidArgumentException) {
             return self::error(400, 'invalid_request');
@@ -149,6 +167,37 @@ final class RemoteWriteAccess
         } catch (Throwable) {
             return self::error(500, 'plan_failed');
         }
+    }
+
+    /** @return array<string,mixed> */
+    private static function planPreview(object $plan): array
+    {
+        $before = is_array($plan->snapshot['target'] ?? null) ? $plan->snapshot['target'] : [];
+
+        if ('seo.write' === $plan->request->capabilityId) {
+            $semantic = is_array($plan->changes['semantic_fields'] ?? null) ? $plan->changes['semantic_fields'] : [];
+            $providerFields = is_array($plan->changes['provider_fields'] ?? null)
+                ? $plan->changes['provider_fields']
+                : (is_array($plan->changes['native_fields'] ?? null) ? $plan->changes['native_fields'] : []);
+
+            return [
+                'requested'=>$semantic,
+                'storage_before'=>$before,
+                'planned_storage'=>$providerFields,
+                'derived_outputs'=>is_array($plan->changes['derived_outputs'] ?? null) ? $plan->changes['derived_outputs'] : [],
+            ];
+        }
+
+        $after = is_array($plan->changes['fields'] ?? null) ? $plan->changes['fields'] : [];
+        $changedBefore = [];
+        foreach (array_keys($after) as $field) {
+            $changedBefore[$field] = $before[$field] ?? null;
+        }
+
+        return [
+            'before'=>$changedBefore,
+            'after'=>$after,
+        ];
     }
 
     private static function applyPlan(\WP_REST_Request $request, string $capabilityId, string $operation): \WP_REST_Response

@@ -29,7 +29,13 @@ Governed navigation writes, available only with `navigation.write`:
 
 Navigation plans accept only the native providers already understood by Site Manager: `wordpress-classic-menu` and `wordpress-block-navigation`. WordPress validates provider/target ownership and provider-specific fields before a plan is created.
 
-`seo.write` remains unexposed until its separate remote-write implementation and acceptance slice.
+Governed SEO writes, available only with `seo.write`:
+
+- `seo_update_plan`
+- `seo_update_apply`
+- `seo_update_rollback`
+
+SEO plans are provider-aware. The MCP tool accepts the stable semantic fields `title`, `description`, `canonical` and `indexability`, but WordPress resolves the active SEO authority and rejects any field that the current provider does not govern. Supported provider adapters remain Site Manager's existing SEO/GEO Theme, Yoast SEO, Rank Math and AIOSEO adapters. The bridge does not choose a provider and does not write provider storage directly.
 
 Every write follows `plan -> explicit confirmation -> apply -> verify`, with rollback available while retained evidence remains valid. Unknown, expired, stale or scope-mismatched plans fail closed.
 
@@ -61,12 +67,12 @@ npm run build
 ## Container
 
 ```bash
-docker build -t site-manager-mcp:0.3.0 .
+docker build -t site-manager-mcp:0.4.0 .
 docker run --rm -p 8787:8787 \
   -e SITE_MANAGER_REST_BASE='https://example.com/wp-json/site-manager/v1/' \
   -e SITE_MANAGER_CONNECTION_ID='smc_...' \
   -e SITE_MANAGER_TOKEN="$SITE_MANAGER_TOKEN" \
-  site-manager-mcp:0.3.0
+  site-manager-mcp:0.4.0
 ```
 
 Keep the real token in the deployment secret store or shell environment rather than command history where possible.
@@ -81,14 +87,14 @@ Keep the real token in the deployment secret store or shell environment rather t
 
 Use one write scope at a time during live acceptance:
 
-1. regress read-only behavior first;
-2. grant the single write scope being accepted in WordPress;
+1. regress the already accepted scopes first;
+2. grant only the write scope being accepted in WordPress;
 3. restart the bridge so tool visibility reflects current scopes;
 4. verify only that scope's tools appear;
-5. create a plan and inspect the diff before mutation;
+5. create a plan and inspect the provider-aware diff before mutation;
 6. verify an unconfirmed apply is rejected;
 7. explicitly confirm and apply;
 8. inspect verification evidence;
 9. explicitly confirm rollback and verify restoration.
 
-Do not grant the next write scope until its implementation has passed CI.
+The bridge never auto-grants a write scope, infers SEO ownership or bypasses Site Manager's provider contracts.

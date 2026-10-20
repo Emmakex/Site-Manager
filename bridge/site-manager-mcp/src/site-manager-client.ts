@@ -7,7 +7,10 @@ export type SiteManagerWriteResource =
   | 'write/content/rollback'
   | 'write/navigation/plan'
   | 'write/navigation/apply'
-  | 'write/navigation/rollback';
+  | 'write/navigation/rollback'
+  | 'write/seo/plan'
+  | 'write/seo/apply'
+  | 'write/seo/rollback';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -89,6 +92,18 @@ export class SiteManagerClient {
     return this.request('write/navigation/rollback', 'POST', input);
   }
 
+  public async seoUpdatePlan(input: { post_id: number; fields: JsonRecord; reason?: string }): Promise<unknown> {
+    return this.request('write/seo/plan', 'POST', input);
+  }
+
+  public async seoUpdateApply(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
+    return this.request('write/seo/apply', 'POST', input);
+  }
+
+  public async seoUpdateRollback(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
+    return this.request('write/seo/rollback', 'POST', input);
+  }
+
   private async request(resource: SiteManagerReadResource | SiteManagerWriteResource, method: 'GET' | 'POST', body?: unknown): Promise<unknown> {
     const endpoint = new URL(resource, this.config.restBase);
     if (endpoint.origin !== this.config.restBase.origin) {
@@ -98,7 +113,7 @@ export class SiteManagerClient {
     const headers: Record<string, string> = {
       accept: 'application/json',
       authorization: `Bearer ${this.config.token}`,
-      'user-agent': 'site-manager-mcp/0.3.0',
+      'user-agent': 'site-manager-mcp/0.4.0',
     };
     const init: RequestInit = {
       method,
