@@ -129,6 +129,7 @@ final class Plugin
         if (! current_user_can('manage_options')) {
             wp_die(esc_html__('You do not have permission to access Site Manager.', 'site-manager'));
         }
+
         $state = $this->ensureCurrent();
         $snapshot = is_array($state['snapshot'] ?? null) ? $state['snapshot'] : [];
         $platformRaw = $snapshot['platform'] ?? [];
@@ -140,6 +141,9 @@ final class Plugin
         $providers = is_array($inventory['providers'] ?? null) ? $inventory['providers'] : [];
         $navigationProviders = is_array($inventory['navigation']['providers'] ?? null) ? $inventory['navigation']['providers'] : [];
         $seo = is_array($inventory['seo_authority'] ?? null) ? $inventory['seo_authority'] : [];
+        $capabilities = is_array($state['capabilities'] ?? null) ? $state['capabilities'] : [];
+        $seoCapability = $this->capabilityById($capabilities, 'seo.write');
+        $seoMetadata = is_array($seoCapability['metadata'] ?? null) ? $seoCapability['metadata'] : [];
         $summary = is_array($state['summary'] ?? null) ? $state['summary'] : [];
         $gaps = is_array($state['gaps'] ?? null) ? $state['gaps'] : [];
         ?>
@@ -161,7 +165,7 @@ final class Plugin
             <tr><th><?php echo esc_html__('Taxonomies', 'site-manager'); ?></th><td><?php echo esc_html((string) count((array) ($inventory['taxonomies'] ?? []))); ?></td></tr>
             <tr><th><?php echo esc_html__('Active plugins', 'site-manager'); ?></th><td><?php echo esc_html((string) ($inventory['plugins']['active_count'] ?? 0)); ?></td></tr>
             <tr><th><?php echo esc_html__('Navigation', 'site-manager'); ?></th><td><?php echo esc_html($this->navigationSummary($navigationProviders)); ?></td></tr>
-            <tr><th><?php echo esc_html__('SEO ownership', 'site-manager'); ?></th><td><?php echo esc_html($this->seoSummary($seo)); ?></td></tr>
+            <tr><th><?php echo esc_html__('SEO ownership', 'site-manager'); ?></th><td><?php echo esc_html($this->seoSummary($seo, $seoCapability)); ?></td></tr>
             <tr><th><?php echo esc_html__('Fingerprint', 'site-manager'); ?></th><td><code style="word-break:break-all"><?php echo esc_html((string) ($snapshot['fingerprint'] ?? '')); ?></code></td></tr>
           </tbody></table>
 
@@ -175,15 +179,15 @@ final class Plugin
           <p><?php echo esc_html($this->seoEvidenceSummary($seo)); ?></p>
           <?php $seoOutputs = array_keys((array) ($seo['outputs'] ?? [])); ?>
           <?php if ($seoOutputs) : ?><p><strong><?php echo esc_html__('Owned SEO outputs:', 'site-manager'); ?></strong> <code><?php echo esc_html(implode(', ', $seoOutputs)); ?></code></p><?php endif; ?>
-          <?php if (! empty($seo['write_adapter_ready'])) : ?>
-            <p><strong><?php echo esc_html__('SEO write mode:', 'site-manager'); ?></strong> <code><?php echo esc_html((string) ($seo['write_mode'] ?? '')); ?></code></p>
-            <p><strong><?php echo esc_html__('Governable SEO inputs:', 'site-manager'); ?></strong> <code><?php echo esc_html(implode(', ', array_keys((array) ($seo['writable_inputs'] ?? [])))); ?></code></p>
+          <?php if (! empty($seoCapability['governable'])) : ?>
+            <p><strong><?php echo esc_html__('SEO provider adapter:', 'site-manager'); ?></strong> <code><?php echo esc_html((string) ($seoMetadata['provider_adapter'] ?? '')); ?></code></p>
+            <p><strong><?php echo esc_html__('SEO write mode:', 'site-manager'); ?></strong> <code><?php echo esc_html((string) ($seoMetadata['write_mode'] ?? '')); ?></code></p>
+            <p><strong><?php echo esc_html__('Governable SEO inputs:', 'site-manager'); ?></strong> <code><?php echo esc_html(implode(', ', array_keys((array) ($seoMetadata['writable_inputs'] ?? [])))); ?></code></p>
           <?php endif; ?>
           <p class="description"><?php echo esc_html__('Ownership detection is read-only. A detected owner or declared provider contract never grants SEO write access by itself.', 'site-manager'); ?></p>
 
           <h2><?php echo esc_html__('Capability map', 'site-manager'); ?></h2>
           <p><?php echo esc_html(sprintf(
-              /* translators: 1-5 are capability counters. */
               __('Detected %1$d · Understood %2$d · Governable %3$d · Authorized %4$d · Blocked %5$d', 'site-manager'),
               (int) ($summary['detected'] ?? 0),
               (int) ($summary['understood'] ?? 0),
@@ -198,20 +202,34 @@ final class Plugin
         <?php
     }
 
+    /** @param list<array<string,mixed>> $capabilities @return array<string,mixed> */
+    private function capabilityById(array $capabilities, string $id): array
+    {
+        foreach ($capabilities as $capability) {
+            if (is_array($capability) && $id === (string) ($capability['id'] ?? '')) {
+                return $capability;
+            }
+        }
+        return [];
+    }
+
     /** @param list<mixed> $blockers */
     private function localizedBlockers(array $blockers): string
     {
         $localized = [];
         foreach ($blockers as $blocker) {
             $text = (string) $blocker;
-            if (str_starts_with($text, 'SEO ownership is resolved to ') && str_ends_with($text, ', but its write adapter is not ready.')) {
-                $owner = substr($text, strlen('SEO ownership is resolved to '), -strlen(', but its write adapter is not ready.'));
-                $localized[] = sprintf(
-                    /* translators: %s is the detected SEO owner id. */
-                    __('SEO ownership is resolved to %s, but its write adapter is not ready.', 'site-manager'),
-                    $owner
-                );
-                continue;
+            foreach ([
+                ', but no registered provider adapter is available.' => __('SEO ownership is resolved to %s, but no registered provider adapter is available.', 'site-manager'),
+                ', but its provider adapter is not ready for safe writes.' => __('SEO ownership is resolved to %s, but its provider adapter is not ready for safe writes.', 'site-manager'),
+                ', but its write adapter is not ready.' => __('SEO ownership is resolved to %s, but its write adapter is not ready.', 'site-manager'),
+            ] as $suffix => $format) {
+                $prefix = 'SEO ownership is resolved to ';
+                if (str_starts_with($text, $prefix) && str_ends_with($text, $suffix)) {
+                    $owner = substr($text, strlen($prefix), -strlen($suffix));
+                    $localized[] = sprintf($format, $owner);
+                    continue 2;
+                }
             }
             $localized[] = match ($text) {
                 'SM-2 safe WordPress Core write adapter is not implemented yet.' => __('The safe WordPress Core write adapter is not implemented yet.', 'site-manager'),
@@ -244,7 +262,6 @@ final class Plugin
                 default => (string) ($provider['label'] ?? $id),
             };
             $labels[] = sprintf(
-                /* translators: 1: navigation provider label, 2: number of writable targets. */
                 __('%1$s (%2$d targets)', 'site-manager'),
                 $label,
                 (int) ($provider['target_count'] ?? 0)
@@ -253,12 +270,11 @@ final class Plugin
         return implode(' · ', $labels);
     }
 
-    /** @param array<string,mixed> $seo */
-    private function seoSummary(array $seo): string
+    /** @param array<string,mixed> $seo @param array<string,mixed> $capability */
+    private function seoSummary(array $seo, array $capability): string
     {
         if (! empty($seo['conflict'])) {
             return sprintf(
-                /* translators: %d is the number of SEO ownership candidates. */
                 __('Conflict: %d SEO ownership candidates', 'site-manager'),
                 count((array) ($seo['candidates'] ?? []))
             );
@@ -266,18 +282,10 @@ final class Plugin
         $authority = is_array($seo['authority'] ?? null) ? $seo['authority'] : [];
         if (! empty($seo['authority_resolved'])) {
             $label = (string) ($authority['label'] ?? $authority['id'] ?? '');
-            if (! empty($seo['write_adapter_ready'])) {
-                return sprintf(
-                    /* translators: %s is the SEO owner label. */
-                    __('%s · ownership resolved · semantic writer ready', 'site-manager'),
-                    $label
-                );
+            if (! empty($capability['governable'])) {
+                return sprintf(__('%s · ownership resolved · provider writer ready', 'site-manager'), $label);
             }
-            return sprintf(
-                /* translators: %s is the SEO owner label. */
-                __('%s · ownership resolved · write adapter pending', 'site-manager'),
-                $label
-            );
+            return sprintf(__('%s · ownership resolved · provider adapter pending', 'site-manager'), $label);
         }
         return __('SEO owner not resolved', 'site-manager');
     }
@@ -287,7 +295,6 @@ final class Plugin
     {
         $evidence = is_array($seo['evidence'] ?? null) ? $seo['evidence'] : [];
         return sprintf(
-            /* translators: 1: registered SEO-related meta count, 2: SEO-related hook count, 3: declared contract count. */
             __('Registered SEO meta candidates: %1$d · SEO-related hooks: %2$d · matched provider contracts: %3$d', 'site-manager'),
             count((array) ($evidence['registered_meta_candidates'] ?? [])),
             count((array) ($evidence['hook_name_candidates'] ?? [])),
