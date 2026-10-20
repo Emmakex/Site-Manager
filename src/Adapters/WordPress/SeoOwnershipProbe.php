@@ -33,7 +33,73 @@ final class SeoOwnershipProbe
             hookNames: $this->seoHookNames(),
             contracts: $this->declaredContracts(),
         );
-        $result['evidence']['theme_contract_inspection'] = (new ThemeSeoContractInspector())->inspect();
+
+        $contractInspection = (new ThemeSeoContractInspector())->inspect();
+        $dataSourceTrace = (new ThemeSeoDataSourceTracer())->inspect();
+        $result['evidence']['theme_contract_inspection'] = $contractInspection;
+        $result['evidence']['data_source_trace'] = $dataSourceTrace;
+
+        $authority = is_array($result['authority'] ?? null) ? $result['authority'] : [];
+        $ownerId = (string) ($authority['id'] ?? '');
+        $classification = is_array($dataSourceTrace['classification'] ?? null)
+            ? $dataSourceTrace['classification']
+            : [];
+        $metaKeys = is_array($contractInspection['meta_keys'] ?? null)
+            ? $contractInspection['meta_keys']
+            : [];
+
+        $semanticNativeReady = 'seo-geo-theme' === $ownerId
+            && ! empty($result['authority_resolved'])
+            && empty($result['conflict'])
+            && ! empty($contractInspection['available'])
+            && ! empty($dataSourceTrace['available'])
+            && ! empty($classification['native_post_content'])
+            && ! empty($classification['native_permalink'])
+            && empty($classification['acf'])
+            && empty($classification['theme_mod'])
+            && empty($classification['custom_database'])
+            && [] === $metaKeys;
+
+        if ($semanticNativeReady) {
+            $result['state'] = 'resolved-semantic-native-write-ready';
+            $result['write_adapter_ready'] = true;
+            $result['safe_to_write_seo_metadata'] = true;
+            $result['write_mode'] = 'semantic-native-sources';
+            $result['writable_inputs'] = [
+                'title'=>[
+                    'source'=>'post_title',
+                    'reversible'=>true,
+                    'side_effect'=>'Changes the native WordPress title.',
+                ],
+                'description'=>[
+                    'source'=>'post_excerpt',
+                    'reversible'=>true,
+                    'side_effect'=>'Changes the native WordPress excerpt and may affect visible excerpt surfaces.',
+                ],
+            ];
+            $result['derived_outputs'] = [
+                'title-meta'=>['sources'=>['post_title'],'direct_input'=>'title'],
+                'open-graph'=>['sources'=>['post_title','post_excerpt','site-identity'],'direct_input'=>null],
+                'schema'=>['sources'=>['post_title','post_excerpt','content','taxonomy','site-identity'],'direct_input'=>null],
+                'canonical'=>['sources'=>['permalink'],'direct_input'=>null],
+                'robots'=>['sources'=>['publication/indexability runtime'],'direct_input'=>null],
+                'hreflang'=>['sources'=>['permalink','language-routing'],'direct_input'=>null],
+                'sitemap'=>['sources'=>['publication-state','permalink'],'direct_input'=>null],
+            ];
+            $result['next_action'] = 'use-semantic-native-seo-adapter';
+
+            foreach ((array) ($result['outputs'] ?? []) as $output => $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                $row['state'] = in_array($output, ['title-meta','open-graph','schema'], true)
+                    ? 'derived-from-governed-native-sources'
+                    : 'derived-read-only';
+                $row['writable'] = 'title-meta' === $output;
+                $result['outputs'][$output] = $row;
+            }
+        }
+
         return $result;
     }
 
@@ -123,9 +189,13 @@ final class SeoOwnershipProbe
             'authority'=>$authority,
             'candidates'=>$candidates,
             'conflict'=>$conflict,
-            // This probe is deliberately incapable of making a provider writable.
+            // The pure resolver never makes a provider writable; inspect() may promote
+            // a known provider only after bounded source evidence satisfies its contract.
             'write_adapter_ready'=>false,
             'safe_to_write_seo_metadata'=>false,
+            'write_mode'=>null,
+            'writable_inputs'=>[],
+            'derived_outputs'=>[],
             'outputs'=>$outputMap,
             'evidence'=>[
                 'registered_meta_candidates'=>array_slice($this->sanitizeRegisteredMeta($registeredMeta), 0, 100),
