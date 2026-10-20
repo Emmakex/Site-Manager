@@ -27,9 +27,14 @@ interface PlatformAdapter
 
     public function plan(OperationRequest $request, DiscoverySnapshot $snapshot, CapabilityGraph $graph): Plan;
 
-    public function apply(Plan $plan): ExecutionResult;
+    /**
+     * Execution callers must pass $confirmed=true only after the requested confirmation
+     * class has been satisfied by the local or remote control plane.
+     */
+    public function apply(Plan $plan, bool $confirmed = false): ExecutionResult;
 
     public function verify(Plan $plan, ExecutionResult $result): VerificationResult;
 
-    public function rollback(Plan $plan, ExecutionResult $result): RollbackResult;
+    /** Rollback is itself a write and follows the same explicit confirmation boundary. */
+    public function rollback(Plan $plan, ExecutionResult $result, bool $confirmed = false): RollbackResult;
 }
