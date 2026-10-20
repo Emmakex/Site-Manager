@@ -21,6 +21,13 @@ type ContentPlanInput = {
   reason?: string;
 };
 
+type NavigationPlanInput = {
+  provider: 'wordpress-classic-menu' | 'wordpress-block-navigation';
+  target_id: number;
+  fields: Record<string, unknown>;
+  reason?: string;
+};
+
 type ConfirmedPlanInput = {
   plan_id: string;
   confirmed: boolean;
@@ -48,6 +55,41 @@ const contentPlanSchema = fromJsonSchema<ContentPlanInput>({
   required: ['post_id', 'fields'],
 });
 
+const navigationPlanSchema = fromJsonSchema<NavigationPlanInput>({
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    provider: {
+      type: 'string',
+      enum: ['wordpress-classic-menu', 'wordpress-block-navigation'],
+    },
+    target_id: { type: 'integer', minimum: 1 },
+    fields: {
+      type: 'object',
+      minProperties: 1,
+      additionalProperties: false,
+      properties: {
+        title: { type: 'string', maxLength: 500 },
+        url: { type: 'string', maxLength: 4096 },
+        description: { type: 'string', maxLength: 5000 },
+        attr_title: { type: 'string', maxLength: 500 },
+        target: { type: 'string', enum: ['', '_blank'] },
+        classes: {
+          oneOf: [
+            { type: 'string', maxLength: 2000 },
+            { type: 'array', maxItems: 50, items: { type: 'string', maxLength: 100 } },
+          ],
+        },
+        xfn: { type: 'string', maxLength: 2000 },
+        content: { type: 'string', maxLength: 200000 },
+        status: { type: 'string', enum: ['draft', 'publish'] },
+      },
+    },
+    reason: { type: 'string', maxLength: 500 },
+  },
+  required: ['provider', 'target_id', 'fields'],
+});
+
 const confirmedPlanSchema = fromJsonSchema<ConfirmedPlanInput>({
   type: 'object',
   additionalProperties: false,
@@ -65,7 +107,7 @@ export function createSiteManagerMcpServer(
 ): McpServer {
   const scopes = new Set(grantedScopes);
   const server = new McpServer(
-    { name: 'site-manager-mcp', version: '0.2.0' },
+    { name: 'site-manager-mcp', version: '0.3.0' },
     {
       instructions: `This MCP endpoint is bound to Site Manager connection ${connectionId}. Tools are exposed only for scopes currently granted by WordPress Site Manager. Writes must always use plan -> explicit confirmation -> apply -> verify, and rollback when requested. Never infer or construct arbitrary REST, database, filesystem or shell routes. Site Manager remains the source of truth for capabilities, provider ownership and authorization.`,
       capabilities: { tools: { listChanged: false } },
@@ -163,6 +205,65 @@ export function createSiteManagerMcpServer(
           return toolResult(await client.contentUpdateRollback({ plan_id, confirmed: true }));
         } catch {
           return toolError('Site Manager rejected or could not roll back the content update plan.');
+        }
+      },
+    );
+  }
+
+  if (scopes.has('navigation.write')) {
+    server.registerTool(
+      'navigation_update_plan',
+      {
+        title: 'Plan a WordPress navigation update',
+        description: 'Create a short-lived Site Manager plan for one discovered classic-menu item or block-navigation target. Planning never mutates navigation.',
+        inputSchema: navigationPlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ provider, target_id, fields, reason }) => {
+        try {
+          return toolResult(await client.navigationUpdatePlan({ provider, target_id, fields, ...(reason === undefined ? {} : { reason }) }));
+        } catch {
+          return toolError('Site Manager rejected or could not create the navigation update plan.');
+        }
+      },
+    );
+
+    server.registerTool(
+      'navigation_update_apply',
+      {
+        title: 'Apply a confirmed WordPress navigation update plan',
+        description: 'Apply exactly one previously created Site Manager navigation plan. Requires confirmed=true; provider ownership and stale-target guards remain enforced by WordPress.',
+        inputSchema: confirmedPlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ plan_id, confirmed }) => {
+        if (confirmed !== true) {
+          return toolError('Explicit confirmation is required before applying a Site Manager write plan.');
+        }
+        try {
+          return toolResult(await client.navigationUpdateApply({ plan_id, confirmed: true }));
+        } catch {
+          return toolError('Site Manager rejected or could not apply the navigation update plan.');
+        }
+      },
+    );
+
+    server.registerTool(
+      'navigation_update_rollback',
+      {
+        title: 'Rollback an applied WordPress navigation update plan',
+        description: 'Rollback a verified Site Manager navigation update while its rollback evidence is retained. Requires confirmed=true and fails closed if the target changed after apply.',
+        inputSchema: confirmedPlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ plan_id, confirmed }) => {
+        if (confirmed !== true) {
+          return toolError('Explicit confirmation is required before rolling back a Site Manager write plan.');
+        }
+        try {
+          return toolResult(await client.navigationUpdateRollback({ plan_id, confirmed: true }));
+        } catch {
+          return toolError('Site Manager rejected or could not roll back the navigation update plan.');
         }
       },
     );
