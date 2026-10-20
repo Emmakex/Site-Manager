@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLUGIN="$ROOT/wordpress-plugin/site-manager/site-manager.php"
+LANGUAGES="$ROOT/wordpress-plugin/site-manager/languages"
 DIST="$ROOT/dist"
 BUILD="$ROOT/.build/wordpress-release"
 PACKAGE="$BUILD/site-manager"
@@ -24,6 +25,16 @@ cp "$PLUGIN" "$PACKAGE/site-manager.php"
 cp "$ROOT/wordpress-plugin/site-manager/readme.txt" "$PACKAGE/readme.txt"
 cp -R "$ROOT/src" "$PACKAGE/src"
 cp -R "$ROOT/vendor" "$PACKAGE/vendor"
+
+if [[ -d "$LANGUAGES" ]]; then
+  command -v msgfmt >/dev/null 2>&1 || { echo "gettext/msgfmt is required to build WordPress translations" >&2; exit 1; }
+  mkdir -p "$PACKAGE/languages"
+  find "$LANGUAGES" -maxdepth 1 -type f -name '*.po' -print0 | while IFS= read -r -d '' po; do
+    base="$(basename "$po" .po)"
+    cp "$po" "$PACKAGE/languages/$base.po"
+    msgfmt --check --statistics "$po" -o "$PACKAGE/languages/$base.mo"
+  done
+fi
 
 find "$PACKAGE" -name '.DS_Store' -delete
 find "$PACKAGE" -type d -name '.git' -prune -exec rm -rf {} + || true
