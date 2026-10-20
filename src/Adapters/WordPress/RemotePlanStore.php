@@ -13,6 +13,7 @@ final class RemotePlanStore
 {
     public const OPTION = 'site_manager_remote_plans';
     public const TTL_SECONDS = 900;
+    public const RETENTION_SECONDS = 86400;
     private const MAX_RECORDS = 30;
 
     /** @return array<string,mixed> */
@@ -28,6 +29,7 @@ final class RemotePlanStore
             'created_at'=>$plan->createdAt,
             'created_epoch'=>$now,
             'expires_epoch'=>$now + self::TTL_SECONDS,
+            'retain_until_epoch'=>$now + self::RETENTION_SECONDS,
             'plan'=>$this->serializePlan($plan),
             'execution'=>null,
             'verification'=>null,
@@ -42,7 +44,10 @@ final class RemotePlanStore
     public function pending(string $planId, string $connectionId, int $connectionGeneration): ?Plan
     {
         $record = $this->record($planId, $connectionId, $connectionGeneration);
-        if (null === $record || 'planned' !== (string) ($record['status'] ?? '')) {
+        if (null === $record
+            || 'planned' !== (string) ($record['status'] ?? '')
+            || (int) ($record['expires_epoch'] ?? 0) < time()
+        ) {
             return null;
         }
         return $this->hydratePlan((array) ($record['plan'] ?? []));
@@ -120,7 +125,7 @@ final class RemotePlanStore
         }
         if ((string) ($record['connection_id'] ?? '') !== $connectionId
             || (int) ($record['connection_generation'] ?? 0) !== $connectionGeneration
-            || (int) ($record['expires_epoch'] ?? 0) < time()
+            || (int) ($record['retain_until_epoch'] ?? 0) < time()
         ) {
             return null;
         }
@@ -148,10 +153,7 @@ final class RemotePlanStore
     {
         $now = time();
         foreach ($records as $id => $record) {
-            $expired = (int) ($record['expires_epoch'] ?? 0) < $now;
-            $terminal = in_array((string) ($record['status'] ?? ''), ['rolled-back','rollback-failed','apply-failed','stale-site-plan'], true);
-            $created = (int) ($record['created_epoch'] ?? 0);
-            if ($expired && ($terminal || $created < $now - self::TTL_SECONDS)) {
+            if ((int) ($record['retain_until_epoch'] ?? 0) < $now) {
                 unset($records[$id]);
             }
         }
@@ -239,6 +241,7 @@ final class RemotePlanStore
             'confirmation_required'=>'explicit' === (string) ($request['confirmation_class'] ?? ''),
             'created_at'=>(string) ($record['created_at'] ?? ''),
             'expires_at'=>gmdate(DATE_W3C, (int) ($record['expires_epoch'] ?? 0)),
+            'rollback_retained_until'=>gmdate(DATE_W3C, (int) ($record['retain_until_epoch'] ?? 0)),
             'applied_at'=>(string) ($record['applied_at'] ?? ''),
             'rolled_back_at'=>(string) ($record['rolled_back_at'] ?? ''),
             'execution'=>is_array($record['execution'] ?? null) ? $record['execution'] : null,
