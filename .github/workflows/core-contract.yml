@@ -1,0 +1,28 @@
+name: Core Contract
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.1', '8.2', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          coverage: none
+      - run: composer validate --strict
+      - run: composer install --no-interaction --prefer-dist
+      - run: composer lint
+      - run: composer test
+      - run: bash scripts/check-neutral-core.sh
