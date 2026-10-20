@@ -139,6 +139,7 @@ final class Plugin
         $theme = is_array($inventory['theme'] ?? null) ? $inventory['theme'] : [];
         $providers = is_array($inventory['providers'] ?? null) ? $inventory['providers'] : [];
         $navigationProviders = is_array($inventory['navigation']['providers'] ?? null) ? $inventory['navigation']['providers'] : [];
+        $seo = is_array($inventory['seo_authority'] ?? null) ? $inventory['seo_authority'] : [];
         $summary = is_array($state['summary'] ?? null) ? $state['summary'] : [];
         $gaps = is_array($state['gaps'] ?? null) ? $state['gaps'] : [];
         ?>
@@ -160,6 +161,7 @@ final class Plugin
             <tr><th><?php echo esc_html__('Taxonomies', 'site-manager'); ?></th><td><?php echo esc_html((string) count((array) ($inventory['taxonomies'] ?? []))); ?></td></tr>
             <tr><th><?php echo esc_html__('Active plugins', 'site-manager'); ?></th><td><?php echo esc_html((string) ($inventory['plugins']['active_count'] ?? 0)); ?></td></tr>
             <tr><th><?php echo esc_html__('Navigation', 'site-manager'); ?></th><td><?php echo esc_html($this->navigationSummary($navigationProviders)); ?></td></tr>
+            <tr><th><?php echo esc_html__('SEO ownership', 'site-manager'); ?></th><td><?php echo esc_html($this->seoSummary($seo)); ?></td></tr>
             <tr><th><?php echo esc_html__('Fingerprint', 'site-manager'); ?></th><td><code style="word-break:break-all"><?php echo esc_html((string) ($snapshot['fingerprint'] ?? '')); ?></code></td></tr>
           </tbody></table>
 
@@ -168,6 +170,12 @@ final class Plugin
           <table class="widefat striped"><thead><tr><th><?php echo esc_html__('Provider', 'site-manager'); ?></th><th><?php echo esc_html__('Version', 'site-manager'); ?></th><th><?php echo esc_html__('State', 'site-manager'); ?></th></tr></thead><tbody>
           <?php foreach ($providers as $provider) : ?><tr><td><?php echo esc_html((string) ($provider['label'] ?? $provider['id'] ?? '')); ?></td><td><?php echo esc_html(implode(', ', (array) ($provider['versions'] ?? []))); ?></td><td><?php echo esc_html__('DETECTED', 'site-manager'); ?></td></tr><?php endforeach; ?>
           </tbody></table><?php endif; ?>
+
+          <h2><?php echo esc_html__('SEO ownership evidence', 'site-manager'); ?></h2>
+          <p><?php echo esc_html($this->seoEvidenceSummary($seo)); ?></p>
+          <?php $seoOutputs = array_keys((array) ($seo['outputs'] ?? [])); ?>
+          <?php if ($seoOutputs) : ?><p><strong><?php echo esc_html__('Owned SEO outputs:', 'site-manager'); ?></strong> <code><?php echo esc_html(implode(', ', $seoOutputs)); ?></code></p><?php endif; ?>
+          <p class="description"><?php echo esc_html__('Ownership detection is read-only. A detected owner or declared provider contract never grants SEO write access by itself.', 'site-manager'); ?></p>
 
           <h2><?php echo esc_html__('Capability map', 'site-manager'); ?></h2>
           <p><?php echo esc_html(sprintf(
@@ -192,12 +200,23 @@ final class Plugin
         $localized = [];
         foreach ($blockers as $blocker) {
             $text = (string) $blocker;
+            if (str_starts_with($text, 'SEO ownership is resolved to ') && str_ends_with($text, ', but its write adapter is not ready.')) {
+                $owner = substr($text, strlen('SEO ownership is resolved to '), -strlen(', but its write adapter is not ready.'));
+                $localized[] = sprintf(
+                    /* translators: %s is the detected SEO owner id. */
+                    __('SEO ownership is resolved to %s, but its write adapter is not ready.', 'site-manager'),
+                    $owner
+                );
+                continue;
+            }
             $localized[] = match ($text) {
                 'SM-2 safe WordPress Core write adapter is not implemented yet.' => __('The safe WordPress Core write adapter is not implemented yet.', 'site-manager'),
                 'SM-2 navigation ownership and rollback are not implemented yet.' => __('Navigation ownership and rollback are not implemented yet.', 'site-manager'),
                 'No native WordPress navigation provider was detected.' => __('No native WordPress navigation provider was detected.', 'site-manager'),
                 'Native WordPress navigation was detected but no existing target is safely governable yet.' => __('Native WordPress navigation was detected but no existing target is safely governable yet.', 'site-manager'),
-                'SEO ownership must be resolved to a provider adapter first.' => __('SEO ownership must be resolved to a provider adapter first.', 'site-manager'),
+                'SEO ownership could not be resolved from the current WordPress runtime.' => __('SEO ownership could not be resolved from the current WordPress runtime.', 'site-manager'),
+                'Multiple SEO ownership candidates were detected; writes remain blocked until the conflict is resolved.' => __('Multiple SEO ownership candidates were detected; writes remain blocked until the conflict is resolved.', 'site-manager'),
+                'SEO ownership is understood, but no verified safe write path is available.' => __('SEO ownership is understood, but no verified safe write path is available.', 'site-manager'),
                 'Provider detected; dedicated adapter required before governance is exposed.' => __('Provider detected; a dedicated adapter is required before governance is exposed.', 'site-manager'),
                 default => $text,
             };
@@ -228,6 +247,41 @@ final class Plugin
             );
         }
         return implode(' · ', $labels);
+    }
+
+    /** @param array<string,mixed> $seo */
+    private function seoSummary(array $seo): string
+    {
+        if (! empty($seo['conflict'])) {
+            return sprintf(
+                /* translators: %d is the number of SEO ownership candidates. */
+                __('Conflict: %d SEO ownership candidates', 'site-manager'),
+                count((array) ($seo['candidates'] ?? []))
+            );
+        }
+        $authority = is_array($seo['authority'] ?? null) ? $seo['authority'] : [];
+        if (! empty($seo['authority_resolved'])) {
+            $label = (string) ($authority['label'] ?? $authority['id'] ?? '');
+            return sprintf(
+                /* translators: %s is the SEO owner label. */
+                __('%s · ownership resolved · write adapter pending', 'site-manager'),
+                $label
+            );
+        }
+        return __('SEO owner not resolved', 'site-manager');
+    }
+
+    /** @param array<string,mixed> $seo */
+    private function seoEvidenceSummary(array $seo): string
+    {
+        $evidence = is_array($seo['evidence'] ?? null) ? $seo['evidence'] : [];
+        return sprintf(
+            /* translators: 1: registered SEO-related meta count, 2: SEO-related hook count, 3: declared contract count. */
+            __('Registered SEO meta candidates: %1$d · SEO-related hooks: %2$d · matched provider contracts: %3$d', 'site-manager'),
+            count((array) ($evidence['registered_meta_candidates'] ?? [])),
+            count((array) ($evidence['hook_name_candidates'] ?? [])),
+            (int) ($evidence['declared_contract_count'] ?? 0)
+        );
     }
 
     public function handleRefresh(): void

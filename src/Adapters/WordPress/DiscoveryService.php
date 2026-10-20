@@ -9,7 +9,10 @@ use SiteManager\Core\Support\CanonicalJson;
 
 final class DiscoveryService
 {
-    public function __construct(private readonly ?ProviderDetector $providers = null) {}
+    public function __construct(
+        private readonly ?ProviderDetector $providers = null,
+        private readonly ?SeoOwnershipProbe $seo = null,
+    ) {}
 
     public function detect(): PlatformIdentity
     {
@@ -69,7 +72,24 @@ final class DiscoveryService
             ];
         }
 
-        return [
+        $themeInventory = [
+            'name'=>(string) $theme->get('Name'),
+            'stylesheet'=>(string) $theme->get_stylesheet(),
+            'template'=>(string) $theme->get_template(),
+            'version'=>(string) $theme->get('Version'),
+            'child_theme'=>(bool) $theme->parent(),
+            'block_theme'=>function_exists('wp_is_block_theme') ? (bool) wp_is_block_theme() : false,
+            'supports'=>[
+                'menus'=>current_theme_supports('menus'),
+                'custom_logo'=>current_theme_supports('custom-logo'),
+                'title_tag'=>current_theme_supports('title-tag'),
+                'editor_styles'=>current_theme_supports('editor-styles'),
+                'block_templates'=>current_theme_supports('block-templates'),
+            ],
+        ];
+        $detectedProviders = ($this->providers ?? new ProviderDetector())->detect($plugins);
+
+        $inventory = [
             'runtime'=>[
                 'wordpress'=>(string) get_bloginfo('version'),
                 'php'=>PHP_VERSION,
@@ -93,21 +113,7 @@ final class DiscoveryService
             'indexability'=>[
                 'search_visibility'=>'1' === (string) get_option('blog_public', '1') ? 'index' : 'discourage',
             ],
-            'theme'=>[
-                'name'=>(string) $theme->get('Name'),
-                'stylesheet'=>(string) $theme->get_stylesheet(),
-                'template'=>(string) $theme->get_template(),
-                'version'=>(string) $theme->get('Version'),
-                'child_theme'=>(bool) $theme->parent(),
-                'block_theme'=>function_exists('wp_is_block_theme') ? (bool) wp_is_block_theme() : false,
-                'supports'=>[
-                    'menus'=>current_theme_supports('menus'),
-                    'custom_logo'=>current_theme_supports('custom-logo'),
-                    'title_tag'=>current_theme_supports('title-tag'),
-                    'editor_styles'=>current_theme_supports('editor-styles'),
-                    'block_templates'=>current_theme_supports('block-templates'),
-                ],
-            ],
+            'theme'=>$themeInventory,
             'content_types'=>$postTypes,
             'taxonomies'=>$taxonomies,
             'navigation'=>$this->navigationInventory(),
@@ -115,8 +121,10 @@ final class DiscoveryService
                 'active_count'=>count($plugins),
                 'items'=>$plugins,
             ],
-            'providers'=>($this->providers ?? new ProviderDetector())->detect($plugins),
+            'providers'=>$detectedProviders,
         ];
+        $inventory['seo_authority'] = ($this->seo ?? new SeoOwnershipProbe())->inspect($themeInventory, $detectedProviders);
+        return $inventory;
     }
 
     /** @return array<string,mixed> */
@@ -234,7 +242,21 @@ final class DiscoveryService
             'taxonomies'=>$inventory['taxonomies'] ?? [],
             'navigation'=>$inventory['navigation'] ?? [],
             'plugins'=>$inventory['plugins'] ?? [],
+            'seo_authority'=>$this->seoFingerprintSource((array) ($inventory['seo_authority'] ?? [])),
         ];
         return hash('sha256', CanonicalJson::encode($source));
+    }
+
+    /** @param array<string,mixed> $seo @return array<string,mixed> */
+    private function seoFingerprintSource(array $seo): array
+    {
+        return [
+            'state'=>(string) ($seo['state'] ?? ''),
+            'authority_resolved'=>! empty($seo['authority_resolved']),
+            'authority'=>is_array($seo['authority'] ?? null) ? $seo['authority'] : null,
+            'candidates'=>is_array($seo['candidates'] ?? null) ? $seo['candidates'] : [],
+            'conflict'=>! empty($seo['conflict']),
+            'write_adapter_ready'=>! empty($seo['write_adapter_ready']),
+        ];
     }
 }

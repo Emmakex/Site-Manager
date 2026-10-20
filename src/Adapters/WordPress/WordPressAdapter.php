@@ -70,6 +70,25 @@ final class WordPressAdapter implements PlatformAdapter
             $navigationBlockers[] = 'Native WordPress navigation was detected but no existing target is safely governable yet.';
         }
 
+        $seo = is_array($snapshot->inventory['seo_authority'] ?? null) ? $snapshot->inventory['seo_authority'] : [];
+        $seoAuthority = is_array($seo['authority'] ?? null) ? $seo['authority'] : null;
+        $seoCandidates = is_array($seo['candidates'] ?? null) ? $seo['candidates'] : [];
+        $seoDetected = ! empty($seo['authority_resolved']) || [] !== $seoCandidates;
+        $seoUnderstood = ! empty($seo['authority_resolved']) && empty($seo['conflict']);
+        $seoGovernable = $seoUnderstood && ! empty($seo['safe_to_write_seo_metadata']);
+        $seoProvider = $seoUnderstood ? (string) ($seoAuthority['id'] ?? $this->id()) : $this->id();
+        $seoBlockers = [];
+        if (! $seoDetected) {
+            $seoBlockers[] = 'SEO ownership could not be resolved from the current WordPress runtime.';
+        } elseif (! empty($seo['conflict'])) {
+            $seoBlockers[] = 'Multiple SEO ownership candidates were detected; writes remain blocked until the conflict is resolved.';
+        } elseif ($seoUnderstood && empty($seo['write_adapter_ready'])) {
+            $owner = (string) ($seoAuthority['id'] ?? 'detected-provider');
+            $seoBlockers[] = 'SEO ownership is resolved to ' . $owner . ', but its write adapter is not ready.';
+        } elseif (! $seoGovernable) {
+            $seoBlockers[] = 'SEO ownership is understood, but no verified safe write path is available.';
+        }
+
         $caps = [
             new Capability('site.read', $this->id(), true, true, true, ['site.inspect'], ['site.read']),
             new Capability('site.diagnostics', $this->id(), true, true, true, ['site.diagnostics'], ['site.diagnostics']),
@@ -103,7 +122,23 @@ final class WordPressAdapter implements PlatformAdapter
                     'block_fields'=>['title','content','status'],
                 ],
             ),
-            new Capability('seo.write', $this->id(), true, false, false, ['seo.update'], ['seo.write'], ['SEO ownership must be resolved to a provider adapter first.']),
+            new Capability(
+                'seo.write',
+                $seoProvider,
+                $seoDetected,
+                $seoUnderstood,
+                $seoGovernable,
+                ['seo.update'],
+                ['seo.write'],
+                $seoBlockers,
+                [
+                    'authority'=>$seoAuthority,
+                    'candidates'=>$seoCandidates,
+                    'outputs'=>is_array($seo['outputs'] ?? null) ? $seo['outputs'] : [],
+                    'write_adapter_ready'=>! empty($seo['write_adapter_ready']),
+                    'confirmation'=>'explicit',
+                ],
+            ),
         ];
 
         foreach ((array) ($snapshot->inventory['providers'] ?? []) as $provider) {
@@ -152,6 +187,7 @@ final class WordPressAdapter implements PlatformAdapter
                 'rollback'=>true,
                 'providers'=>(array) ($inventory['navigation']['providers'] ?? []),
             ],
+            'seo_ownership'=>is_array($inventory['seo_authority'] ?? null) ? $inventory['seo_authority'] : [],
         ];
     }
 
