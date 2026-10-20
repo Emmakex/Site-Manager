@@ -1,0 +1,22 @@
+{
+  "name": "site-manager/core",
+  "description": "Platform-neutral discovery and governance core for Site Manager.",
+  "type": "library",
+  "license": "proprietary",
+  "require": {
+    "php": ">=8.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "SiteManager\\Core\\": "src/Core/"
+    }
+  },
+  "scripts": {
+    "test": [
+      "@php tests/core_contract_test.php"
+    ],
+    "lint": [
+      "@php scripts/lint.php"
+    ]
+  }
+}
