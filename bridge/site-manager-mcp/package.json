@@ -1,6 +1,6 @@
 {
   "name": "@site-manager/mcp-bridge",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Scoped MCP bridge for governed Site Manager reads and writes.",
   "type": "module",
