@@ -59,7 +59,7 @@ final class WordPressAdapter implements PlatformAdapter
                 $nativeContent ? [] : ['Native WordPress posts/pages were not detected.'],
                 ['owned_fields'=>['title','slug','content','excerpt','status'],'post_types'=>['post','page'],'confirmation'=>'explicit','reversible'=>true],
             ),
-            new Capability('navigation.write', $this->id(), true, true, false, ['navigation.update'], ['navigation.write'], ['SM-2B navigation ownership and rollback are not implemented yet.']),
+            new Capability('navigation.write', $this->id(), true, true, false, ['navigation.update'], ['navigation.write'], ['SM-2 navigation ownership and rollback are not implemented yet.']),
             new Capability('seo.write', $this->id(), true, false, false, ['seo.update'], ['seo.write'], ['SEO ownership must be resolved to a provider adapter first.']),
         ];
 
