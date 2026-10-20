@@ -8,12 +8,14 @@
   },
   "autoload": {
     "psr-4": {
-      "SiteManager\\Core\\": "src/Core/"
+      "SiteManager\\Core\\": "src/Core/",
+      "SiteManager\\Adapters\\WordPress\\": "src/Adapters/WordPress/"
     }
   },
   "scripts": {
     "test": [
-      "@php tests/core_contract_test.php"
+      "@php tests/core_contract_test.php",
+      "@php tests/wordpress_adapter_contract_test.php"
     ],
     "lint": [
       "@php scripts/lint.php"
