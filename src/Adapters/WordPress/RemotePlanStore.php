@@ -227,6 +227,9 @@ final class RemotePlanStore
         $plan = is_array($record['plan'] ?? null) ? $record['plan'] : [];
         $request = is_array($plan['request'] ?? null) ? $plan['request'] : [];
         $changes = is_array($plan['changes'] ?? null) ? $plan['changes'] : [];
+        $fieldSource = is_array($changes['fields'] ?? null)
+            ? $changes['fields']
+            : (is_array($changes['semantic_fields'] ?? null) ? $changes['semantic_fields'] : []);
         return [
             'plan_id'=>(string) ($plan['id'] ?? ''),
             'connection_id'=>(string) ($record['connection_id'] ?? ''),
@@ -235,7 +238,7 @@ final class RemotePlanStore
             'capability_id'=>(string) ($request['capability_id'] ?? ''),
             'operation'=>(string) ($request['operation'] ?? ''),
             'target'=>is_array($changes['target'] ?? null) ? $changes['target'] : [],
-            'fields'=>array_keys(is_array($changes['fields'] ?? null) ? $changes['fields'] : []),
+            'fields'=>array_keys($fieldSource),
             'site_fingerprint'=>(string) ($plan['fingerprint'] ?? ''),
             'reversible'=>! empty($plan['reversible']),
             'confirmation_required'=>'explicit' === (string) ($request['confirmation_class'] ?? ''),
