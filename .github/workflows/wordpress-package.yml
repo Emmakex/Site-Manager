@@ -29,6 +29,11 @@ jobs:
           tools: composer:v2
           coverage: none
 
+      - name: Install gettext
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y gettext
+
       - name: Validate Composer metadata
         run: composer validate --strict
 
@@ -39,7 +44,6 @@ jobs:
 
       - name: Resolve plugin version
         id: version
-        shell: bash
         run: |
           VERSION="$(awk -F': ' '/^ \* Version: / {print $2; exit}' wordpress-plugin/site-manager/site-manager.php | tr -d '\r')"
           test -n "$VERSION"
