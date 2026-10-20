@@ -104,10 +104,10 @@ Site Manager must be functionally complete as a generic WordPress control plane 
 
 Definitive acceptance order:
 
-1. **Finish the generic WordPress product first**: discovery, Core governance, provider ownership/adapters, optional migration handoff, MCP authorization, audit, verification, stale-plan protection and rollback.
-2. **EMMake `/nuevaweb`**: first complete end-to-end acceptance on the controlled Mode A rebuild. This proves the rebuild/migration-assisted path and our SEO/GEO Starter provider integration without making that theme a Core dependency.
-3. **`eduardoyauriluna.com`**: second acceptance. Use it as the known, demanding regression target because the specialized Research Manager already governs it. Prove Site Manager + adapters can reach parity without moving Research/site-specific behavior into Core.
-4. **Independent different WordPress**: final portability/adaptability acceptance. Install the exact same finished Site Manager on a site with a different theme/plugin/provider stack and no Research Manager history or Site Manager preparation. This is the final proof that the product adapts to an unknown WordPress rather than merely reproducing its origin environments.
+1. **Finish Site Manager for generic WordPress first.** Complete discovery, Core governance, provider ownership/adapters, optional migration handoff, MCP authorization, audit, verification, stale-plan protection and rollback before treating any site as final acceptance.
+2. **EMMake `/nuevaweb` — first acceptance.** Complete end-to-end acceptance on the controlled Mode A rebuild. This proves the rebuild/migration-assisted path and our SEO/GEO Starter integration without making that theme a Core dependency.
+3. **`eduardoyauriluna.com` — second acceptance.** Use the original Research Manager environment as a demanding regression/parity target. Site Manager + adapters must reproduce the required governance without moving Research/site-specific behavior into Core.
+4. **A genuinely different WordPress — final acceptance.** Install the exact same finished package on a site with a different theme/plugin/provider stack, no Research Manager history and no Site Manager preparation. This is the final proof of portability and adaptability.
 
 No client rollout until all four stages are complete.
 
