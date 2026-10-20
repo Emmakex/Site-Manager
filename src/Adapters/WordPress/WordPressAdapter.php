@@ -21,6 +21,7 @@ final class WordPressAdapter implements PlatformAdapter
         private readonly ?DiscoveryService $discovery = null,
         private readonly ?ContentGovernanceService $content = null,
         private readonly ?NavigationGovernanceService $navigation = null,
+        private readonly ?SeoGovernanceService $seo = null,
     ) {}
 
     public function id(): string { return 'wordpress-core'; }
@@ -136,7 +137,12 @@ final class WordPressAdapter implements PlatformAdapter
                     'candidates'=>$seoCandidates,
                     'outputs'=>is_array($seo['outputs'] ?? null) ? $seo['outputs'] : [],
                     'write_adapter_ready'=>! empty($seo['write_adapter_ready']),
+                    'write_mode'=>$seo['write_mode'] ?? null,
+                    'writable_inputs'=>is_array($seo['writable_inputs'] ?? null) ? $seo['writable_inputs'] : [],
+                    'derived_outputs'=>is_array($seo['derived_outputs'] ?? null) ? $seo['derived_outputs'] : [],
                     'confirmation'=>'explicit',
+                    'reversible'=>$seoGovernable,
+                    'stale_plan_protection'=>$seoGovernable,
                 ],
             ),
         ];
@@ -168,6 +174,7 @@ final class WordPressAdapter implements PlatformAdapter
             'permalinks'=>'' !== (string) ($inventory['routing']['permalink_structure'] ?? ''),
             'search_visible'=>'index' === (string) ($inventory['indexability']['search_visibility'] ?? ''),
         ];
+        $seo = is_array($inventory['seo_authority'] ?? null) ? $inventory['seo_authority'] : [];
         return [
             'ready_for_read'=>! in_array(false, [$checks['rest_url']], true),
             'checks'=>$checks,
@@ -187,7 +194,17 @@ final class WordPressAdapter implements PlatformAdapter
                 'rollback'=>true,
                 'providers'=>(array) ($inventory['navigation']['providers'] ?? []),
             ],
-            'seo_ownership'=>is_array($inventory['seo_authority'] ?? null) ? $inventory['seo_authority'] : [],
+            'seo_write_guard'=>[
+                'provider'=>(string) (($seo['authority']['id'] ?? '')),
+                'write_mode'=>$seo['write_mode'] ?? null,
+                'writable_inputs'=>is_array($seo['writable_inputs'] ?? null) ? $seo['writable_inputs'] : [],
+                'derived_outputs'=>is_array($seo['derived_outputs'] ?? null) ? $seo['derived_outputs'] : [],
+                'confirmation'=>'explicit',
+                'stale_plan_protection'=>! empty($seo['write_adapter_ready']),
+                'verification'=>! empty($seo['write_adapter_ready']),
+                'rollback'=>! empty($seo['write_adapter_ready']),
+            ],
+            'seo_ownership'=>$seo,
         ];
     }
 
@@ -199,7 +216,10 @@ final class WordPressAdapter implements PlatformAdapter
         if ('navigation.write' === $request->capabilityId && 'navigation.update' === $request->operation) {
             return $this->navigation()->plan($request, $snapshot, $graph);
         }
-        throw new LogicException('No WordPress Core planner is registered for the requested operation.');
+        if ('seo.write' === $request->capabilityId && 'seo.update' === $request->operation) {
+            return $this->seo()->plan($request, $snapshot, $graph);
+        }
+        throw new LogicException('No WordPress planner is registered for the requested operation.');
     }
 
     public function apply(Plan $plan, bool $confirmed = false): ExecutionResult
@@ -210,7 +230,10 @@ final class WordPressAdapter implements PlatformAdapter
         if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
             return $this->navigation()->apply($plan, $confirmed);
         }
-        throw new LogicException('No WordPress Core executor is registered for this plan.');
+        if ('seo.write' === $plan->request->capabilityId && 'seo.update' === $plan->request->operation) {
+            return $this->seo()->apply($plan, $confirmed);
+        }
+        throw new LogicException('No WordPress executor is registered for this plan.');
     }
 
     public function verify(Plan $plan, ExecutionResult $result): VerificationResult
@@ -221,7 +244,10 @@ final class WordPressAdapter implements PlatformAdapter
         if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
             return $this->navigation()->verify($plan, $result);
         }
-        throw new LogicException('No WordPress Core verifier is registered for this plan.');
+        if ('seo.write' === $plan->request->capabilityId && 'seo.update' === $plan->request->operation) {
+            return $this->seo()->verify($plan, $result);
+        }
+        throw new LogicException('No WordPress verifier is registered for this plan.');
     }
 
     public function rollback(Plan $plan, ExecutionResult $result, bool $confirmed = false): RollbackResult
@@ -232,7 +258,10 @@ final class WordPressAdapter implements PlatformAdapter
         if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
             return $this->navigation()->rollback($plan, $result, $confirmed);
         }
-        throw new LogicException('No WordPress Core rollback handler is registered for this plan.');
+        if ('seo.write' === $plan->request->capabilityId && 'seo.update' === $plan->request->operation) {
+            return $this->seo()->rollback($plan, $result, $confirmed);
+        }
+        throw new LogicException('No WordPress rollback handler is registered for this plan.');
     }
 
     private function content(): ContentGovernanceService
@@ -243,5 +272,10 @@ final class WordPressAdapter implements PlatformAdapter
     private function navigation(): NavigationGovernanceService
     {
         return $this->navigation ?? new NavigationGovernanceService();
+    }
+
+    private function seo(): SeoGovernanceService
+    {
+        return $this->seo ?? new SeoGovernanceService();
     }
 }
