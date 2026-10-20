@@ -1,15 +1,37 @@
 # Site Manager MCP bridge
 
-Read-only MCP operator bridge for one scoped Site Manager connection.
+Scoped MCP operator bridge for one Site Manager connection.
 
-SM-4B deliberately reuses the connection created in WordPress under **Site Manager > Connection**. There is no second WordPress credential or entitlement model. During this single-site acceptance phase, the same bearer token protects the inbound `/mcp` endpoint and authenticates outbound calls to Site Manager REST.
+The bridge reuses the connection created in WordPress under **Site Manager > Connection**. There is no second WordPress credential or entitlement model. During this single-site acceptance phase, the same bearer token protects the inbound `/mcp` endpoint and authenticates outbound calls to Site Manager REST.
+
+WordPress Site Manager remains the source of truth for granted scopes, capability ownership, provider selection, plan freshness, confirmation, verification and rollback. The bridge exposes only fixed high-level tools and never constructs arbitrary WordPress REST routes.
 
 ## Tools
 
-- `site_read` — reads only `discovery` and `capabilities`; requires the WordPress connection to include `site.read`.
+Tool visibility is loaded from the current WordPress connection scopes when the bridge starts.
+
+Read scopes:
+
+- `site_read` — reads only `discovery` and `capabilities`; requires `site.read`.
 - `site_diagnostics` — reads only `diagnostics`; requires `site.diagnostics`.
 
-No write MCP tools exist in SM-4B.
+Governed content writes, available only with `content.write`:
+
+- `content_update_plan`
+- `content_update_apply`
+- `content_update_rollback`
+
+Governed navigation writes, available only with `navigation.write`:
+
+- `navigation_update_plan`
+- `navigation_update_apply`
+- `navigation_update_rollback`
+
+Navigation plans accept only the native providers already understood by Site Manager: `wordpress-classic-menu` and `wordpress-block-navigation`. WordPress validates provider/target ownership and provider-specific fields before a plan is created.
+
+`seo.write` remains unexposed until its separate remote-write implementation and acceptance slice.
+
+Every write follows `plan -> explicit confirmation -> apply -> verify`, with rollback available while retained evidence remains valid. Unknown, expired, stale or scope-mismatched plans fail closed.
 
 ## Configuration
 
@@ -39,31 +61,34 @@ npm run build
 ## Container
 
 ```bash
-docker build -t site-manager-mcp:0.1.0 .
+docker build -t site-manager-mcp:0.3.0 .
 docker run --rm -p 8787:8787 \
   -e SITE_MANAGER_REST_BASE='https://example.com/wp-json/site-manager/v1/' \
   -e SITE_MANAGER_CONNECTION_ID='smc_...' \
   -e SITE_MANAGER_TOKEN="$SITE_MANAGER_TOKEN" \
-  site-manager-mcp:0.1.0
+  site-manager-mcp:0.3.0
 ```
 
 Keep the real token in the deployment secret store or shell environment rather than command history where possible.
 
 ## HTTP surface
 
-- `GET /healthz` — public non-secret process health.
+- `GET /healthz` — public non-secret process health and bridge mode.
 - `/mcp` — MCP transport; requires `Authorization: Bearer <the same Site Manager connection token>`.
 - every other path returns 404.
 
-## First live acceptance
+## Scope acceptance sequence
 
-With the WordPress connection limited to `site.read` and `site.diagnostics`:
+Use one write scope at a time during live acceptance:
 
-1. start the bridge with the stored Site Manager token;
-2. authenticate to `/mcp` with the same bearer;
-3. call `site_read` and verify the returned discovery/capability graph;
-4. call `site_diagnostics`;
-5. reload **Site Manager > Connection** in WordPress and verify `Last used` is populated;
-6. verify all write scopes remain disabled.
+1. regress read-only behavior first;
+2. grant the single write scope being accepted in WordPress;
+3. restart the bridge so tool visibility reflects current scopes;
+4. verify only that scope's tools appear;
+5. create a plan and inspect the diff before mutation;
+6. verify an unconfirmed apply is rejected;
+7. explicitly confirm and apply;
+8. inspect verification evidence;
+9. explicitly confirm rollback and verify restoration.
 
-The bridge never constructs arbitrary WordPress REST routes. Site Manager remains the source of truth for discovered capabilities, provider ownership and authorization.
+Do not grant the next write scope until its implementation has passed CI.
