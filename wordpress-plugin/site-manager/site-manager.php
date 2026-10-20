@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Site Manager
  * Description: Discovers the real WordPress installation and exposes a safe capability/governance map.
- * Version: 0.5.2
+ * Version: 0.6.0
  * Requires at least: 6.6
  * Requires PHP: 8.1
  * Author: Emmake
@@ -14,7 +14,7 @@ declare(strict_types=1);
 if (! defined('ABSPATH')) { exit; }
 
 if (! defined('SITE_MANAGER_VERSION')) {
-    define('SITE_MANAGER_VERSION', '0.5.2');
+    define('SITE_MANAGER_VERSION', '0.6.0');
 }
 if (! defined('SITE_MANAGER_PLUGIN_FILE')) {
     define('SITE_MANAGER_PLUGIN_FILE', __FILE__);
@@ -47,3 +47,4 @@ add_action('plugins_loaded', static function (): void {
 register_activation_hook(__FILE__, [\SiteManager\Adapters\WordPress\Plugin::class, 'activate']);
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\Plugin::class, 'boot'], 10);
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\DiagnosticsPage::class, 'boot'], 11);
+add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteAccess::class, 'boot'], 12);
