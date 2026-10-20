@@ -42,15 +42,16 @@ final class ConnectionPage
             if (count($rawScopes) !== count($scopes)) {
                 $error = __('One or more requested scopes are not governable on this installation and were not granted.', 'site-manager');
             }
+            $principalUserId = (int) get_current_user_id();
 
             if (in_array($action, ['generate','rotate'], true)) {
-                $issued = $store->issue($scopes);
+                $issued = $store->issue($scopes, $principalUserId);
                 $oneTimeToken = (string) ($issued['token'] ?? '');
                 $message = 'rotate' === $action
                     ? __('Connection token rotated. The previous token is invalid immediately.', 'site-manager')
                     : __('Connection token generated.', 'site-manager');
             } elseif ('save_scopes' === $action) {
-                $store->saveScopes($scopes);
+                $store->saveScopes($scopes, $principalUserId);
                 $message = __('Connection scopes saved.', 'site-manager');
             } elseif ('revoke' === $action) {
                 $store->revoke();
