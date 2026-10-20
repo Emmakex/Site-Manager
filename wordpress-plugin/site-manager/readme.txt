@@ -44,6 +44,7 @@ Native WordPress content and navigation governance remains available with plan, 
 * Exposes write mode, writable SEO inputs and derived outputs in capabilities/diagnostics.
 * Shows semantic-writer readiness in the Site Manager dashboard.
 * Rejects unsupported direct SEO fields such as arbitrary canonical URLs.
+* Acceptance fixture: controlled EMMake `nuevaweb` clone before Research Manager parity and independent-site tests.
 
 = 0.3.3 =
 * Adds bounded read-only tracing of data sources referenced by SEO-focused theme code.
