@@ -20,6 +20,10 @@ $snapshot = new DiscoverySnapshot(
     fingerprint: 'fixture-fingerprint',
     platform: new PlatformIdentity('wordpress', '6.x', 'wordpress-core'),
     inventory: [
+        'content_types'=>[
+            ['name'=>'post','builtin'=>true,'supports'=>['title','editor']],
+            ['name'=>'page','builtin'=>true,'supports'=>['title','editor']],
+        ],
         'providers'=>[
             ['id'=>'woocommerce','label'=>'WooCommerce','files'=>['woocommerce/woocommerce.php'],'versions'=>['10.0.0'],'state'=>'detected'],
         ],
@@ -37,12 +41,17 @@ $adapter = new WordPressAdapter();
 $graph = $adapter->capabilities($snapshot);
 
 $assert(null !== $graph->get('site.read'), 'WordPress adapter must expose site.read');
-$assert(true === $graph->get('site.read')?->governable, 'site.read must be governable in SM-1');
-$assert(false === $graph->get('content.write')?->governable, 'generic writes must remain blocked in SM-1');
+$assert(true === $graph->get('site.read')?->governable, 'site.read must remain governable');
+$assert(true === $graph->get('content.write')?->governable, 'native post/page writes must become governable in SM-2A');
+$assert('governable' === $graph->get('content.write')?->state([]), 'content.write must remain scope-gated without authorization');
+$assert(false === $graph->get('navigation.write')?->governable, 'navigation writes must remain blocked until SM-2B');
+$assert(false === $graph->get('seo.write')?->governable, 'SEO writes must remain blocked until provider ownership is resolved');
 $assert(false === $graph->get('provider.woocommerce')?->governable, 'detected provider must not imply governance');
 $assert('blocked' === $graph->get('provider.woocommerce')?->state([]), 'provider without adapter must report blocked state');
 
 $diagnostics = $adapter->diagnostics($snapshot);
 $assert(true === ($diagnostics['ready_for_read'] ?? false), 'read diagnostics should be ready when REST is present');
+$assert(true === ($diagnostics['content_write_guard']['stale_plan_protection'] ?? false), 'content write diagnostics must expose stale plan protection');
+$assert(true === ($diagnostics['content_write_guard']['rollback'] ?? false), 'content write diagnostics must expose rollback support');
 
-echo "PASS: WordPress discovery adapter contract\n";
+echo "PASS: WordPress adapter contract through SM-2A\n";
