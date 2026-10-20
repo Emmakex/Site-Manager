@@ -1,0 +1,54 @@
+name: WordPress Package
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'wordpress-plugin/**'
+      - 'scripts/build-wordpress-release.sh'
+      - 'scripts/verify-wordpress-release.sh'
+      - 'composer.json'
+      - '.github/workflows/wordpress-package.yml'
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate Composer metadata
+        run: composer validate --strict
+
+      - name: Run contracts
+        run: |
+          composer install --no-interaction --prefer-dist
+          composer test
+
+      - name: Build installable WordPress ZIP
+        run: bash scripts/build-wordpress-release.sh
+
+      - name: Verify release package
+        run: bash scripts/verify-wordpress-release.sh dist/site-manager-0.1.0.zip
+
+      - name: Upload WordPress package
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-manager-wordpress-0.1.0
+          path: |
+            dist/site-manager-0.1.0.zip
+            dist/site-manager-0.1.0.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
