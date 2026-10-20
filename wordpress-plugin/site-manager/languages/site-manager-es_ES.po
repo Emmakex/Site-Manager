@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Site Manager 0.3.0\n"
+"Project-Id-Version: Site Manager 0.3.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-20 13:45+0200\n"
-"PO-Revision-Date: 2026-10-20 13:45+0200\n"
+"POT-Creation-Date: 2026-10-20 14:45+0200\n"
+"PO-Revision-Date: 2026-10-20 14:45+0200\n"
 "Last-Translator: Emmake\n"
 "Language-Team: Spanish\n"
 "Language: es_ES\n"
@@ -73,6 +73,30 @@ msgstr "Navegación por bloques de WordPress"
 msgid "%1$s (%2$d targets)"
 msgstr "%1$s (%2$d objetivos)"
 
+msgid "SEO ownership"
+msgstr "Propiedad SEO"
+
+msgid "SEO ownership evidence"
+msgstr "Evidencia de propiedad SEO"
+
+msgid "Owned SEO outputs:"
+msgstr "Salidas SEO bajo propiedad:"
+
+msgid "Ownership detection is read-only. A detected owner or declared provider contract never grants SEO write access by itself."
+msgstr "La detección de propiedad es de solo lectura. Detectar un propietario o un contrato de proveedor declarado nunca concede por sí solo permisos de escritura SEO."
+
+msgid "SEO owner not resolved"
+msgstr "Propietario SEO no resuelto"
+
+msgid "Conflict: %d SEO ownership candidates"
+msgstr "Conflicto: %d candidatos a propietario SEO"
+
+msgid "%s · ownership resolved · write adapter pending"
+msgstr "%s · propiedad resuelta · adaptador de escritura pendiente"
+
+msgid "Registered SEO meta candidates: %1$d · SEO-related hooks: %2$d · matched provider contracts: %3$d"
+msgstr "Metadatos SEO registrados candidatos: %1$d · hooks relacionados con SEO: %2$d · contratos de proveedor coincidentes: %3$d"
+
 msgid "Fingerprint"
 msgstr "Huella estructural"
 
@@ -118,8 +142,17 @@ msgstr "No se ha detectado ningún proveedor de navegación nativa de WordPress.
 msgid "Native WordPress navigation was detected but no existing target is safely governable yet."
 msgstr "Se ha detectado navegación nativa de WordPress, pero todavía no existe ningún objetivo que pueda gobernarse de forma segura."
 
-msgid "SEO ownership must be resolved to a provider adapter first."
-msgstr "Primero debe resolverse la propiedad del SEO mediante un adaptador de proveedor."
+msgid "SEO ownership could not be resolved from the current WordPress runtime."
+msgstr "No se ha podido resolver la propiedad SEO a partir del entorno actual de WordPress."
+
+msgid "Multiple SEO ownership candidates were detected; writes remain blocked until the conflict is resolved."
+msgstr "Se han detectado varios candidatos a propietario SEO; las escrituras seguirán bloqueadas hasta resolver el conflicto."
+
+msgid "SEO ownership is understood, but no verified safe write path is available."
+msgstr "La propiedad SEO está comprendida, pero todavía no existe una vía de escritura segura verificada."
+
+msgid "SEO ownership is resolved to %s, but its write adapter is not ready."
+msgstr "La propiedad SEO está resuelta a %s, pero su adaptador de escritura todavía no está listo."
 
 msgid "Provider detected; a dedicated adapter is required before governance is exposed."
 msgstr "Proveedor detectado; se necesita un adaptador dedicado antes de habilitar su gobernanza."
