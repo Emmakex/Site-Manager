@@ -36,7 +36,7 @@ final class FakeNavigationRuntime implements NavigationRuntime
     public function sanitize(string $provider, string $field, mixed $value): mixed
     {
         if ('classes' === $field) {
-            return array_values(array_filter(array_map('strval', is_array($value) ? $value : preg_split('/\s+/', (string) $value) ?: [])));
+            return array_values(array_filter(array_map('strval', is_array($value) ? $value : (preg_split('/\s+/', (string) $value) ?: []))));
         }
         $value = is_scalar($value) ? trim((string) $value) : '';
         if ('target' === $field) { return '_blank' === $value ? '_blank' : ''; }
