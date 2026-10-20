@@ -19,6 +19,7 @@ final class Plugin
     public static function boot(): void
     {
         $plugin = new self();
+        add_action('init', [self::class, 'loadTranslations'], 1);
         add_action('admin_menu', [$plugin, 'adminMenu']);
         add_action('admin_init', [$plugin, 'ensureCurrent'], 5);
         add_action('rest_api_init', [$plugin, 'registerRest']);
@@ -34,6 +35,31 @@ final class Plugin
         if (is_multisite()) {
             add_action('update_site_option_active_sitewide_plugins', [$plugin, 'markDirty'], 10, 3);
         }
+    }
+
+    public static function loadTranslations(): void
+    {
+        if (! defined('SITE_MANAGER_PLUGIN_FILE')) {
+            return;
+        }
+
+        $locale = function_exists('determine_locale') ? (string) determine_locale() : (string) get_locale();
+        $languagesDir = dirname(SITE_MANAGER_PLUGIN_FILE) . '/languages';
+
+        // Use one neutral Spanish catalogue for every es_* WordPress locale.
+        if (str_starts_with(strtolower($locale), 'es')) {
+            $spanishCatalog = $languagesDir . '/site-manager-es_ES.mo';
+            if (is_file($spanishCatalog)) {
+                load_textdomain('site-manager', $spanishCatalog);
+                return;
+            }
+        }
+
+        load_plugin_textdomain(
+            'site-manager',
+            false,
+            dirname(plugin_basename(SITE_MANAGER_PLUGIN_FILE)) . '/languages'
+        );
     }
 
     public function markDirty(mixed ...$ignored): void
@@ -143,33 +169,40 @@ final class Plugin
 
           <h2><?php echo esc_html__('Discovered', 'site-manager'); ?></h2>
           <table class="widefat striped"><tbody>
-            <tr><th>Platform</th><td><?php echo esc_html((string) ($platform['platform'] ?? '')); ?> <?php echo esc_html((string) ($platform['version'] ?? '')); ?></td></tr>
-            <tr><th>PHP</th><td><?php echo esc_html((string) ($inventory['runtime']['php'] ?? '')); ?></td></tr>
-            <tr><th>Theme</th><td><?php echo esc_html((string) ($theme['name'] ?? '')); ?> <?php echo esc_html((string) ($theme['version'] ?? '')); ?> <code><?php echo esc_html((string) ($theme['stylesheet'] ?? '')); ?></code></td></tr>
-            <tr><th>Content types</th><td><?php echo esc_html((string) count((array) ($inventory['content_types'] ?? []))); ?></td></tr>
-            <tr><th>Taxonomies</th><td><?php echo esc_html((string) count((array) ($inventory['taxonomies'] ?? []))); ?></td></tr>
-            <tr><th>Active plugins</th><td><?php echo esc_html((string) ($inventory['plugins']['active_count'] ?? 0)); ?></td></tr>
-            <tr><th>Fingerprint</th><td><code style="word-break:break-all"><?php echo esc_html((string) ($snapshot['fingerprint'] ?? '')); ?></code></td></tr>
+            <tr><th><?php echo esc_html__('Platform', 'site-manager'); ?></th><td><?php echo esc_html((string) ($platform['platform'] ?? '')); ?> <?php echo esc_html((string) ($platform['version'] ?? '')); ?></td></tr>
+            <tr><th><?php echo esc_html__('PHP', 'site-manager'); ?></th><td><?php echo esc_html((string) ($inventory['runtime']['php'] ?? '')); ?></td></tr>
+            <tr><th><?php echo esc_html__('Theme', 'site-manager'); ?></th><td><?php echo esc_html((string) ($theme['name'] ?? '')); ?> <?php echo esc_html((string) ($theme['version'] ?? '')); ?> <code><?php echo esc_html((string) ($theme['stylesheet'] ?? '')); ?></code></td></tr>
+            <tr><th><?php echo esc_html__('Content types', 'site-manager'); ?></th><td><?php echo esc_html((string) count((array) ($inventory['content_types'] ?? []))); ?></td></tr>
+            <tr><th><?php echo esc_html__('Taxonomies', 'site-manager'); ?></th><td><?php echo esc_html((string) count((array) ($inventory['taxonomies'] ?? []))); ?></td></tr>
+            <tr><th><?php echo esc_html__('Active plugins', 'site-manager'); ?></th><td><?php echo esc_html((string) ($inventory['plugins']['active_count'] ?? 0)); ?></td></tr>
+            <tr><th><?php echo esc_html__('Fingerprint', 'site-manager'); ?></th><td><code style="word-break:break-all"><?php echo esc_html((string) ($snapshot['fingerprint'] ?? '')); ?></code></td></tr>
           </tbody></table>
 
           <h2><?php echo esc_html__('Known providers detected', 'site-manager'); ?></h2>
           <?php if (! $providers) : ?><p><?php echo esc_html__('No known provider plugin detected.', 'site-manager'); ?></p><?php else : ?>
-          <table class="widefat striped"><thead><tr><th>Provider</th><th>Version</th><th>State</th></tr></thead><tbody>
-          <?php foreach ($providers as $provider) : ?><tr><td><?php echo esc_html((string) ($provider['label'] ?? $provider['id'] ?? '')); ?></td><td><?php echo esc_html(implode(', ', (array) ($provider['versions'] ?? []))); ?></td><td>DETECTED</td></tr><?php endforeach; ?>
+          <table class="widefat striped"><thead><tr><th><?php echo esc_html__('Provider', 'site-manager'); ?></th><th><?php echo esc_html__('Version', 'site-manager'); ?></th><th><?php echo esc_html__('State', 'site-manager'); ?></th></tr></thead><tbody>
+          <?php foreach ($providers as $provider) : ?><tr><td><?php echo esc_html((string) ($provider['label'] ?? $provider['id'] ?? '')); ?></td><td><?php echo esc_html(implode(', ', (array) ($provider['versions'] ?? []))); ?></td><td><?php echo esc_html__('Detected', 'site-manager'); ?></td></tr><?php endforeach; ?>
           </tbody></table><?php endif; ?>
 
           <h2><?php echo esc_html__('Capability map', 'site-manager'); ?></h2>
-          <p><?php echo esc_html(sprintf('Detected %d · Understood %d · Governable %d · Authorized %d · Blocked %d', (int) ($summary['detected'] ?? 0), (int) ($summary['understood'] ?? 0), (int) ($summary['governable'] ?? 0), (int) ($summary['authorized'] ?? 0), (int) ($summary['blocked'] ?? 0))); ?></p>
+          <p><?php echo esc_html(sprintf(
+              __('Detected %1$d · Understood %2$d · Governable %3$d · Authorized %4$d · Blocked %5$d', 'site-manager'),
+              (int) ($summary['detected'] ?? 0),
+              (int) ($summary['understood'] ?? 0),
+              (int) ($summary['governable'] ?? 0),
+              (int) ($summary['authorized'] ?? 0),
+              (int) ($summary['blocked'] ?? 0)
+          )); ?></p>
 
           <h2><?php echo esc_html__('Missing to govern', 'site-manager'); ?></h2>
-          <?php if (! $gaps) : ?><p><?php echo esc_html__('No governance gaps detected.', 'site-manager'); ?></p><?php else : ?><ul><?php foreach ($gaps as $gap) : ?><li><code><?php echo esc_html((string) ($gap['id'] ?? '')); ?></code> — <?php echo esc_html(implode(' ', (array) ($gap['blockers'] ?? []))); ?></li><?php endforeach; ?></ul><?php endif; ?>
+          <?php if (! $gaps) : ?><p><?php echo esc_html__('No governance gaps detected.', 'site-manager'); ?></p><?php else : ?><ul><?php foreach ($gaps as $gap) : ?><li><code><?php echo esc_html((string) ($gap['id'] ?? '')); ?></code> — <?php echo esc_html(implode(' ', array_map([$this, 'translateBlocker'], (array) ($gap['blockers'] ?? [])))); ?></li><?php endforeach; ?></ul><?php endif; ?>
         </div>
         <?php
     }
 
     public function handleRefresh(): void
     {
-        if (! current_user_can('manage_options')) { wp_die('Forbidden'); }
+        if (! current_user_can('manage_options')) { wp_die(esc_html__('Forbidden', 'site-manager')); }
         check_admin_referer('site_manager_refresh');
         $this->refresh('manual');
         wp_safe_redirect(admin_url('admin.php?page=site-manager'));
@@ -189,5 +222,16 @@ final class Plugin
                 },
             ]);
         }
+    }
+
+    public function translateBlocker(string $blocker): string
+    {
+        return match ($blocker) {
+            'SM-2 safe WordPress Core write adapter is not implemented yet.' => __('SM-2 safe WordPress Core write adapter is not implemented yet.', 'site-manager'),
+            'SM-2 navigation ownership and rollback are not implemented yet.' => __('SM-2 navigation ownership and rollback are not implemented yet.', 'site-manager'),
+            'SEO ownership must be resolved to a provider adapter first.' => __('SEO ownership must be resolved to a provider adapter first.', 'site-manager'),
+            'Provider detected; dedicated adapter required before governance is exposed.' => __('Provider detected; dedicated adapter required before governance is exposed.', 'site-manager'),
+            default => $blocker,
+        };
     }
 }
