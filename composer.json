@@ -27,7 +27,8 @@
       "@php tests/wordpress_yoast_seo_governance_test.php",
       "@php tests/wordpress_rank_math_seo_governance_test.php",
       "@php tests/wordpress_aioseo_governance_test.php",
-      "@php tests/wordpress_seo_semantic_governance_test.php"
+      "@php tests/wordpress_seo_semantic_governance_test.php",
+      "@php tests/wordpress_dashboard_capability_envelope_test.php"
     ],
     "lint": [
       "@php scripts/lint.php"
