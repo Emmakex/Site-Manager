@@ -13,14 +13,20 @@ docker compose version >/dev/null 2>&1 || {
   exit 1
 }
 
+restore_echo() {
+  stty echo 2>/dev/null || true
+}
+
 printf "Site Manager REST base (https://.../wp-json/site-manager/v1/): "
 IFS= read -r REST_BASE
 printf "Site Manager connection id (smc_...): "
 IFS= read -r CONNECTION_ID
 printf "Site Manager bearer token: "
+trap restore_echo EXIT HUP INT TERM
 stty -echo 2>/dev/null || true
 IFS= read -r TOKEN
-stty echo 2>/dev/null || true
+restore_echo
+trap - EXIT HUP INT TERM
 printf "\n"
 printf "Loopback port [8787]: "
 IFS= read -r BIND_PORT
@@ -46,12 +52,13 @@ if [ -z "$TOKEN" ]; then
   exit 1
 fi
 
-# Docker Compose dotenv single-quoted values are literal. Reject quote/newline
-# characters rather than attempting to transform a secret value.
+# Docker Compose dotenv single-quoted values are literal. Reject quote
+# characters rather than transforming a secret value. `read` already strips
+# the input line terminator.
 for VALUE in "$REST_BASE" "$CONNECTION_ID" "$TOKEN"; do
   case "$VALUE" in
-    *"'"*|*"\n"*|*"\r"*)
-      echo "Configuration values must not contain quotes or newlines." >&2
+    *"'"*)
+      echo "Configuration values must not contain single quotes." >&2
       exit 1
       ;;
   esac
