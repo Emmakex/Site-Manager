@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.11.0
+Stable tag: 0.11.1
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -15,6 +15,8 @@ Site Manager is a platform-neutral control plane. WordPress is its first adapter
 On activation Site Manager performs a bounded local discovery of the installation, including runtime, routing, active theme, public content types, taxonomies, navigation providers, active plugins and known providers. Detection never grants write access.
 
 The WordPress admin surface follows the configured WordPress/user locale. English is the source language and Spanish (`es_ES`) is bundled.
+
+Version 0.11.1 adds bounded MCP acceptance failure evidence directly to Site Manager > Tests. When an MCP acceptance run fails, the dashboard can inspect only the matching acceptance fixture plan records for the active connection/generation and show plan, verification and rollback status/fingerprints without exposing bearer material. This is a diagnostic release for the remaining live classic-menu rollback mismatch discovered by the first 0.11.0 MCP acceptance run.
 
 Version 0.11.0 completes the connection-first Acceptance Center. Site Manager now distinguishes not connected, connection prepared and MCP connected. When MCP is connected, the dashboard queues one remote acceptance job and the MCP bridge executes exactly one bounded phase at a time through the existing scoped Site Manager routes. Content, navigation and SEO therefore use one end-to-end MCP acceptance path instead of duplicating the same lifecycle locally. Idle MCP job polling is deliberately low frequency, active phases retain a two-second minimum pause, concurrency remains one, temporary fixtures are isolated and cleanup always runs. This release also makes navigation stale/rollback fingerprints depend only on Site Manager-owned navigation state so WordPress request metadata timestamp drift cannot cause a false rollback failure.
 
@@ -41,7 +43,7 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 
 == Installation ==
 
-1. Upload the official `site-manager-0.11.0.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.11.1.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review Site Manager > Dashboard and Site Manager > Diagnostics.
@@ -51,6 +53,12 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 8. When remote access is required, generate a scoped token and copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.11.1 =
+* Adds a bounded MCP acceptance evidence panel to Site Manager > Tests after failed remote acceptance runs.
+* Reads only the acceptance fixture plan ids already stored in the failed run and only for the current connection id/generation.
+* Shows safe plan/verification/rollback statuses and fingerprints without exposing bearer tokens or plaintext connection credentials.
+* Keeps the existing fail-closed MCP sequence and cleanup behavior unchanged while diagnosing the remaining live classic-menu rollback mismatch.
 
 = 0.11.0 =
 * Completes the connection-first Acceptance Center with a single MCP-driven acceptance job path.
