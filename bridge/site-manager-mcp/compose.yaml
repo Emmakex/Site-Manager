@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: site-manager-mcp
     restart: unless-stopped
     init: true
     env_file:
