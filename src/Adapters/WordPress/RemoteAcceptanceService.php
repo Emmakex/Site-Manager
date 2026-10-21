@@ -165,6 +165,7 @@ final class RemoteAcceptanceService
             'menu-item-url'=>home_url('/'),
             'menu-item-status'=>'publish',
             'menu-item-type'=>'custom',
+            'menu-item-position'=>1,
         ]);
         if (is_wp_error($itemId) || (int) $itemId < 1) {
             wp_delete_nav_menu((int) $menuId);
@@ -175,6 +176,7 @@ final class RemoteAcceptanceService
         return $this->passAndAdvance($state, 'fixture_navigation_create', [
             'menu_id'=>(int) $menuId,
             'menu_item_id'=>(int) $itemId,
+            'menu_order'=>1,
             'assigned_to_theme_location'=>false,
         ]);
     }
