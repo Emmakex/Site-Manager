@@ -33,5 +33,13 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Validate persistent deployment scripts
+        run: sh -n scripts/configure-persistent.sh
+      - name: Validate Compose contract
+        run: |
+          cp .env.example .env
+          chmod 600 .env
+          docker compose -f compose.yaml config --quiet
+          rm -f .env
       - name: Build container
         run: docker build -t site-manager-mcp:contract .
