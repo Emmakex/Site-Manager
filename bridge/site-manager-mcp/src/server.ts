@@ -134,7 +134,7 @@ export function createSiteManagerMcpServer(
 ): McpServer {
   const scopes = new Set(grantedScopes);
   const server = new McpServer(
-    { name: 'site-manager-mcp', version: '0.4.0' },
+    { name: 'site-manager-mcp', version: '0.5.0' },
     {
       instructions: `This MCP endpoint is bound to Site Manager connection ${connectionId}. Tools are exposed only for scopes currently granted by WordPress Site Manager. Writes must always use plan -> explicit confirmation -> apply -> verify, and rollback when requested. Never infer or construct arbitrary REST, database, filesystem or shell routes. Site Manager remains the source of truth for capabilities, provider ownership and authorization.`,
       capabilities: { tools: { listChanged: false } },
