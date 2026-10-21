@@ -30,7 +30,8 @@
       "@php tests/wordpress_seo_semantic_governance_test.php",
       "@php tests/wordpress_dashboard_capability_envelope_test.php",
       "@php tests/wordpress_remote_connection_auth_test.php",
-      "@php tests/wordpress_remote_plan_store_test.php"
+      "@php tests/wordpress_remote_plan_store_test.php",
+      "@php tests/wordpress_acceptance_center_test.php"
     ],
     "lint": [
       "@php scripts/lint.php"
