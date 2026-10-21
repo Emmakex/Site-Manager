@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.9.0
+Stable tag: 0.10.0
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -15,6 +15,8 @@ Site Manager is a platform-neutral control plane. WordPress is its first adapter
 On activation Site Manager performs a bounded local discovery of the installation, including runtime, routing, active theme, public content types, taxonomies, navigation providers, active plugins and known providers. Detection never grants write access.
 
 The WordPress admin surface follows the configured WordPress/user locale. English is the source language and Spanish (`es_ES`) is bundled.
+
+Version 0.10.0 adds a product-facing Acceptance Center under `Site Manager > Tests`. The default low-resource profile executes one bounded phase per request, enforces concurrency 1 with a server-side lock, waits between phases, persists progress for resume, creates isolated temporary draft/menu fixtures, exercises the existing plan/apply/verify/rollback governance paths for content, navigation and SEO, then cleans the fixtures and stores bounded history/evidence. The Acceptance Center never runs multiple write tests in parallel and does not select provider storage directly.
 
 Version 0.9.0 completes the first scoped remote-governance set with provider-aware SEO writes. `seo.write` remains explicitly opt-in. Remote SEO operations use fixed plan/apply/rollback routes and reuse Site Manager's existing provider registry, so WordPress resolves the active SEO authority and provider adapter before any plan can be created. Unsupported fields or unresolved/conflicting SEO ownership fail closed.
 
@@ -35,13 +37,25 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 
 == Installation ==
 
-1. Upload the official `site-manager-0.9.0.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.10.0.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review Site Manager > Dashboard and Site Manager > Diagnostics.
-5. When remote access is required, open Site Manager > Connection and generate a scoped token. Copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
+5. Open Site Manager > Tests to run the sequential low-resource Acceptance Center when validating the installation.
+6. When remote access is required, open Site Manager > Connection and generate a scoped token. Copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.10.0 =
+* Adds `Site Manager > Tests` as a WordPress-native Acceptance Center.
+* Uses a low-resource sequential runner: exactly one bounded phase per request, concurrency limit 1 and a pause between phases.
+* Persists active-run state so a page reload can resume without repeating completed phases.
+* Creates only Site Manager-owned temporary fixtures: one draft page and one unassigned classic menu/item.
+* Exercises the existing WordPressAdapter governance path for content, navigation and provider-aware SEO: plan, confirmed apply, verification and confirmed rollback.
+* Resolves SEO through the existing provider registry instead of selecting or writing provider storage in the dashboard.
+* On failure, stops further write tests and transitions directly to cleanup.
+* Removes temporary fixtures during cleanup and retains only bounded acceptance evidence/history.
+* Keeps the MCP/remote connection contract unchanged.
 
 = 0.9.0 =
 * Adds fixed remote `seo.write` plan/apply/rollback routes.
