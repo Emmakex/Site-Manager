@@ -1,5 +1,26 @@
 # Roadmap
 
+## Canonical engineering constraint
+
+All roadmap execution is subordinate to [`../ENGINEERING_RULES.md`](../ENGINEERING_RULES.md).
+
+For ChatGPT-governed WordPress operation, the canonical production transport is:
+
+```text
+User
+→ ChatGPT
+→ GitHub connector
+→ GitHub Actions / Command Gateway
+→ production MCP
+→ Site Manager
+→ WordPress
+→ verified sanitized result
+→ GitHub
+→ ChatGPT
+```
+
+Do not introduce a parallel normal operating path through SSH, local Docker, direct REST or ad-hoc WP-CLI. Those transports remain available for engineering, bootstrap and recovery only.
+
 ## Product entry modes
 
 Site Manager supports two first-class onboarding paths. Migration is optional and must never be a prerequisite for governance.
@@ -33,7 +54,8 @@ The absence of a migration handoff is a normal state and must not reduce ordinar
 ## SM-0 — Repository foundation
 
 - Product-neutral naming.
-- Core / adapters / MCP boundaries documented.
+- Core / adapters / remote-governance boundaries documented.
+- Canonical engineering rules documented and enforced as architecture authority.
 - CI and contract tests.
 - Migration inventory from the existing Research Manager implementation.
 
@@ -51,6 +73,7 @@ Acceptance:
 - persist a versioned site fingerprint
 - automatically refresh after relevant structural changes
 - produce `detected / governable / gaps`
+- require no customer/domain-specific Core code
 
 ## SM-2 — WordPress Core adapter
 
@@ -80,23 +103,49 @@ Add specialized adapters independently:
 - ACF
 - Elementor
 - WooCommerce
-- Research Theme as a compatibility adapter, not as the product core
+- Research Theme / Research Manager behavior as compatibility adapters, not as product Core
 
 A custom rebuild theme may have its own provider adapter, but Site Manager Core must not depend on that theme.
 
-## SM-4 — MCP bridge
+## SM-4 — Remote governance
 
-Goal: remote operator sees the real capability graph of each connected installation.
+Goal: a remote operator sees and governs the real capability graph of each connected installation through the canonical production path.
 
-The remote layer must be able to answer:
+### SM-4A to SM-4E — Site connection and bounded MCP
 
-- what was detected?
-- what can be read?
-- what can be changed?
-- what is blocked and why?
-- what scopes are missing?
-- what adapter must be added?
-- whether the installation came from a migration handoff or direct onboarding
+Provide site-specific authentication/scopes, read-only Site Manager MCP resources, governed content/navigation/SEO write lifecycles, remote acceptance, diagnostics and production runtime reliability.
+
+MCP remains a bounded adapter behind Site Manager governance. Infrastructure persistence is required for availability but must not become the primary operator interface.
+
+### SM-4F — GitHub Command Gateway for ChatGPT governance
+
+Goal: make the accepted Research Manager governance pattern generic for Site Manager:
+
+```text
+ChatGPT
+→ GitHub command
+→ Command Gateway
+→ production MCP
+→ Site Manager
+→ WordPress
+→ sanitized result to GitHub
+→ ChatGPT
+```
+
+First acceptance slice:
+
+1. register an acceptance WordPress/site connection;
+2. submit one strict `site.read` business command through the trusted GitHub namespace;
+3. Gateway validates schema, command identity, site registration and replay;
+4. Gateway calls the production MCP using protected environment configuration;
+5. MCP calls Site Manager;
+6. Site Manager reads the real WordPress installation;
+7. sanitized result is persisted in GitHub;
+8. ChatGPT reads and reports that result;
+9. exact successful replay does not execute a second operation;
+10. no SSH, terminal, local Docker or direct WordPress Admin step is required for the managed round trip.
+
+After read-only acceptance, add closed business-action families for governed writes such as `content.update`, `navigation.update` and `seo.update`, reusing existing Site Manager plan/apply/verify/rollback contracts.
 
 ## SM-5 — WordPress acceptance
 
@@ -104,7 +153,7 @@ Site Manager must be functionally complete as a generic WordPress control plane 
 
 Definitive acceptance order (do not reorder):
 
-1. **Finish Site Manager for generic WordPress first.** Complete discovery, Core governance, provider ownership/adapters, optional migration handoff, MCP authorization, audit, verification, stale-plan protection and rollback before treating any site as final acceptance.
+1. **Finish Site Manager for generic WordPress first.** Complete discovery, Core governance, provider ownership/adapters, optional migration handoff, canonical Command Gateway/MCP authorization path, audit, verification, stale-plan protection and rollback before treating any site as final acceptance.
 2. **EMMake `/nuevaweb` — first acceptance.** Complete end-to-end acceptance on the controlled Mode A rebuild. This proves the rebuild/migration-assisted path and our SEO/GEO Starter integration without making that theme a Core dependency.
 3. **`eduardoyauriluna.com` — second acceptance.** Use the original Research Manager environment as a demanding regression/parity target. Site Manager + adapters must reproduce the required governance without moving Research/site-specific behavior into Core.
 4. **A genuinely different WordPress — final acceptance.** Install the exact same finished package on a site with a different theme/plugin/provider stack, no Research Manager history and no Site Manager preparation. This is the final proof of portability and adaptability.
