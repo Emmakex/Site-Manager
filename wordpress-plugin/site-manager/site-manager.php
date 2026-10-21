@@ -50,4 +50,5 @@ add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\DiagnosticsPage::c
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteAccess::class, 'boot'], 12);
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteWriteAccess::class, 'boot'], 13);
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteClientTracker::class, 'boot'], 14);
-add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\AcceptanceCenterPage::class, 'boot'], 15);
+add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\AcceptanceTransportGate::class, 'boot'], 15);
+add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\AcceptanceCenterPage::class, 'boot'], 16);
