@@ -32,6 +32,7 @@
       "@php tests/wordpress_remote_connection_auth_test.php",
       "@php tests/wordpress_remote_plan_store_test.php",
       "@php tests/wordpress_acceptance_center_test.php",
+      "@php tests/wordpress_acceptance_terminal_refresh_test.php",
       "@php tests/wordpress_remote_client_tracker_test.php",
       "@php tests/wordpress_remote_acceptance_test.php"
     ],

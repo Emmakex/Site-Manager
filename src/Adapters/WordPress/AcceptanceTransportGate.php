@@ -76,8 +76,12 @@ final class AcceptanceTransportGate
           const message = document.getElementById('sm-acceptance-message');
           const localSummary = document.getElementById('sm-acceptance-summary');
           const stateNode = document.getElementById('sm-mcp-acceptance-state');
+          const activeStatuses = ['queued','running','cleaning'];
+          const terminalStatuses = ['completed','failed'];
           let pollTimer = null;
           let busy = false;
+          let sawActiveStatus = false;
+          let terminalRefreshScheduled = false;
 
           if (localSummary) localSummary.style.display = 'none';
           if (start) start.textContent = <?php echo wp_json_encode(__('Start MCP test sequence', 'site-manager')); ?>;
@@ -107,18 +111,25 @@ final class AcceptanceTransportGate
             const status = state?.status || 'idle';
             const steps = Array.isArray(state?.steps) ? state.steps : [];
             const results = state?.results || {};
+            const active = activeStatuses.includes(status);
+            if (active) sawActiveStatus = true;
             const cards = steps.map((step) => {
               const result = results[step];
-              const active = step === state?.next_step && ['queued','running','cleaning'].includes(status);
-              const stepStatus = result?.status || (active ? 'next' : 'pending');
-              const marker = stepStatus === 'passed' ? '✓' : stepStatus === 'failed' ? '✕' : active ? '…' : '○';
+              const isCurrent = step === state?.next_step && active;
+              const stepStatus = result?.status || (isCurrent ? 'next' : 'pending');
+              const marker = stepStatus === 'passed' ? '✓' : stepStatus === 'failed' ? '✕' : isCurrent ? '…' : '○';
               return `<span style="display:inline-block;margin:4px 8px 4px 0;padding:5px 8px;background:#fff;border:1px solid #dcdcde;border-radius:3px">${escapeHtml(marker)} ${escapeHtml(step)} · ${escapeHtml(stepStatus)}</span>`;
             }).join('');
             stateNode.innerHTML = `<p style="margin:8px 0 4px"><strong><?php echo esc_js(__('MCP run status:', 'site-manager')); ?></strong> <code>${escapeHtml(status)}</code>${state?.run_id ? ` · <code>${escapeHtml(state.run_id)}</code>` : ''}</p><div>${cards}</div>${state?.last_error ? `<p><strong><?php echo esc_js(__('Last error:', 'site-manager')); ?></strong> <code>${escapeHtml(state.last_error)}</code></p>` : ''}`;
-            const active = ['queued','running','cleaning'].includes(status);
             if (cancel) cancel.disabled = !active;
             if (start) start.disabled = active;
-            if (active) schedulePoll();
+            if (active) {
+              schedulePoll();
+            } else if (sawActiveStatus && terminalStatuses.includes(status) && !terminalRefreshScheduled) {
+              terminalRefreshScheduled = true;
+              if (pollTimer) window.clearTimeout(pollTimer);
+              window.setTimeout(() => window.location.reload(), 100);
+            }
           };
 
           const schedulePoll = () => {
