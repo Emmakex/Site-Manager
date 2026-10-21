@@ -140,8 +140,9 @@ $assert(false === $notConfirmed->success && 'confirmation-required' === $notConf
 $applied = $service->apply($classicPlan, true);
 $assert(true === $applied->success && 'Inicio' === $runtime->targets[NativeNavigationRuntime::CLASSIC][10]['title'], 'confirmed classic plan must apply');
 $assert(true === $service->verify($classicPlan, $applied)->verified, 'classic navigation apply must verify');
+$runtime->targets[NativeNavigationRuntime::CLASSIC][10]['modified_gmt'] = '2026-01-01 00:00:37';
 $rolledBack = $service->rollback($classicPlan, $applied, true);
-$assert(true === $rolledBack->success && 'Home' === $runtime->targets[NativeNavigationRuntime::CLASSIC][10]['title'], 'classic rollback must restore original title');
+$assert(true === $rolledBack->success && 'Home' === $runtime->targets[NativeNavigationRuntime::CLASSIC][10]['title'], 'classic rollback must restore original title even when only WordPress request metadata drifted');
 $assert('https://example.test/' === $runtime->targets[NativeNavigationRuntime::CLASSIC][10]['url'], 'classic rollback must restore original URL');
 
 $staleClassic = $service->plan($classicRequest, $snapshot, $graph);
