@@ -1,6 +1,12 @@
 import type { BridgeConfig } from './config.js';
 
-export type SiteManagerReadResource = 'connection' | 'discovery' | 'capabilities' | 'diagnostics';
+export type SiteManagerReadResource =
+  | 'connection'
+  | 'discovery'
+  | 'capabilities'
+  | 'diagnostics'
+  | 'acceptance/remote/job';
+
 export type SiteManagerWriteResource =
   | 'write/content/plan'
   | 'write/content/apply'
@@ -10,7 +16,11 @@ export type SiteManagerWriteResource =
   | 'write/navigation/rollback'
   | 'write/seo/plan'
   | 'write/seo/apply'
-  | 'write/seo/rollback';
+  | 'write/seo/rollback'
+  | 'acceptance/remote/fixture/content'
+  | 'acceptance/remote/fixture/navigation'
+  | 'acceptance/remote/report'
+  | 'acceptance/remote/cleanup';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -104,6 +114,43 @@ export class SiteManagerClient {
     return this.request('write/seo/rollback', 'POST', input);
   }
 
+  public async remoteAcceptanceJob(): Promise<JsonRecord> {
+    const data = await this.request('acceptance/remote/job', 'GET');
+    if (!isRecord(data)) {
+      throw new SiteManagerClientError('Site Manager returned an invalid remote acceptance job contract.');
+    }
+    return data;
+  }
+
+  public async remoteAcceptanceCreateContentFixture(runId: string): Promise<JsonRecord> {
+    return this.remoteAcceptanceMutation('acceptance/remote/fixture/content', { run_id: runId });
+  }
+
+  public async remoteAcceptanceCreateNavigationFixture(runId: string): Promise<JsonRecord> {
+    return this.remoteAcceptanceMutation('acceptance/remote/fixture/navigation', { run_id: runId });
+  }
+
+  public async remoteAcceptanceReport(input: {
+    run_id: string;
+    step: string;
+    success: boolean;
+    evidence?: JsonRecord;
+  }): Promise<JsonRecord> {
+    return this.remoteAcceptanceMutation('acceptance/remote/report', input);
+  }
+
+  public async remoteAcceptanceCleanup(runId: string): Promise<JsonRecord> {
+    return this.remoteAcceptanceMutation('acceptance/remote/cleanup', { run_id: runId });
+  }
+
+  private async remoteAcceptanceMutation(resource: Extract<SiteManagerWriteResource, `acceptance/${string}`>, body: unknown): Promise<JsonRecord> {
+    const data = await this.request(resource, 'POST', body);
+    if (!isRecord(data)) {
+      throw new SiteManagerClientError('Site Manager returned an invalid remote acceptance mutation contract.');
+    }
+    return data;
+  }
+
   private async request(resource: SiteManagerReadResource | SiteManagerWriteResource, method: 'GET' | 'POST', body?: unknown): Promise<unknown> {
     const endpoint = new URL(resource, this.config.restBase);
     if (endpoint.origin !== this.config.restBase.origin) {
@@ -113,7 +160,7 @@ export class SiteManagerClient {
     const headers: Record<string, string> = {
       accept: 'application/json',
       authorization: `Bearer ${this.config.token}`,
-      'user-agent': 'site-manager-mcp/0.4.0',
+      'user-agent': 'site-manager-mcp/0.5.0',
     };
     const init: RequestInit = {
       method,

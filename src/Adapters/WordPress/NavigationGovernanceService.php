@@ -293,12 +293,18 @@ final class NavigationGovernanceService
         return $snapshot;
     }
 
-    /** @param array<string,mixed> $target */
+    /**
+     * Fingerprints cover only fields Site Manager owns/restores. WordPress may refresh
+     * post_modified_gmt for menu-item housekeeping between requests even when none of
+     * those governed fields changed; treating that timestamp as owned state makes a
+     * safe rollback fail spuriously. Human/provider edits to governed navigation fields
+     * still change this fingerprint and remain stale-protected.
+     *
+     * @param array<string,mixed> $target
+     */
     private function fingerprint(string $provider, array $target): string
     {
-        $source = $this->ownedSnapshot($provider, $target);
-        $source['modified_gmt'] = (string) ($target['modified_gmt'] ?? '');
-        return hash('sha256', CanonicalJson::encode($source));
+        return hash('sha256', CanonicalJson::encode($this->ownedSnapshot($provider, $target)));
     }
 
     private function valuesEqual(mixed $actual, mixed $expected): bool

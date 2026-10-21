@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.10.0
+Stable tag: 0.11.0
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -15,6 +15,10 @@ Site Manager is a platform-neutral control plane. WordPress is its first adapter
 On activation Site Manager performs a bounded local discovery of the installation, including runtime, routing, active theme, public content types, taxonomies, navigation providers, active plugins and known providers. Detection never grants write access.
 
 The WordPress admin surface follows the configured WordPress/user locale. English is the source language and Spanish (`es_ES`) is bundled.
+
+Version 0.11.0 completes the connection-first Acceptance Center. Site Manager now distinguishes not connected, connection prepared and MCP connected. When MCP is connected, the dashboard queues one remote acceptance job and the MCP bridge executes exactly one bounded phase at a time through the existing scoped Site Manager routes. Content, navigation and SEO therefore use one end-to-end MCP acceptance path instead of duplicating the same lifecycle locally. Idle MCP job polling is deliberately low frequency, active phases retain a two-second minimum pause, concurrency remains one, temporary fixtures are isolated and cleanup always runs. This release also makes navigation stale/rollback fingerprints depend only on Site Manager-owned navigation state so WordPress request metadata timestamp drift cannot cause a false rollback failure.
+
+Version 0.10.1 separates connection credentials from a real active MCP connection. Authenticated Site Manager bearer traffic is observed without persisting bearer material; `site-manager-mcp/<version>` clients are identified by bounded client metadata and recent presence. The Connection and Tests surfaces can therefore distinguish not connected, connection prepared and MCP connected.
 
 Version 0.10.0 adds a product-facing Acceptance Center under `Site Manager > Tests`. The default low-resource profile executes one bounded phase per request, enforces concurrency 1 with a server-side lock, waits between phases, persists progress for resume, creates isolated temporary draft/menu fixtures, exercises the existing plan/apply/verify/rollback governance paths for content, navigation and SEO, then cleans the fixtures and stores bounded history/evidence. The Acceptance Center never runs multiple write tests in parallel and does not select provider storage directly.
 
@@ -37,14 +41,35 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 
 == Installation ==
 
-1. Upload the official `site-manager-0.10.0.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.11.0.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review Site Manager > Dashboard and Site Manager > Diagnostics.
-5. Open Site Manager > Tests to run the sequential low-resource Acceptance Center when validating the installation.
-6. When remote access is required, open Site Manager > Connection and generate a scoped token. Copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
+5. Open Site Manager > Connection to see whether credentials are merely prepared or an MCP client is actually connected.
+6. Open Site Manager > Tests. When MCP is connected, start one MCP acceptance sequence from the WordPress dashboard. When MCP is not connected, the local low-resource self-test remains available.
+7. The MCP acceptance path requires `site.read`, `content.write`, `navigation.write` and `seo.write`, because those are the exact capabilities being tested. Site Manager does not auto-grant missing write scopes.
+8. When remote access is required, generate a scoped token and copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.11.0 =
+* Completes the connection-first Acceptance Center with a single MCP-driven acceptance job path.
+* Queues MCP acceptance from WordPress without asking WordPress to store or recover the plaintext bearer token.
+* Adds bounded authenticated remote acceptance job, fixture, report and cleanup routes dedicated to Site Manager-owned test fixtures.
+* Keeps active execution sequential: one bounded phase at a time, concurrency 1 and at least two seconds between active phases.
+* Uses low-frequency polling while idle so persistent MCP presence does not overload small WordPress hosts.
+* Reuses the existing scoped content/navigation/SEO plan, confirmed apply, verification and rollback routes; no generic write proxy is added.
+* Requires the exact scopes under test (`site.read`, `content.write`, `navigation.write`, `seo.write`) before a remote acceptance run can start.
+* Stores local and MCP acceptance outcomes in the same bounded history surface.
+* Changes navigation stale/rollback fingerprints to Site Manager-owned navigation fields only, preventing false stale rollback failures caused solely by WordPress `post_modified_gmt` drift while preserving stale protection for governed field edits.
+
+= 0.10.1 =
+* Distinguishes generated/enabled connection credentials from an actually active MCP client.
+* Tracks only bounded authenticated remote-client metadata and recent presence; bearer tokens and bearer digests are not copied into client-presence state.
+* Identifies `site-manager-mcp/<version>` traffic and invalidates prior MCP presence after connection generation changes.
+* Adds explicit MCP connected/not connected status to Site Manager > Connection.
+* Makes Site Manager > Tests connection-first and disables the duplicate local sequence while MCP is connected.
+* Prepares the Acceptance Center for a single MCP-driven acceptance job path rather than running both local and remote tests.
 
 = 0.10.0 =
 * Adds `Site Manager > Tests` as a WordPress-native Acceptance Center.

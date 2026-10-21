@@ -171,10 +171,18 @@ final class AcceptanceCenterService
                 $this->save($state);
                 return $state;
             } catch (Throwable) {
+                $failureEvidence = ['code'=>'step_failed'];
+                if (str_ends_with($step, '_rollback')) {
+                    $kind = substr($step, 0, -9);
+                    $rollback = $state['artifacts'][$kind . '_rollback'] ?? null;
+                    if (is_array($rollback)) {
+                        $failureEvidence['rollback'] = $this->boundedEvidence($rollback);
+                    }
+                }
                 $state['results'][$step] = [
                     'status'=>'failed',
                     'at'=>gmdate(DATE_W3C),
-                    'evidence'=>['code'=>'step_failed'],
+                    'evidence'=>$failureEvidence,
                 ];
                 $state['had_failure'] = true;
                 $state['last_error'] = $step . '_failed';
@@ -561,41 +569,49 @@ final class AcceptanceCenterService
             'started_at'=>(string) ($state['started_at'] ?? ''),
             'finished_at'=>(string) ($state['finished_at'] ?? ''),
             'last_error'=>(string) ($state['last_error'] ?? ''),
-            'results'=>is_array($state['results'] ?? null) ? $state['results'] : [],
         ]);
-        $history = array_slice($history, 0, self::HISTORY_LIMIT);
-        update_option(self::HISTORY_OPTION, $history, false);
-    }
-
-    private function acquireLock(string $runId): bool
-    {
-        $now = time();
-        $lock = get_option(self::LOCK_OPTION, []);
-        if (is_array($lock) && (int) ($lock['acquired_at'] ?? 0) > 0) {
-            if ((int) $lock['acquired_at'] + self::LOCK_TTL_SECONDS < $now) {
-                delete_option(self::LOCK_OPTION);
-            } else {
-                return false;
-            }
-        }
-        return add_option(self::LOCK_OPTION, ['run_id'=>$runId,'acquired_at'=>$now], '', false);
-    }
-
-    private function releaseLock(string $runId): void
-    {
-        $lock = get_option(self::LOCK_OPTION, []);
-        if (is_array($lock) && $runId === (string) ($lock['run_id'] ?? '')) {
-            delete_option(self::LOCK_OPTION);
-        }
+        update_option(self::HISTORY_OPTION, array_slice($history, 0, self::HISTORY_LIMIT), false);
     }
 
     /** @param array<string,mixed> $evidence @return array<string,mixed> */
     private function boundedEvidence(array $evidence): array
     {
-        $encoded = wp_json_encode($evidence);
-        if (! is_string($encoded) || strlen($encoded) <= 12000) {
-            return $evidence;
+        $clean = [];
+        foreach (array_slice($evidence, 0, 24, true) as $key => $value) {
+            $key = substr(preg_replace('/[^A-Za-z0-9_.-]/', '', (string) $key) ?? '', 0, 64);
+            if ('' === $key) {
+                continue;
+            }
+            if (is_array($value)) {
+                $clean[$key] = $this->boundedEvidence($value);
+            } elseif (is_bool($value) || is_int($value) || is_float($value) || null === $value) {
+                $clean[$key] = $value;
+            } elseif (is_scalar($value)) {
+                $clean[$key] = substr((string) $value, 0, 500);
+            }
         }
-        return ['truncated'=>true,'sha256'=>hash('sha256', $encoded)];
+        return $clean;
+    }
+
+    private function acquireLock(string $runId): bool
+    {
+        $now = time();
+        $existing = get_option(self::LOCK_OPTION, []);
+        if (is_array($existing) && (int) ($existing['expires_at'] ?? 0) > $now) {
+            return false;
+        }
+        delete_option(self::LOCK_OPTION);
+        return add_option(self::LOCK_OPTION, [
+            'run_id'=>$runId,
+            'expires_at'=>$now + self::LOCK_TTL_SECONDS,
+        ], '', false);
+    }
+
+    private function releaseLock(string $runId): void
+    {
+        $existing = get_option(self::LOCK_OPTION, []);
+        if (is_array($existing) && $runId === (string) ($existing['run_id'] ?? '')) {
+            delete_option(self::LOCK_OPTION);
+        }
     }
 }

@@ -136,7 +136,7 @@ test('content, navigation and SEO write methods use only fixed Site Manager writ
   ]);
   assert.ok(requests.every((request) => request.method === 'POST'));
   assert.ok(requests.every((request) => request.auth === `Bearer ${secret}`));
-  assert.ok(requests.every((request) => request.userAgent === 'site-manager-mcp/0.4.0'));
+  assert.ok(requests.every((request) => request.userAgent === 'site-manager-mcp/0.5.0'));
   assert.deepEqual(requests[0]?.body, { post_id: 77, fields: { title: 'New title' }, reason: 'Contract test' });
   assert.deepEqual(requests[1]?.body, { plan_id: 'plan_content_1', confirmed: true });
   assert.deepEqual(requests[3]?.body, {

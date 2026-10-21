@@ -62,10 +62,16 @@ final class ConnectionPage
         }
 
         $connection = $store->publicState();
+        $client = (new RemoteClientTracker())->publicState();
         $selectedScopes = (array) ($connection['scopes'] ?? []);
         if ('' === (string) ($connection['connection_id'] ?? '')) {
             $selectedScopes = array_values(array_intersect(['site.read','site.diagnostics'], $grantable));
         }
+        $mcpConnected = ! empty($client['mcp_connected']);
+        $connectionPrepared = ! empty($client['connection_enabled']);
+        $connectionLabel = $mcpConnected
+            ? __('MCP connected', 'site-manager')
+            : ($connectionPrepared ? __('Connection prepared · MCP not currently connected', 'site-manager') : __('Not connected', 'site-manager'));
         ?>
         <div class="wrap" style="max-width:1100px">
           <h1><?php echo esc_html__('Site Manager Connection', 'site-manager'); ?></h1>
@@ -82,14 +88,21 @@ final class ConnectionPage
           <?php endif; ?>
 
           <h2><?php echo esc_html__('Connection status', 'site-manager'); ?></h2>
-          <table class="widefat striped"><tbody>
+          <div class="notice <?php echo $mcpConnected ? 'notice-success' : ($connectionPrepared ? 'notice-warning' : 'notice-info'); ?> inline" style="padding:10px 14px">
+            <p style="margin:0"><strong><?php echo esc_html($connectionLabel); ?></strong></p>
+          </div>
+          <table class="widefat striped" style="margin-top:12px"><tbody>
             <tr><th><?php echo esc_html__('REST base', 'site-manager'); ?></th><td><code><?php echo esc_html(rest_url('site-manager/v1/')); ?></code></td></tr>
             <tr><th><?php echo esc_html__('Connection ID', 'site-manager'); ?></th><td><code><?php echo esc_html((string) ($connection['connection_id'] ?? '')); ?></code></td></tr>
-            <tr><th><?php echo esc_html__('Enabled', 'site-manager'); ?></th><td><?php echo ! empty($connection['enabled']) ? esc_html__('YES', 'site-manager') : esc_html__('NO', 'site-manager'); ?></td></tr>
+            <tr><th><?php echo esc_html__('Credentials enabled', 'site-manager'); ?></th><td><?php echo ! empty($connection['enabled']) ? esc_html__('YES', 'site-manager') : esc_html__('NO', 'site-manager'); ?></td></tr>
+            <tr><th><?php echo esc_html__('MCP connected', 'site-manager'); ?></th><td><?php echo $mcpConnected ? esc_html__('YES', 'site-manager') : esc_html__('NO', 'site-manager'); ?></td></tr>
+            <tr><th><?php echo esc_html__('MCP version', 'site-manager'); ?></th><td><code><?php echo esc_html((string) ($client['client_version'] ?? '')); ?></code></td></tr>
+            <tr><th><?php echo esc_html__('MCP last seen', 'site-manager'); ?></th><td><?php echo esc_html((string) ($client['last_seen_at'] ?? '')); ?></td></tr>
             <tr><th><?php echo esc_html__('Generation', 'site-manager'); ?></th><td><?php echo esc_html((string) ($connection['generation'] ?? 0)); ?></td></tr>
             <tr><th><?php echo esc_html__('Granted scopes', 'site-manager'); ?></th><td><code><?php echo esc_html(implode(', ', (array) ($connection['scopes'] ?? []))); ?></code></td></tr>
-            <tr><th><?php echo esc_html__('Last used', 'site-manager'); ?></th><td><?php echo esc_html((string) ($connection['last_used_at'] ?? '')); ?></td></tr>
+            <tr><th><?php echo esc_html__('Last authorized scope use', 'site-manager'); ?></th><td><?php echo esc_html((string) ($connection['last_used_at'] ?? '')); ?></td></tr>
           </tbody></table>
+          <p class="description"><?php echo esc_html__('A generated token means the connection is prepared. Site Manager reports MCP connected only after an authenticated site-manager-mcp client has actually contacted this installation recently.', 'site-manager'); ?></p>
 
           <h2><?php echo esc_html__('Scopes', 'site-manager'); ?></h2>
           <p class="description"><?php echo esc_html__('Only scopes backed by currently governable capabilities are offered. Write scopes are never selected automatically.', 'site-manager'); ?></p>
