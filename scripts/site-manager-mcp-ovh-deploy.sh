@@ -116,9 +116,20 @@ if [ -f "$CURRENT_REF_FILE" ]; then
 fi
 
 if [ "$ACTION" = 'rollback' ]; then
-  test -f "$PREVIOUS_REF_FILE" || { echo 'no previous image reference is recorded' >&2; exit 1; }
-  test -f "$PREVIOUS_ENV_FILE" || { echo 'no previous production environment is recorded' >&2; exit 1; }
-  test -f "$PREVIOUS_COMPOSE_FILE" || { echo 'no previous production Compose contract is recorded' >&2; exit 1; }
+  if [ ! -f "$PREVIOUS_REF_FILE" ] || [ ! -f "$PREVIOUS_ENV_FILE" ] || [ ! -f "$PREVIOUS_COMPOSE_FILE" ]; then
+    # A first accepted deployment has no prior image. Rolling it back means
+    # returning to the pre-deployment baseline: no Site Manager MCP runtime.
+    if [ -n "$current_ref" ] && valid_image_ref "$current_ref" && [ -f "$ENV_FILE" ] && [ -f "$COMPOSE_FILE" ]; then
+      validate_env_file "$ENV_FILE"
+      compose "$current_ref" down --remove-orphans || true
+      rm -f "$CURRENT_REF_FILE" "$ENV_FILE" "$COMPOSE_FILE" "$SCRIPT_FILE"
+      rm -f "$PREVIOUS_REF_FILE" "$PREVIOUS_ENV_FILE" "$PREVIOUS_COMPOSE_FILE"
+      echo "Site Manager MCP rollback restored empty baseline for ${SITE_ID}"
+      exit 0
+    fi
+    echo 'no previous accepted Site Manager MCP deployment is recorded' >&2
+    exit 1
+  fi
 
   target_ref="$(tr -d '\r\n' < "$PREVIOUS_REF_FILE")"
   valid_image_ref "$target_ref" || { echo 'recorded previous image reference is invalid' >&2; exit 1; }
@@ -195,6 +206,10 @@ if ! activate "$SITE_MANAGER_MCP_IMAGE_REF"; then
       install -m 0644 "$backup_dir/current.compose" "$COMPOSE_FILE"
       activate "$restore_ref" || { echo 'automatic rollback also failed' >&2; exit 1; }
     fi
+  else
+    # No prior deployment exists: return to the empty baseline.
+    compose "$SITE_MANAGER_MCP_IMAGE_REF" down --remove-orphans || true
+    rm -f "$ENV_FILE" "$COMPOSE_FILE"
   fi
   exit 1
 fi
