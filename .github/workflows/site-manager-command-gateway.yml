@@ -1,0 +1,210 @@
+name: Site Manager Command Gateway
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'commands/site-manager/pending/*.json'
+  workflow_dispatch:
+    inputs:
+      command_path:
+        description: 'Existing commands/site-manager/pending/*.json command to execute'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: site-manager-command-gateway
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    if: github.actor == 'Emmakex'
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.command.outputs.mode }}
+      path: ${{ steps.command.outputs.path }}
+      id: ${{ steps.command.outputs.id }}
+      site: ${{ steps.command.outputs.site }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Reject historical workflow reruns
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_RUN_ATTEMPT}" != "1" ]]; then
+            echo 'Historical workflow reruns are not accepted by the command gateway' >&2
+            exit 1
+          fi
+
+      - name: Resolve exactly one trusted command
+        id: command
+        shell: bash
+        env:
+          DISPATCH_COMMAND_PATH: ${{ inputs.command_path }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            files=("${DISPATCH_COMMAND_PATH}")
+          else
+            mapfile -t files < <(git diff-tree -m --no-commit-id --name-only --diff-filter=AM -r "$GITHUB_SHA" -- 'commands/site-manager/pending/*.json' | sort -u)
+            mapfile -t deleted < <(git diff-tree -m --no-commit-id --name-only --diff-filter=D -r "$GITHUB_SHA" -- 'commands/site-manager/pending/*.json' | sort -u)
+            if [[ ${#files[@]} -eq 0 && ${#deleted[@]} -gt 0 ]]; then
+              echo 'mode=cleanup' >> "$GITHUB_OUTPUT"
+              echo 'Cleanup-only pending command deletion detected; no command will execute'
+              exit 0
+            fi
+          fi
+
+          if [[ ${#files[@]} -ne 1 ]]; then
+            echo "Expected exactly one added/modified Site Manager pending command; found ${#files[@]}" >&2
+            exit 1
+          fi
+
+          command_path="${files[0]}"
+          if [[ ! "$command_path" =~ ^commands/site-manager/pending/[A-Za-z0-9._-]+\.json$ ]]; then
+            echo 'Command path is outside the trusted Site Manager pending namespace' >&2
+            exit 1
+          fi
+          if [[ ! -f "$command_path" ]]; then
+            echo 'Command file does not exist' >&2
+            exit 1
+          fi
+
+          mapfile -t metadata < <(python3 - "$command_path" <<'PY'
+          import json, re, sys
+          value = json.load(open(sys.argv[1], encoding='utf-8'))
+          command_id = value.get('command_id', '')
+          site = value.get('site', '')
+          if not isinstance(command_id, str) or re.fullmatch(r'cmd-[a-z0-9][a-z0-9-]{7,63}', command_id) is None:
+              raise SystemExit('invalid command_id')
+          if not isinstance(site, str) or re.fullmatch(r'[a-z0-9][a-z0-9-]{2,63}', site) is None:
+              raise SystemExit('invalid logical site id')
+          print(command_id)
+          print(site)
+          PY
+          )
+
+          echo 'mode=execute' >> "$GITHUB_OUTPUT"
+          echo "path=$command_path" >> "$GITHUB_OUTPUT"
+          echo "id=${metadata[0]}" >> "$GITHUB_OUTPUT"
+          echo "site=${metadata[1]}" >> "$GITHUB_OUTPUT"
+
+  execute:
+    needs: resolve
+    if: needs.resolve.outputs.mode == 'execute' && github.actor == 'Emmakex'
+    runs-on: ubuntu-latest
+    environment: site-manager-${{ needs.resolve.outputs.site }}
+    env:
+      SITE_MANAGER_MCP_BASE_URL: ${{ vars.SITE_MANAGER_MCP_BASE_URL }}
+      SITE_MANAGER_SITE_ID: ${{ vars.SITE_MANAGER_SITE_ID }}
+      SITE_MANAGER_GATEWAY_GENERATION: sm-4f-v1-20261022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Guard command identity and replay
+        id: guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/site-manager-command-guard.py guard \
+            '${{ needs.resolve.outputs.path }}' \
+            --result-dir commands/site-manager/results
+
+      - name: Execute bounded production MCP read
+        id: execute
+        if: steps.guard.outputs.decision == 'new'
+        shell: bash
+        env:
+          SITE_MANAGER_MCP_TOKEN: ${{ secrets.SITE_MANAGER_MCP_TOKEN }}
+        run: |
+          set +e
+          python3 scripts/site-manager-command-runner.py \
+            '${{ needs.resolve.outputs.path }}' \
+            --result-dir commands/site-manager/results
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Fingerprint sanitized execution result
+        id: stamp
+        if: ${{ always() && steps.guard.outcome == 'success' && steps.guard.outputs.decision == 'new' && steps.execute.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/site-manager-command-guard.py stamp \
+            '${{ needs.resolve.outputs.path }}' \
+            --result-dir commands/site-manager/results
+
+      - name: Upload sanitized execution result
+        if: ${{ always() && steps.guard.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-manager-command-${{ needs.resolve.outputs.id }}
+          path: commands/site-manager/results/${{ needs.resolve.outputs.id }}.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Persist sanitized result for ChatGPT readback
+        if: ${{ always() && steps.guard.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          result='commands/site-manager/results/${{ needs.resolve.outputs.id }}.json'
+          if [[ ! -f "$result" ]]; then
+            echo 'No sanitized result was produced; nothing to persist'
+            exit 0
+          fi
+
+          cp "$result" /tmp/site-manager-command-result.json
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p "$(dirname "$result")"
+          cp /tmp/site-manager-command-result.json "$result"
+
+          git config user.name 'site-manager-command-gateway[bot]'
+          git config user.email 'site-manager-command-gateway[bot]@users.noreply.github.com'
+          git add "$result"
+          if git diff --cached --quiet; then
+            echo 'Result already persisted'
+            exit 0
+          fi
+          git commit -m 'site-manager: record command result ${{ needs.resolve.outputs.id }}'
+          git push origin HEAD:main
+
+      - name: Enforce execution success
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ '${{ steps.guard.outcome }}' != 'success' ]]; then
+            echo 'Command replay/idempotency guard failed closed' >&2
+            exit 1
+          fi
+
+          decision='${{ steps.guard.outputs.decision }}'
+          if [[ "$decision" == 'replay_success' ]]; then
+            echo 'Exact successful command replay accepted without MCP execution'
+            exit 0
+          fi
+          if [[ "$decision" != 'new' ]]; then
+            echo "Unsupported guard decision: $decision" >&2
+            exit 1
+          fi
+
+          [[ '${{ steps.execute.outcome }}' == 'success' ]]
+          [[ '${{ steps.stamp.outcome }}' == 'success' ]]
+          [[ '${{ steps.execute.outputs.exit_code }}' == '0' ]]
