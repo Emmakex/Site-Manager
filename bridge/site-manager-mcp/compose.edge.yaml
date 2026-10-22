@@ -1,0 +1,42 @@
+name: site-manager-mcp-edge
+
+services:
+  mcp:
+    image: ${SITE_MANAGER_MCP_IMAGE_REF:?Set SITE_MANAGER_MCP_IMAGE_REF to an immutable image digest}
+    restart: unless-stopped
+    environment:
+      SITE_MANAGER_REST_BASE: ${SITE_MANAGER_REST_BASE:?Set SITE_MANAGER_REST_BASE}
+      SITE_MANAGER_CONNECTION_ID: ${SITE_MANAGER_CONNECTION_ID:?Set SITE_MANAGER_CONNECTION_ID}
+      SITE_MANAGER_BEARER: ${SITE_MANAGER_BEARER:?Set SITE_MANAGER_BEARER}
+      SITE_MANAGER_MCP_HOST: 0.0.0.0
+      SITE_MANAGER_MCP_PORT: 8787
+    expose:
+      - "8787"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    stop_grace_period: 15s
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8787/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      public-edge:
+        aliases:
+          - ${SITE_MANAGER_MCP_EDGE_ALIAS:?Set SITE_MANAGER_MCP_EDGE_ALIAS}
+
+networks:
+  public-edge:
+    name: kairoseth-public-edge
+    external: true
