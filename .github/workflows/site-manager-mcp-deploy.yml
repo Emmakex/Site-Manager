@@ -1,6 +1,10 @@
 name: Site Manager MCP Deploy
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'deployments/site-manager-mcp/pending/*.json'
   workflow_dispatch:
     inputs:
       action:
@@ -21,21 +25,114 @@ on:
         type: string
 
 permissions:
-  contents: read
-
-concurrency:
-  group: site-manager-mcp-production-${{ inputs.site }}
-  cancel-in-progress: false
+  contents: write
 
 jobs:
+  resolve:
+    if: github.actor == 'Emmakex'
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.resolve.outputs.mode }}
+      path: ${{ steps.resolve.outputs.path }}
+      id: ${{ steps.guard.outputs.id }}
+      site: ${{ steps.guard.outputs.site }}
+      action: ${{ steps.guard.outputs.action }}
+      image_ref: ${{ steps.guard.outputs.image_ref }}
+      request_sha256: ${{ steps.guard.outputs.request_sha256 }}
+      decision: ${{ steps.guard.outputs.decision }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Reject historical workflow reruns
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_RUN_ATTEMPT}" != '1' ]]; then
+            echo 'Historical deployment workflow reruns are not accepted; submit a new deployment request.' >&2
+            exit 1
+          fi
+
+      - name: Resolve exactly one trusted deployment request
+        id: resolve
+        shell: bash
+        env:
+          DISPATCH_ACTION: ${{ inputs.action }}
+          DISPATCH_SITE: ${{ inputs.site }}
+          DISPATCH_IMAGE_REF: ${{ inputs.image_ref }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == 'workflow_dispatch' ]]; then
+            request_path="${RUNNER_TEMP}/site-manager-mcp-manual-${GITHUB_RUN_ID}.json"
+            python3 - "$request_path" <<'PY'
+          import json, os, sys
+          action = os.environ.get('DISPATCH_ACTION', '')
+          image = os.environ.get('DISPATCH_IMAGE_REF', '') or None
+          if action == 'rollback':
+              image = None
+          value = {
+              'version': '1',
+              'deployment_id': f"deploy-manual-{os.environ['GITHUB_RUN_ID']}",
+              'site': os.environ.get('DISPATCH_SITE', ''),
+              'action': action,
+              'image_ref': image,
+              'requested_by': 'operator',
+          }
+          with open(sys.argv[1], 'w', encoding='utf-8') as handle:
+              json.dump(value, handle, separators=(',', ':'))
+          PY
+            echo 'mode=execute' >> "$GITHUB_OUTPUT"
+            echo "path=$request_path" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          mapfile -t files < <(git diff-tree -m --no-commit-id --name-only --diff-filter=AM -r "$GITHUB_SHA" -- 'deployments/site-manager-mcp/pending/*.json' | sort -u)
+          mapfile -t deleted < <(git diff-tree -m --no-commit-id --name-only --diff-filter=D -r "$GITHUB_SHA" -- 'deployments/site-manager-mcp/pending/*.json' | sort -u)
+          if [[ ${#files[@]} -eq 0 && ${#deleted[@]} -gt 0 ]]; then
+            echo 'mode=cleanup' >> "$GITHUB_OUTPUT"
+            echo 'Cleanup-only deployment request deletion detected; no infrastructure action will execute.'
+            exit 0
+          fi
+          if [[ ${#files[@]} -ne 1 ]]; then
+            echo "Expected exactly one added/modified deployment request; found ${#files[@]}" >&2
+            exit 1
+          fi
+          request_path="${files[0]}"
+          if [[ ! "$request_path" =~ ^deployments/site-manager-mcp/pending/[A-Za-z0-9._-]+\.json$ ]]; then
+            echo 'Deployment request path is outside the trusted namespace.' >&2
+            exit 1
+          fi
+          test -f "$request_path"
+          echo 'mode=execute' >> "$GITHUB_OUTPUT"
+          echo "path=$request_path" >> "$GITHUB_OUTPUT"
+
+      - name: Guard deployment identity and replay
+        id: guard
+        if: steps.resolve.outputs.mode == 'execute'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/site-manager-mcp-deployment-request.py guard \
+            '${{ steps.resolve.outputs.path }}' \
+            --result-dir deployments/site-manager-mcp/results
+
   deploy:
+    needs: resolve
+    if: needs.resolve.outputs.mode == 'execute' && github.actor == 'Emmakex'
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    environment: site-manager-${{ inputs.site }}
+    environment: site-manager-${{ needs.resolve.outputs.site }}
+    concurrency:
+      group: site-manager-mcp-production-${{ needs.resolve.outputs.site }}
+      cancel-in-progress: false
     env:
-      DEPLOY_ACTION: ${{ inputs.action }}
-      REQUESTED_SITE_ID: ${{ inputs.site }}
-      MCP_IMAGE_REF: ${{ inputs.image_ref }}
+      DEPLOYMENT_ID: ${{ needs.resolve.outputs.id }}
+      DEPLOY_ACTION: ${{ needs.resolve.outputs.action }}
+      REQUESTED_SITE_ID: ${{ needs.resolve.outputs.site }}
+      MCP_IMAGE_REF: ${{ needs.resolve.outputs.image_ref }}
+      REQUEST_SHA256: ${{ needs.resolve.outputs.request_sha256 }}
+      REPLAY_DECISION: ${{ needs.resolve.outputs.decision }}
       SITE_MANAGER_SITE_ID: ${{ vars.SITE_MANAGER_SITE_ID }}
       SITE_MANAGER_REST_BASE: ${{ vars.SITE_MANAGER_REST_BASE }}
       SITE_MANAGER_CONNECTION_ID: ${{ vars.SITE_MANAGER_CONNECTION_ID }}
@@ -46,12 +143,22 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - uses: actions/setup-node@v4
+        if: env.REPLAY_DECISION == 'new'
         with:
           node-version: '22'
 
+      - name: Accept exact successful deployment replay without mutation
+        if: env.REPLAY_DECISION == 'replay_success'
+        run: echo 'Exact successful deployment request replay accepted without infrastructure mutation.'
+
       - name: Validate bounded deployment inputs
+        id: validate
+        if: env.REPLAY_DECISION == 'new'
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -62,13 +169,19 @@ jobs:
           [[ "$SITE_MANAGER_CONNECTION_ID" =~ ^smc_[0-9a-f]{32}$ ]]
           [[ "$SITE_MANAGER_MCP_BASE_URL" =~ ^https://[^[:space:]#]+/mcp$ ]]
           [[ "$SITE_MANAGER_MCP_TOKEN" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$REQUEST_SHA256" =~ ^[0-9a-f]{64}$ ]]
           : "${OVH_MCP_HOST:?OVH_MCP_HOST secret is required}"
           : "${OVH_MCP_USER:?OVH_MCP_USER secret is required}"
           if [[ "$DEPLOY_ACTION" == 'deploy' ]]; then
             [[ "$MCP_IMAGE_REF" =~ ^ghcr\.io/emmakex/site-manager-mcp@sha256:[0-9a-f]{64}$ ]]
+          else
+            [[ -z "$MCP_IMAGE_REF" ]]
           fi
 
       - name: Configure strict SSH trust
+        id: ssh
+        if: env.REPLAY_DECISION == 'new' && steps.validate.outcome == 'success'
+        continue-on-error: true
         shell: bash
         env:
           OVH_MCP_SSH_KEY: ${{ secrets.OVH_MCP_SSH_KEY }}
@@ -83,7 +196,9 @@ jobs:
           chmod 0600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
 
       - name: Stage immutable deployment contract
-        if: inputs.action == 'deploy'
+        id: stage
+        if: env.REPLAY_DECISION == 'new' && env.DEPLOY_ACTION == 'deploy' && steps.ssh.outcome == 'success'
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -110,6 +225,8 @@ jobs:
 
       - name: Deploy or roll back on OVH
         id: remote
+        if: env.REPLAY_DECISION == 'new' && steps.ssh.outcome == 'success' && (env.DEPLOY_ACTION == 'rollback' || steps.stage.outcome == 'success')
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -127,8 +244,8 @@ jobs:
           "${SSH[@]}" "$SSH_TARGET" "$REMOTE_CMD"
 
       - name: Run canonical public site.read acceptance
-        if: inputs.action == 'deploy'
         id: acceptance
+        if: env.REPLAY_DECISION == 'new' && env.DEPLOY_ACTION == 'deploy' && steps.remote.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
@@ -160,7 +277,9 @@ jobs:
           PY
 
       - name: Roll back automatically when public acceptance fails
-        if: inputs.action == 'deploy' && steps.acceptance.outcome == 'failure'
+        id: auto_rollback
+        if: env.REPLAY_DECISION == 'new' && env.DEPLOY_ACTION == 'deploy' && steps.remote.outcome == 'success' && steps.acceptance.outcome == 'failure'
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -168,33 +287,137 @@ jobs:
           SSH=(ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts")
           printf -v REMOTE_CMD 'SITE_MANAGER_DEPLOY_ACTION=rollback SITE_MANAGER_SITE_ID=%q bash %q' \
             "$REQUESTED_SITE_ID" "/opt/site-manager-mcp/${REQUESTED_SITE_ID}/site-manager-mcp-ovh-deploy.sh"
-          "${SSH[@]}" "$SSH_TARGET" "$REMOTE_CMD" || true
+          "${SSH[@]}" "$SSH_TARGET" "$REMOTE_CMD"
 
-      - name: Upload sanitized acceptance evidence
-        if: inputs.action == 'deploy' && steps.acceptance.outcome == 'success'
+      - name: Write sanitized deployment result
+        id: result
+        if: env.REPLAY_DECISION == 'new' && always()
+        shell: bash
+        env:
+          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+          SSH_OUTCOME: ${{ steps.ssh.outcome }}
+          STAGE_OUTCOME: ${{ steps.stage.outcome }}
+          REMOTE_OUTCOME: ${{ steps.remote.outcome }}
+          ACCEPTANCE_OUTCOME: ${{ steps.acceptance.outcome }}
+          AUTO_ROLLBACK_OUTCOME: ${{ steps.auto_rollback.outcome }}
+        run: |
+          set -euo pipefail
+          RESULT_DIR='deployments/site-manager-mcp/results'
+          mkdir -p "$RESULT_DIR"
+          RESULT="$RESULT_DIR/${DEPLOYMENT_ID}.json"
+          python3 - "$RESULT" <<'PY'
+          import json, os, sys
+          action = os.environ['DEPLOY_ACTION']
+          validation = os.environ.get('VALIDATE_OUTCOME', '')
+          ssh = os.environ.get('SSH_OUTCOME', '')
+          stage = os.environ.get('STAGE_OUTCOME', '')
+          remote = os.environ.get('REMOTE_OUTCOME', '')
+          acceptance = os.environ.get('ACCEPTANCE_OUTCOME', '')
+          auto_rollback = os.environ.get('AUTO_ROLLBACK_OUTCOME', '')
+
+          if action == 'deploy':
+              success = validation == 'success' and ssh == 'success' and stage == 'success' and remote == 'success' and acceptance == 'success'
+              public_acceptance = 'passed' if acceptance == 'success' else ('failed' if acceptance == 'failure' else 'not_run')
+              rollback_attempted = acceptance == 'failure' and remote == 'success'
+              rollback_succeeded = auto_rollback == 'success' if rollback_attempted else None
+          else:
+              success = validation == 'success' and ssh == 'success' and remote == 'success'
+              public_acceptance = 'not_applicable'
+              rollback_attempted = True
+              rollback_succeeded = remote == 'success'
+
+          if success:
+              error = None
+          elif validation != 'success':
+              error = {'code': 'validation_failed', 'message': 'The protected deployment configuration did not satisfy the bounded contract.'}
+          elif ssh != 'success':
+              error = {'code': 'infrastructure_auth_failed', 'message': 'The deployment transport could not establish the configured trusted infrastructure session.'}
+          elif action == 'deploy' and stage != 'success':
+              error = {'code': 'staging_failed', 'message': 'The bounded production deployment contract could not be staged safely.'}
+          elif remote != 'success':
+              error = {'code': 'deployment_failed', 'message': 'The production runtime did not complete the requested deployment action.'}
+          elif action == 'deploy' and acceptance != 'success':
+              error = {'code': 'public_acceptance_failed', 'message': 'The production runtime failed canonical public site.read acceptance.'}
+          else:
+              error = {'code': 'deployment_failed', 'message': 'The bounded deployment did not complete successfully.'}
+
+          value = {
+              'version': '1',
+              'status': 'success' if success else 'failed',
+              'deployment_id': os.environ['DEPLOYMENT_ID'],
+              'site': os.environ['REQUESTED_SITE_ID'],
+              'action': action,
+              'image_ref': os.environ.get('MCP_IMAGE_REF') or None,
+              'request_sha256': os.environ['REQUEST_SHA256'],
+              'verified': bool(success),
+              'public_acceptance': public_acceptance,
+              'rollback': {
+                  'attempted': rollback_attempted,
+                  'succeeded': rollback_succeeded,
+              },
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'error': error,
+          }
+          with open(sys.argv[1], 'w', encoding='utf-8') as handle:
+              json.dump(value, handle, ensure_ascii=False, indent=2, sort_keys=True)
+              handle.write('\n')
+          PY
+
+      - name: Upload sanitized deployment result
+        if: env.REPLAY_DECISION == 'new' && always() && steps.result.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: site-manager-mcp-acceptance-${{ inputs.site }}-${{ github.run_id }}
-          path: ${{ runner.temp }}/site-manager-mcp-acceptance/results
+          name: site-manager-mcp-deployment-${{ needs.resolve.outputs.id }}
+          path: deployments/site-manager-mcp/results/${{ needs.resolve.outputs.id }}.json
           if-no-files-found: error
           retention-days: 30
 
-      - name: Fail deployment if public acceptance did not pass
-        if: inputs.action == 'deploy' && steps.acceptance.outcome == 'failure'
+      - name: Persist sanitized deployment result for ChatGPT readback
+        if: env.REPLAY_DECISION == 'new' && always() && steps.result.outcome == 'success'
         shell: bash
         run: |
-          echo 'Site Manager MCP deployment was rolled back because the canonical public site.read acceptance did not pass.' >&2
-          exit 1
+          set -euo pipefail
+          result="deployments/site-manager-mcp/results/${DEPLOYMENT_ID}.json"
+          cp "$result" /tmp/site-manager-mcp-deployment-result.json
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p "$(dirname "$result")"
+          cp /tmp/site-manager-mcp-deployment-result.json "$result"
+          git config user.name 'site-manager-mcp-deploy[bot]'
+          git config user.email 'site-manager-mcp-deploy[bot]@users.noreply.github.com'
+          git add "$result"
+          if git diff --cached --quiet; then
+            echo 'Deployment result already persisted.'
+          else
+            git commit -m "site-manager: record MCP deployment result ${DEPLOYMENT_ID}"
+            git push origin HEAD:main
+          fi
 
       - name: Clean local and remote staging
-        if: always()
+        if: env.REPLAY_DECISION == 'new' && always()
         shell: bash
         run: |
           set -euo pipefail
           rm -f "${RUNNER_TEMP}/site-manager-${REQUESTED_SITE_ID}.env.production"
           REMOTE_TMP="/tmp/site-manager-mcp-${REQUESTED_SITE_ID}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           SSH_TARGET="${OVH_MCP_USER}@${OVH_MCP_HOST}"
-          if [[ -f "$HOME/.ssh/id_ed25519" ]]; then
+          if [[ -f "$HOME/.ssh/id_ed25519" && -n "${OVH_MCP_HOST:-}" && -n "${OVH_MCP_USER:-}" ]]; then
             ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
               "$SSH_TARGET" "rm -rf '$REMOTE_TMP'" || true
           fi
+
+      - name: Enforce final deployment result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$REPLAY_DECISION" == 'replay_success' ]]; then
+            exit 0
+          fi
+          result="deployments/site-manager-mcp/results/${DEPLOYMENT_ID}.json"
+          test -f "$result"
+          python3 - "$result" <<'PY'
+          import json, sys
+          value = json.load(open(sys.argv[1], encoding='utf-8'))
+          raise SystemExit(0 if value.get('status') == 'success' and value.get('verified') is True else 1)
+          PY
