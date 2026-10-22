@@ -4,7 +4,10 @@ on:
   pull_request:
     paths:
       - 'bridge/site-manager-mcp/**'
+      - 'deployments/site-manager-mcp/**'
+      - 'schemas/site-manager-mcp-deployment-v1.schema.json'
       - 'scripts/site-manager-mcp-ovh-deploy.sh'
+      - 'scripts/site-manager-mcp-deployment-request.py'
       - '.github/workflows/mcp-contract.yml'
       - '.github/workflows/mcp-image.yml'
       - '.github/workflows/site-manager-mcp-deploy.yml'
@@ -12,7 +15,10 @@ on:
     branches: [main]
     paths:
       - 'bridge/site-manager-mcp/**'
+      - 'deployments/site-manager-mcp/**'
+      - 'schemas/site-manager-mcp-deployment-v1.schema.json'
       - 'scripts/site-manager-mcp-ovh-deploy.sh'
+      - 'scripts/site-manager-mcp-deployment-request.py'
       - '.github/workflows/mcp-contract.yml'
       - '.github/workflows/mcp-image.yml'
       - '.github/workflows/site-manager-mcp-deploy.yml'
@@ -43,6 +49,24 @@ jobs:
         run: |
           sh -n scripts/configure-persistent.sh
           bash -n ../../scripts/site-manager-mcp-ovh-deploy.sh
+          python3 -m py_compile ../../scripts/site-manager-mcp-deployment-request.py
+      - name: Validate deployment request guard
+        run: python3 ../../scripts/site-manager-mcp-deployment-request.py self-test
+      - name: Validate deployment request schema
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          schema = json.loads(Path('../../schemas/site-manager-mcp-deployment-v1.schema.json').read_text())
+          assert schema['additionalProperties'] is False
+          assert set(schema['required']) == {'version','deployment_id','site','action','image_ref','requested_by'}
+          assert set(schema['properties']['action']['enum']) == {'deploy','rollback'}
+          assert set(schema['properties']['requested_by']['enum']) == {'chatgpt','operator'}
+          image = schema['properties']['image_ref']['oneOf']
+          assert any(item.get('type') == 'null' for item in image)
+          assert any('pattern' in item for item in image)
+          print('site-manager-mcp-deployment-v1 schema: OK')
+          PY
       - name: Validate loopback Compose contract
         run: |
           cp .env.example .env
@@ -96,11 +120,16 @@ jobs:
           set -euo pipefail
           workflow='../../.github/workflows/site-manager-mcp-deploy.yml'
           script='../../scripts/site-manager-mcp-ovh-deploy.sh'
-          grep -Fq 'environment: site-manager-${{ inputs.site }}' "$workflow"
+          grep -Fq "deployments/site-manager-mcp/pending/*.json" "$workflow"
+          grep -Fq 'environment: site-manager-${{ needs.resolve.outputs.site }}' "$workflow"
           grep -Fq 'SITE_MANAGER_MCP_TOKEN: ${{ secrets.SITE_MANAGER_MCP_TOKEN }}' "$workflow"
+          grep -Fq 'site-manager-mcp-deployment-request.py guard' "$workflow"
+          grep -Fq 'REPLAY_DECISION == '\''replay_success'\''' "$workflow"
           grep -Fq 'StrictHostKeyChecking=yes' "$workflow"
           grep -Fq 'Run canonical public site.read acceptance' "$workflow"
           grep -Fq 'Roll back automatically when public acceptance fails' "$workflow"
+          grep -Fq 'Persist sanitized deployment result for ChatGPT readback' "$workflow"
+          grep -Fq 'site-manager-mcp-deploy[bot]' "$workflow"
           grep -Fq -- '--project-name "$PROJECT_NAME"' "$script"
           grep -Fq 'rollback restored empty baseline' "$script"
           grep -Fq 'SITE_MANAGER_TOKEN=[0-9a-f]{64}' "$script"
