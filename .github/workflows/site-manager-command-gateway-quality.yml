@@ -1,0 +1,47 @@
+name: Site Manager Command Gateway Quality
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/site-manager-command-gateway*.yml'
+      - 'commands/site-manager/**'
+      - 'config/site-manager-command-registry.json'
+      - 'schemas/site-manager-command-v1.schema.json'
+      - 'scripts/site-manager-command-*.py'
+      - 'tests/site_manager_command_gateway_test.py'
+      - 'docs/COMMAND_GATEWAY.md'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/site-manager-command-gateway*.yml'
+      - 'commands/site-manager/**'
+      - 'config/site-manager-command-registry.json'
+      - 'schemas/site-manager-command-v1.schema.json'
+      - 'scripts/site-manager-command-*.py'
+      - 'tests/site_manager_command_gateway_test.py'
+      - 'docs/COMMAND_GATEWAY.md'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Runner self-test
+        run: python3 scripts/site-manager-command-runner.py --self-test
+
+      - name: Replay guard self-test
+        run: python3 scripts/site-manager-command-guard.py self-test
+
+      - name: Gateway static contract
+        run: python3 tests/site_manager_command_gateway_test.py
+
+      - name: Python syntax contract
+        run: python3 -m py_compile scripts/site-manager-command-runner.py scripts/site-manager-command-guard.py tests/site_manager_command_gateway_test.py
