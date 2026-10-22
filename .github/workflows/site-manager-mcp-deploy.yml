@@ -1,0 +1,200 @@
+name: Site Manager MCP Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Deploy an immutable MCP image or roll back this site's previous accepted deployment
+        required: true
+        default: deploy
+        type: choice
+        options:
+          - deploy
+          - rollback
+      site:
+        description: Logical Site Manager site id (selects environment site-manager-<site>)
+        required: true
+        type: string
+      image_ref:
+        description: Full immutable ghcr.io/emmakex/site-manager-mcp@sha256:... reference (required for deploy)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-manager-mcp-production-${{ inputs.site }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: site-manager-${{ inputs.site }}
+    env:
+      DEPLOY_ACTION: ${{ inputs.action }}
+      REQUESTED_SITE_ID: ${{ inputs.site }}
+      MCP_IMAGE_REF: ${{ inputs.image_ref }}
+      SITE_MANAGER_SITE_ID: ${{ vars.SITE_MANAGER_SITE_ID }}
+      SITE_MANAGER_REST_BASE: ${{ vars.SITE_MANAGER_REST_BASE }}
+      SITE_MANAGER_CONNECTION_ID: ${{ vars.SITE_MANAGER_CONNECTION_ID }}
+      SITE_MANAGER_MCP_BASE_URL: ${{ vars.SITE_MANAGER_MCP_BASE_URL }}
+      SITE_MANAGER_MCP_TOKEN: ${{ secrets.SITE_MANAGER_MCP_TOKEN }}
+      OVH_MCP_HOST: ${{ secrets.OVH_MCP_HOST }}
+      OVH_MCP_USER: ${{ secrets.OVH_MCP_USER }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate bounded deployment inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$DEPLOY_ACTION" in deploy|rollback) ;; *) exit 2 ;; esac
+          [[ "$REQUESTED_SITE_ID" =~ ^[a-z0-9][a-z0-9-]{2,63}$ ]]
+          [[ "$SITE_MANAGER_SITE_ID" == "$REQUESTED_SITE_ID" ]]
+          [[ "$SITE_MANAGER_REST_BASE" =~ ^https://[^[:space:]#]+/$ ]]
+          [[ "$SITE_MANAGER_CONNECTION_ID" =~ ^smc_[0-9a-f]{32}$ ]]
+          [[ "$SITE_MANAGER_MCP_BASE_URL" =~ ^https://[^[:space:]#]+/mcp$ ]]
+          [[ "$SITE_MANAGER_MCP_TOKEN" =~ ^[0-9a-f]{64}$ ]]
+          : "${OVH_MCP_HOST:?OVH_MCP_HOST secret is required}"
+          : "${OVH_MCP_USER:?OVH_MCP_USER secret is required}"
+          if [[ "$DEPLOY_ACTION" == 'deploy' ]]; then
+            [[ "$MCP_IMAGE_REF" =~ ^ghcr\.io/emmakex/site-manager-mcp@sha256:[0-9a-f]{64}$ ]]
+          fi
+
+      - name: Configure strict SSH trust
+        shell: bash
+        env:
+          OVH_MCP_SSH_KEY: ${{ secrets.OVH_MCP_SSH_KEY }}
+          OVH_MCP_SSH_KNOWN_HOSTS: ${{ secrets.OVH_MCP_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          : "${OVH_MCP_SSH_KEY:?OVH_MCP_SSH_KEY secret is required}"
+          : "${OVH_MCP_SSH_KNOWN_HOSTS:?OVH_MCP_SSH_KNOWN_HOSTS secret is required}"
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$OVH_MCP_SSH_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$OVH_MCP_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 0600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+
+      - name: Stage immutable deployment contract
+        if: inputs.action == 'deploy'
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          LOCAL_ENV="${RUNNER_TEMP}/site-manager-${REQUESTED_SITE_ID}.env.production"
+          {
+            printf 'SITE_MANAGER_MCP_EDGE_ALIAS=site-manager-mcp-%s\n' "$REQUESTED_SITE_ID"
+            printf 'SITE_MANAGER_REST_BASE=%s\n' "$SITE_MANAGER_REST_BASE"
+            printf 'SITE_MANAGER_CONNECTION_ID=%s\n' "$SITE_MANAGER_CONNECTION_ID"
+            printf 'SITE_MANAGER_TOKEN=%s\n' "$SITE_MANAGER_MCP_TOKEN"
+          } > "$LOCAL_ENV"
+          chmod 0600 "$LOCAL_ENV"
+
+          REMOTE_TMP="/tmp/site-manager-mcp-${REQUESTED_SITE_ID}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          SSH_TARGET="${OVH_MCP_USER}@${OVH_MCP_HOST}"
+          SSH=(ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts")
+          SCP=(scp -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts")
+
+          "${SSH[@]}" "$SSH_TARGET" "umask 077; rm -rf '$REMOTE_TMP'; mkdir -m 0700 -p '$REMOTE_TMP'"
+          "${SCP[@]}" bridge/site-manager-mcp/compose.edge.yaml "$SSH_TARGET:$REMOTE_TMP/compose.edge.yaml"
+          "${SCP[@]}" scripts/site-manager-mcp-ovh-deploy.sh "$SSH_TARGET:$REMOTE_TMP/site-manager-mcp-ovh-deploy.sh"
+          "${SCP[@]}" "$LOCAL_ENV" "$SSH_TARGET:$REMOTE_TMP/.env.production"
+          "${SSH[@]}" "$SSH_TARGET" "chmod 0600 '$REMOTE_TMP/.env.production'; chmod 0700 '$REMOTE_TMP/site-manager-mcp-ovh-deploy.sh'"
+
+      - name: Deploy or roll back on OVH
+        id: remote
+        shell: bash
+        run: |
+          set -euo pipefail
+          REMOTE_TMP="/tmp/site-manager-mcp-${REQUESTED_SITE_ID}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          SSH_TARGET="${OVH_MCP_USER}@${OVH_MCP_HOST}"
+          SSH=(ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts")
+
+          if [[ "$DEPLOY_ACTION" == 'deploy' ]]; then
+            printf -v REMOTE_CMD 'SITE_MANAGER_DEPLOY_ACTION=deploy SITE_MANAGER_SITE_ID=%q SITE_MANAGER_MCP_IMAGE_REF=%q SITE_MANAGER_RELEASE_SOURCE_DIR=%q bash %q' \
+              "$REQUESTED_SITE_ID" "$MCP_IMAGE_REF" "$REMOTE_TMP" "$REMOTE_TMP/site-manager-mcp-ovh-deploy.sh"
+          else
+            printf -v REMOTE_CMD 'SITE_MANAGER_DEPLOY_ACTION=rollback SITE_MANAGER_SITE_ID=%q bash %q' \
+              "$REQUESTED_SITE_ID" "/opt/site-manager-mcp/${REQUESTED_SITE_ID}/site-manager-mcp-ovh-deploy.sh"
+          fi
+          "${SSH[@]}" "$SSH_TARGET" "$REMOTE_CMD"
+
+      - name: Run canonical public site.read acceptance
+        if: inputs.action == 'deploy'
+        id: acceptance
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACCEPTANCE_DIR="${RUNNER_TEMP}/site-manager-mcp-acceptance"
+          mkdir -p "$ACCEPTANCE_DIR"
+          COMMAND_PATH="$ACCEPTANCE_DIR/command.json"
+          RESULT_DIR="$ACCEPTANCE_DIR/results"
+          COMMAND_ID="cmd-deploy-read-${GITHUB_RUN_ID}"
+          cat > "$COMMAND_PATH" <<JSON
+          {
+            "version": "1",
+            "command_id": "$COMMAND_ID",
+            "site": "$REQUESTED_SITE_ID",
+            "action": "site.read",
+            "requested_by": "chatgpt",
+            "payload": {}
+          }
+          JSON
+          python3 scripts/site-manager-command-runner.py "$COMMAND_PATH" --result-dir "$RESULT_DIR"
+          RESULT="$RESULT_DIR/$COMMAND_ID.json"
+          python3 - "$RESULT" <<'PY'
+          import json, sys
+          value = json.load(open(sys.argv[1], encoding='utf-8'))
+          if value.get('status') != 'success' or value.get('verified') is not True:
+              raise SystemExit('public Site Manager MCP site.read acceptance did not verify')
+          if not isinstance(value.get('data'), dict):
+              raise SystemExit('public Site Manager MCP site.read acceptance returned no structured data')
+          PY
+
+      - name: Roll back automatically when public acceptance fails
+        if: inputs.action == 'deploy' && steps.acceptance.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          SSH_TARGET="${OVH_MCP_USER}@${OVH_MCP_HOST}"
+          SSH=(ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts")
+          printf -v REMOTE_CMD 'SITE_MANAGER_DEPLOY_ACTION=rollback SITE_MANAGER_SITE_ID=%q bash %q' \
+            "$REQUESTED_SITE_ID" "/opt/site-manager-mcp/${REQUESTED_SITE_ID}/site-manager-mcp-ovh-deploy.sh"
+          "${SSH[@]}" "$SSH_TARGET" "$REMOTE_CMD" || true
+
+      - name: Upload sanitized acceptance evidence
+        if: inputs.action == 'deploy' && steps.acceptance.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-manager-mcp-acceptance-${{ inputs.site }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/site-manager-mcp-acceptance/results
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Fail deployment if public acceptance did not pass
+        if: inputs.action == 'deploy' && steps.acceptance.outcome == 'failure'
+        shell: bash
+        run: |
+          echo 'Site Manager MCP deployment was rolled back because the canonical public site.read acceptance did not pass.' >&2
+          exit 1
+
+      - name: Clean local and remote staging
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f "${RUNNER_TEMP}/site-manager-${REQUESTED_SITE_ID}.env.production"
+          REMOTE_TMP="/tmp/site-manager-mcp-${REQUESTED_SITE_ID}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          SSH_TARGET="${OVH_MCP_USER}@${OVH_MCP_HOST}"
+          if [[ -f "$HOME/.ssh/id_ed25519" ]]; then
+            ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+              "$SSH_TARGET" "rm -rf '$REMOTE_TMP'" || true
+          fi
