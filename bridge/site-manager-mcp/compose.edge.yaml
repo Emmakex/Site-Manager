@@ -1,5 +1,3 @@
-name: site-manager-mcp-edge
-
 services:
   mcp:
     image: ${SITE_MANAGER_MCP_IMAGE_REF:?Set SITE_MANAGER_MCP_IMAGE_REF to an immutable image digest}
