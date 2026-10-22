@@ -5,11 +5,13 @@ on:
     paths:
       - 'bridge/site-manager-mcp/**'
       - '.github/workflows/mcp-contract.yml'
+      - '.github/workflows/mcp-image.yml'
   push:
     branches: [main]
     paths:
       - 'bridge/site-manager-mcp/**'
       - '.github/workflows/mcp-contract.yml'
+      - '.github/workflows/mcp-image.yml'
 
 permissions:
   contents: read
@@ -35,11 +37,27 @@ jobs:
         run: npm run build
       - name: Validate persistent deployment scripts
         run: sh -n scripts/configure-persistent.sh
-      - name: Validate Compose contract
+      - name: Validate loopback Compose contract
         run: |
           cp .env.example .env
           chmod 600 .env
           docker compose -f compose.yaml config --quiet
           rm -f .env
+      - name: Validate production shared-edge Compose contract
+        env:
+          SITE_MANAGER_MCP_IMAGE_REF: ghcr.io/emmakex/site-manager-mcp@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          SITE_MANAGER_MCP_EDGE_ALIAS: site-manager-mcp-contract-site
+          SITE_MANAGER_REST_BASE: https://example.com/wp-json/site-manager/v1/
+          SITE_MANAGER_CONNECTION_ID: smc_contract_connection
+          SITE_MANAGER_BEARER: contract-only-placeholder
+        run: |
+          docker compose -f compose.edge.yaml config --quiet
+          rendered="$(docker compose -f compose.edge.yaml config)"
+          if grep -Eq '(^|[[:space:]])ports:' <<<"$rendered"; then
+            echo 'Production shared-edge runtime must not publish host ports' >&2
+            exit 1
+          fi
+          grep -Fq 'name: kairoseth-public-edge' <<<"$rendered"
+          grep -Fq 'site-manager-mcp-contract-site' <<<"$rendered"
       - name: Build container
         run: docker build -t site-manager-mcp:contract .
