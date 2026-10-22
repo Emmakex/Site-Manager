@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kairoseth.com/schemas/site-manager-mcp-deployment-v1.schema.json",
+  "title": "Site Manager MCP deployment request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "deployment_id", "site", "action", "image_ref", "requested_by"],
+  "properties": {
+    "version": {"const": "1"},
+    "deployment_id": {"type": "string", "pattern": "^deploy-[a-z0-9][a-z0-9-]{7,63}$"},
+    "site": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"},
+    "action": {"enum": ["deploy", "rollback"]},
+    "image_ref": {
+      "oneOf": [
+        {"type": "string", "pattern": "^ghcr\\.io/emmakex/site-manager-mcp@sha256:[0-9a-f]{64}$"},
+        {"type": "null"}
+      ]
+    },
+    "requested_by": {"enum": ["chatgpt", "operator"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"action": {"const": "deploy"}}},
+      "then": {"properties": {"image_ref": {"type": "string"}}}
+    },
+    {
+      "if": {"properties": {"action": {"const": "rollback"}}},
+      "then": {"properties": {"image_ref": {"type": "null"}}}
+    }
+  ]
+}
