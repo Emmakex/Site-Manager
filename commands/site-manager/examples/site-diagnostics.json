@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "command_id": "cmd-site-diagnostics-0001",
+  "site": "acceptance-site",
+  "action": "site.diagnostics",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
