@@ -17,12 +17,28 @@ The Site Manager MCP container remains an internal HTTP service. It does **not**
 Each connected WordPress site keeps its own:
 
 - Site Manager connection id;
-- Site Manager bearer;
+- site-specific Site Manager token;
 - MCP runtime/container instance for this phase;
 - stable internal edge alias;
 - protected GitHub Environment used by the Command Gateway.
 
 This keeps credentials and failure domains isolated while the Site Manager Core and Command Gateway remain generic.
+
+## Token contract in MCP 0.5.x
+
+The bridge currently uses the same site-specific Site Manager connection token at both bounded transport boundaries:
+
+```text
+Command Gateway → MCP /mcp
+                 ↓ same scoped connection token
+MCP → Site Manager REST → WordPress
+```
+
+The runtime reads that secret from `SITE_MANAGER_TOKEN`. The Command Gateway stores the same secret under its own environment-facing name `SITE_MANAGER_MCP_TOKEN` because, from the Gateway's point of view, it authenticates to MCP.
+
+These are **two deployment variable names for one per-site scoped/revocable Site Manager token**, not two different credentials. The token must never be committed to Git, written into command JSON, logged, or returned in sanitized results.
+
+If a future MCP release introduces a dedicated inbound principal, that must be an explicit protocol/security change rather than an undocumented deployment convention.
 
 ## Production Compose contract
 
@@ -34,7 +50,17 @@ Required deployment variables:
 - `SITE_MANAGER_MCP_EDGE_ALIAS` — unique internal alias such as `site-manager-mcp-example-site`;
 - `SITE_MANAGER_REST_BASE` — exact HTTPS Site Manager REST base for the WordPress installation;
 - `SITE_MANAGER_CONNECTION_ID` — connection id created by Site Manager;
-- `SITE_MANAGER_BEARER` — site-specific bearer, stored only in deployment secrets/operator-owned environment.
+- `SITE_MANAGER_TOKEN` — site-specific scoped/revocable Site Manager connection token, stored only in deployment secrets/operator-owned environment.
+
+The bridge runtime itself reads:
+
+- `SITE_MANAGER_REST_BASE`;
+- `SITE_MANAGER_CONNECTION_ID`;
+- `SITE_MANAGER_TOKEN`;
+- `HOST`;
+- `PORT`.
+
+`compose.edge.yaml` sets `HOST=0.0.0.0` and `PORT=8787` internally. CI cross-checks this Compose contract against `src/config.ts` so deployment variable drift fails before merge.
 
 The production service:
 
@@ -84,9 +110,9 @@ with:
 
 - variable `SITE_MANAGER_SITE_ID=example-site`;
 - variable `SITE_MANAGER_MCP_BASE_URL=<public MCP URL for this site's route>`;
-- secret `SITE_MANAGER_MCP_TOKEN=<site-specific production bearer>`.
+- secret `SITE_MANAGER_MCP_TOKEN=<same site-specific Site Manager token supplied to the runtime as SITE_MANAGER_TOKEN>`.
 
-The bearer is never committed to Git and never placed in a command JSON.
+The token is never committed to Git and never placed in a command JSON.
 
 ## Acceptance
 
