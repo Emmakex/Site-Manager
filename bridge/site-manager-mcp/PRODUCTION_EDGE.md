@@ -8,7 +8,7 @@ This is the production deployment mode behind the canonical Site Manager operato
 ChatGPT → GitHub → Command Gateway → production MCP → Site Manager → WordPress
 ```
 
-It is infrastructure, not the normal operator interface. Normal commands must not require a developer terminal, SSH session or local Docker process.
+It is infrastructure, not the normal operator interface. Normal commands must not require a developer terminal, SSH session, local Docker process or manual GitHub Actions click.
 
 ## Boundary
 
@@ -37,7 +37,7 @@ MCP → Site Manager REST → WordPress
 
 The runtime reads that secret from `SITE_MANAGER_TOKEN`. The Command Gateway stores the same secret under its environment-facing name `SITE_MANAGER_MCP_TOKEN` because, from the Gateway's point of view, it authenticates to MCP.
 
-These are two deployment variable names for one per-site scoped/revocable Site Manager token. Site Manager generates the token as 64 lowercase hexadecimal characters and stores only its SHA-256 hash in WordPress. The plaintext token must never be committed, logged, placed in a command JSON or returned in a result.
+These are two deployment variable names for one per-site scoped/revocable Site Manager token. Site Manager generates the token as 64 lowercase hexadecimal characters and stores only its SHA-256 hash in WordPress. The plaintext token must never be committed, logged, placed in a command/deployment JSON or returned in a result.
 
 ## Production Compose contract
 
@@ -96,37 +96,90 @@ Secret:
 
 - `SITE_MANAGER_MCP_TOKEN=<the one-time Site Manager connection token>`
 
-Infrastructure deployment also needs the repository/environment secrets `OVH_MCP_HOST`, `OVH_MCP_USER`, `OVH_MCP_SSH_KEY` and `OVH_MCP_SSH_KNOWN_HOSTS`. These are deployment credentials only; they never enter command JSON or the MCP result path.
+Infrastructure deployment also needs `OVH_MCP_HOST`, `OVH_MCP_USER`, `OVH_MCP_SSH_KEY` and `OVH_MCP_SSH_KNOWN_HOSTS` as protected secrets. They never enter a GitHub deployment request, command JSON or result.
 
-## Automated deployment
+## Canonical deployment request transport
 
-`.github/workflows/site-manager-mcp-deploy.yml` is the production deployment path. It is manually dispatched as an infrastructure action, but the operator does not SSH into the server.
+ChatGPT/operator deployment intent is carried through:
 
-For `deploy` it:
+```text
+ChatGPT
+→ deployments/site-manager-mcp/pending/<deployment_id>.json
+→ GitHub Actions
+→ protected environment site-manager-<site>
+→ OVH production runtime
+→ public site.read acceptance
+→ deployments/site-manager-mcp/results/<deployment_id>.json
+→ ChatGPT
+```
 
-1. validates the logical site against the selected protected environment;
-2. validates the 64-hex Site Manager token, connection id, HTTPS REST/MCP URLs and immutable image digest;
-3. configures strict SSH host trust from secrets;
-4. creates a temporary 0600 production environment file without printing the token;
-5. stages the generic Compose contract and deploy script over SSH;
-6. deploys the isolated project `site-manager-mcp-<site>` on `kairoseth-public-edge`;
-7. waits for container health;
-8. runs the canonical public `site.read` through the production MCP URL using the same bounded Command Gateway runner;
-9. uploads only sanitized acceptance evidence;
-10. rolls back automatically if public acceptance fails;
-11. removes local and remote staging material.
+A request contains only:
 
-The remote script keeps current/previous image, environment and Compose contracts. Later rollbacks restore the last accepted deployment. If the first-ever deployment fails acceptance, rollback restores the empty pre-deployment baseline by removing that site's runtime.
+```json
+{
+  "version": "1",
+  "deployment_id": "deploy-example-site-0001",
+  "site": "example-site",
+  "action": "deploy",
+  "image_ref": "ghcr.io/emmakex/site-manager-mcp@sha256:<digest>",
+  "requested_by": "chatgpt"
+}
+```
+
+Rollback sets `action` to `rollback` and `image_ref` to `null`.
+
+The request must never contain REST/MCP URLs, connection ids, tokens, SSH data, MCP tools or arbitrary commands. Those are resolved only from the protected environment after the request has passed the strict schema and replay guard.
+
+Each request receives a canonical SHA-256 fingerprint. An exact previously successful request is an idempotent replay and causes no second infrastructure mutation. Reusing a deployment id for different content fails closed. Deletion-only cleanup of `pending/` performs no action.
+
+`workflow_dispatch` remains an operator fallback; the normal ChatGPT path is the GitHub request file.
+
+## Automated deployment lifecycle
+
+For a new `deploy` request GitHub Actions:
+
+1. validates the request and replay identity;
+2. selects exactly `site-manager-<site>`;
+3. validates logical site identity, 64-hex token, connection id, HTTPS REST/MCP URLs and immutable image digest;
+4. configures strict SSH host trust from protected secrets;
+5. creates a temporary 0600 production environment without printing the token;
+6. stages the generic Compose contract and deploy script;
+7. deploys isolated project `site-manager-mcp-<site>` on `kairoseth-public-edge`;
+8. waits for container health;
+9. runs canonical public `site.read` through the production MCP endpoint;
+10. automatically rolls back if that public acceptance fails;
+11. writes a sanitized deployment result and commits it to `results/` for ChatGPT readback;
+12. removes local and remote staging material;
+13. reports success only when the persisted result is `success` and `verified=true`.
+
+The remote script keeps current/previous image, environment and Compose contracts. Later rollbacks restore the last accepted deployment. If a first-ever deployment must roll back, the empty pre-deployment baseline is restored by removing that site's runtime.
+
+## Sanitized deployment result
+
+The persisted result includes only non-secret evidence such as:
+
+- deployment id;
+- logical site;
+- deploy/rollback action;
+- immutable image reference;
+- request fingerprint;
+- verified status;
+- public acceptance state;
+- whether rollback was attempted/succeeded;
+- workflow run id;
+- bounded error class/message when failed.
+
+It never stores token, WordPress/MCP credentials, SSH host/user/key or environment contents.
 
 ## Acceptance
 
 For the first site:
 
-1. shared edge route is accepted without changing the existing Research Manager route;
-2. deploy the latest immutable Site Manager MCP digest through the deploy workflow;
-3. public `site.read` acceptance passes against real WordPress state;
+1. shared edge route is accepted and applied without changing the existing Research Manager route;
+2. submit a governed deployment request using the latest immutable Site Manager MCP digest;
+3. deployment result reports successful public `site.read` against real WordPress state;
 4. submit a normal `site.read` command through `commands/site-manager/pending/`;
-5. confirm the sanitized result is committed to `commands/site-manager/results/`;
-6. replay the exact command and prove no second MCP execution occurs.
+5. confirm the sanitized command result is committed to `commands/site-manager/results/`;
+6. delete/re-add the exact same pending command and prove replay succeeds without a second MCP execution.
 
 Only after this complete round trip is green should write business actions be added to the Gateway.
