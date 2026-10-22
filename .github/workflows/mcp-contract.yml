@@ -49,7 +49,7 @@ jobs:
           SITE_MANAGER_MCP_EDGE_ALIAS: site-manager-mcp-contract-site
           SITE_MANAGER_REST_BASE: https://example.com/wp-json/site-manager/v1/
           SITE_MANAGER_CONNECTION_ID: smc_contract_connection
-          SITE_MANAGER_BEARER: contract-only-placeholder
+          SITE_MANAGER_TOKEN: contract-only-placeholder
         run: |
           docker compose -f compose.edge.yaml config --quiet
           rendered="$(docker compose -f compose.edge.yaml config)"
@@ -59,5 +59,27 @@ jobs:
           fi
           grep -Fq 'name: kairoseth-public-edge' <<<"$rendered"
           grep -Fq 'site-manager-mcp-contract-site' <<<"$rendered"
+          grep -Fq 'SITE_MANAGER_TOKEN: contract-only-placeholder' <<<"$rendered"
+          grep -Fq 'HOST: 0.0.0.0' <<<"$rendered"
+          grep -Fq 'PORT: "8787"' <<<"$rendered"
+          if grep -Fq 'SITE_MANAGER_BEARER:' <<<"$rendered"; then
+            echo 'Legacy SITE_MANAGER_BEARER must not appear in production Compose' >&2
+            exit 1
+          fi
+          if grep -Fq 'SITE_MANAGER_MCP_HOST:' <<<"$rendered" || grep -Fq 'SITE_MANAGER_MCP_PORT:' <<<"$rendered"; then
+            echo 'Production Compose must use the runtime HOST/PORT contract from config.ts' >&2
+            exit 1
+          fi
+      - name: Cross-check runtime environment contract
+        run: |
+          set -euo pipefail
+          grep -Fq "required('SITE_MANAGER_REST_BASE'" src/config.ts
+          grep -Fq "required('SITE_MANAGER_TOKEN'" src/config.ts
+          grep -Fq "required('SITE_MANAGER_CONNECTION_ID'" src/config.ts
+          grep -Fq "env.HOST" src/config.ts
+          grep -Fq "env.PORT" src/config.ts
+          grep -Fq 'SITE_MANAGER_TOKEN:' compose.edge.yaml
+          grep -Fq 'HOST: 0.0.0.0' compose.edge.yaml
+          grep -Fq 'PORT: 8787' compose.edge.yaml
       - name: Build container
         run: docker build -t site-manager-mcp:contract .
