@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "actions": {
+    "site.read": {
+      "tool": "site_read",
+      "required_scope": "site.read",
+      "read_only": true
+    },
+    "site.diagnostics": {
+      "tool": "site_diagnostics",
+      "required_scope": "site.diagnostics",
+      "read_only": true
+    }
+  }
+}

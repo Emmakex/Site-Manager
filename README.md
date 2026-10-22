@@ -27,6 +27,8 @@ User
 
 Infrastructure such as persistent MCP runtimes, Docker, SSH and WP-CLI may support deployment, recovery and maintenance, but must not redefine this normal operator path or introduce per-command manual terminal steps.
 
+Detailed Command Gateway contract and per-site environment model: [`docs/COMMAND_GATEWAY.md`](docs/COMMAND_GATEWAY.md).
+
 ## Product principle
 
 **Install / connect → discover → classify → expose capabilities → govern safely → verify → audit / rollback**
