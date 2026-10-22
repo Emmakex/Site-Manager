@@ -4,14 +4,18 @@ on:
   pull_request:
     paths:
       - 'bridge/site-manager-mcp/**'
+      - 'scripts/site-manager-mcp-ovh-deploy.sh'
       - '.github/workflows/mcp-contract.yml'
       - '.github/workflows/mcp-image.yml'
+      - '.github/workflows/site-manager-mcp-deploy.yml'
   push:
     branches: [main]
     paths:
       - 'bridge/site-manager-mcp/**'
+      - 'scripts/site-manager-mcp-ovh-deploy.sh'
       - '.github/workflows/mcp-contract.yml'
       - '.github/workflows/mcp-image.yml'
+      - '.github/workflows/site-manager-mcp-deploy.yml'
 
 permissions:
   contents: read
@@ -35,8 +39,10 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
-      - name: Validate persistent deployment scripts
-        run: sh -n scripts/configure-persistent.sh
+      - name: Validate deployment script syntax
+        run: |
+          sh -n scripts/configure-persistent.sh
+          bash -n ../../scripts/site-manager-mcp-ovh-deploy.sh
       - name: Validate loopback Compose contract
         run: |
           cp .env.example .env
@@ -51,10 +57,14 @@ jobs:
           SITE_MANAGER_CONNECTION_ID: smc_contract_connection
           SITE_MANAGER_TOKEN: contract-only-placeholder
         run: |
-          docker compose -f compose.edge.yaml config --quiet
-          rendered="$(docker compose -f compose.edge.yaml config)"
+          docker compose --project-name site-manager-mcp-contract-site -f compose.edge.yaml config --quiet
+          rendered="$(docker compose --project-name site-manager-mcp-contract-site -f compose.edge.yaml config)"
           if grep -Eq '(^|[[:space:]])ports:' <<<"$rendered"; then
             echo 'Production shared-edge runtime must not publish host ports' >&2
+            exit 1
+          fi
+          if grep -Eq '^name:[[:space:]]+site-manager-mcp-edge' compose.edge.yaml; then
+            echo 'Production shared-edge Compose must not hard-code a project name; each site needs an isolated project' >&2
             exit 1
           fi
           grep -Fq 'name: kairoseth-public-edge' <<<"$rendered"
@@ -81,5 +91,18 @@ jobs:
           grep -Fq 'SITE_MANAGER_TOKEN:' compose.edge.yaml
           grep -Fq 'HOST: 0.0.0.0' compose.edge.yaml
           grep -Fq 'PORT: 8787' compose.edge.yaml
+      - name: Validate automated deployment contract
+        run: |
+          set -euo pipefail
+          workflow='../../.github/workflows/site-manager-mcp-deploy.yml'
+          script='../../scripts/site-manager-mcp-ovh-deploy.sh'
+          grep -Fq 'environment: site-manager-${{ inputs.site }}' "$workflow"
+          grep -Fq 'SITE_MANAGER_MCP_TOKEN: ${{ secrets.SITE_MANAGER_MCP_TOKEN }}' "$workflow"
+          grep -Fq 'StrictHostKeyChecking=yes' "$workflow"
+          grep -Fq 'Run canonical public site.read acceptance' "$workflow"
+          grep -Fq 'Roll back automatically when public acceptance fails' "$workflow"
+          grep -Fq -- '--project-name "$PROJECT_NAME"' "$script"
+          grep -Fq 'rollback restored empty baseline' "$script"
+          grep -Fq 'SITE_MANAGER_TOKEN=[0-9a-f]{64}' "$script"
       - name: Build container
         run: docker build -t site-manager-mcp:contract .
