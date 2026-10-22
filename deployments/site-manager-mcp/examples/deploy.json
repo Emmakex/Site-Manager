@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "deployment_id": "deploy-example-site-0001",
+  "site": "example-site",
+  "action": "deploy",
+  "image_ref": "ghcr.io/emmakex/site-manager-mcp@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "requested_by": "chatgpt"
+}
