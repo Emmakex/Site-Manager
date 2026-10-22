@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "command_id": "cmd-site-read-0001",
+  "site": "acceptance-site",
+  "action": "site.read",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
