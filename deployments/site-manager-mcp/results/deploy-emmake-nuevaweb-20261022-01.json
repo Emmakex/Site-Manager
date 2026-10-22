@@ -1,0 +1,20 @@
+{
+  "action": "deploy",
+  "deployment_id": "deploy-emmake-nuevaweb-20261022-01",
+  "error": {
+    "code": "validation_failed",
+    "message": "The protected deployment configuration did not satisfy the bounded contract."
+  },
+  "image_ref": "ghcr.io/emmakex/site-manager-mcp@sha256:0c76e30d8b56d44dadfbf6e79c9a1bf15758d7e7ecfa09b44251bd74f50ccf27",
+  "public_acceptance": "not_run",
+  "request_sha256": "aa86d72ae20086982ee27697b70909f0c608b1cd591865d60ef59c497d43416d",
+  "rollback": {
+    "attempted": false,
+    "succeeded": null
+  },
+  "site": "emmake-nuevaweb",
+  "status": "failed",
+  "verified": false,
+  "version": "1",
+  "workflow_run_id": "39822552047"
+}
