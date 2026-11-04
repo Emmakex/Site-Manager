@@ -1,0 +1,20 @@
+{
+  "action": "deploy",
+  "deployment_id": "deploy-emmake-nuevaweb-20261104-03",
+  "error": {
+    "code": "deployment_failed",
+    "message": "The production runtime did not complete the requested deployment action."
+  },
+  "image_ref": "ghcr.io/emmakex/site-manager-mcp@sha256:0c76e30d8b56d44dadfbf6e79c9a1bf15758d7e7ecfa09b44251bd74f50ccf27",
+  "public_acceptance": "not_run",
+  "request_sha256": "075a874c64c229a4813d25c6b0879d7f57fbe21e2082f4f3554876d36374a286",
+  "rollback": {
+    "attempted": false,
+    "succeeded": null
+  },
+  "site": "emmake-nuevaweb",
+  "status": "failed",
+  "verified": false,
+  "version": "1",
+  "workflow_run_id": "41900512922"
+}
