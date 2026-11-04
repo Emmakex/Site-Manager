@@ -1,8 +1,1 @@
-{
-  "version": "1",
-  "command_id": "cmd-emmake-read-20261104-01",
-  "site": "emmake-nuevaweb",
-  "action": "site.read",
-  "requested_by": "chatgpt",
-  "payload": {}
-}
+{"version":"1","command_id":"cmd-emmake-read-20261104-01","site":"emmake-nuevaweb","action":"site.read","requested_by":"chatgpt","payload":{}}
