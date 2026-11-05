@@ -1478,6 +1478,65 @@ def self_test() -> int:
         else:
             raise CommandError("incomplete or unsafe navigation fixture acceptance was considered verified")
 
+    seo_acc = {**valid, "action": "seo.acceptance", "payload": {"confirmed": True}}
+    validate_command(seo_acc, registry)
+    for invalid in ({}, {"confirmed": False}, {"confirmed": "true"},
+                    {"confirmed": True, "post_id": 22},
+                    {"confirmed": True, "provider": "yoast"},
+                    {"confirmed": True, "meta_key": "_yoast_wpseo_metadesc"}):
+        try:
+            validate_command({**seo_acc, "payload": invalid}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("unsafe SEO acceptance command was accepted")
+
+    seo_run_id = "sm-mcp-accept-" + "c" * 20
+    passed = lambda evidence: {"status": "passed", "evidence": evidence}
+    seo_state = {
+        "run_id": seo_run_id, "profile": SEO_ACCEPTANCE_PROFILE,
+        "status": "completed", "had_failure": False,
+        "steps": list(SEO_ACCEPTANCE_STEPS),
+        "fixture": {"post_id": 0, "menu_id": 0, "menu_item_id": 0},
+        "results": {
+            "precheck": passed({"discovery_received": True, "capabilities_received": True}),
+            "fixture_content_create": passed({"post_id": 42, "status": "draft"}),
+            "seo_plan": passed({"plan_id": "sm-plan-seo-fixture"}),
+            "seo_apply_verify": passed({"plan_id": "sm-plan-seo-fixture", "verified": True, "status": "verified"}),
+            "seo_rollback": passed({"plan_id": "sm-plan-seo-fixture", "rollback_success": True, "status": "rolled-back"}),
+            "cleanup": passed({"removed": {"post": True, "menu": True}}),
+        },
+    }
+    seo_evidence = summarize_seo_acceptance(seo_state, seo_run_id)
+    if not (seo_evidence["apply_verified"] and seo_evidence["rollback_verified"]
+            and seo_evidence["draft_deleted"]):
+        raise CommandError("verified SEO-only fixture result was lost")
+    for invalid in (
+        {**seo_state, "profile": "mcp-low-resource"},
+        {**seo_state, "status": "running"},
+        {**seo_state, "steps": list(ACCEPTANCE_STEPS)},
+        {**seo_state, "results": {**seo_state["results"],
+            "precheck": passed({"discovery_received": False, "capabilities_received": True})}},
+        {**seo_state, "results": {**seo_state["results"],
+            "fixture_content_create": passed({"post_id": 42, "status": "publish"})}},
+        {**seo_state, "results": {**seo_state["results"],
+            "seo_apply_verify": passed({"plan_id": "sm-plan-seo-fixture", "verified": False, "status": "verified"})}},
+        {**seo_state, "results": {**seo_state["results"],
+            "seo_rollback": passed({"plan_id": "sm-plan-seo-fixture", "rollback_success": False, "status": "rolled-back"})}},
+        {**seo_state, "results": {**seo_state["results"],
+            "cleanup": passed({"removed": {"post": False, "menu": True}})}},
+        {**seo_state, "fixture": {"post_id": 42, "menu_id": 0, "menu_item_id": 0}},
+        {**seo_state, "fixture": {"post_id": 0, "menu_id": 8, "menu_item_id": 0}},
+        {**seo_state, "results": {**seo_state["results"],
+            "seo_plan": passed({"plan_id": "sm-plan-mismatch"})}},
+    ):
+        try:
+            summarize_seo_acceptance(invalid, seo_run_id)
+        except VerificationError:
+            pass
+        else:
+            raise CommandError("incomplete or unverified SEO-only acceptance was accepted")
+
     secret = "unit-test-super-secret-token"
     sanitized = sanitize_value(
         {
