@@ -118,4 +118,61 @@ $stopped = $service->cancel();
 $assert('cleanup' === ($stopped['next_step'] ?? ''), 'content-only cancel must skip directly to cleanup');
 $assert(5 === ($stopped['step_index'] ?? -1), 'content-only cleanup uses its own six-step sequence');
 
+/* Navigation-only: a single unassigned menu fixture, no content/SEO scope. */
+$previous = (array) get_option(RemoteAcceptanceService::STATE_OPTION, []);
+$previous['status'] = 'failed';
+$GLOBALS['site_manager_test_options'][RemoteAcceptanceService::STATE_OPTION] = $previous;
+$connection = (array) get_option(RemoteConnectionStore::OPTION, []);
+$connection['scopes'] = ['site.read', 'navigation.write'];
+$GLOBALS['site_manager_test_options'][RemoteConnectionStore::OPTION] = $connection;
+
+$navigationOnly = $service->startNavigationOnly();
+$assert('mcp-navigation-only' === ($navigationOnly['profile'] ?? ''), 'navigation-only profile must be separate from content');
+$navigationState = $service->bridgeState();
+$navigationSteps = [
+    'precheck', 'fixture_navigation_create', 'navigation_plan',
+    'navigation_apply_verify', 'navigation_rollback', 'cleanup',
+];
+$assert($navigationSteps === ($navigationState['steps'] ?? []), 'navigation-only profile must contain only six menu phases');
+$assert(0 === ($navigationOnly['fixture']['post_id'] ?? -1), 'navigation-only acceptance must never create a post');
+$assert(0 === ($navigationOnly['fixture']['menu_id'] ?? -1), 'temporary menu is created only after precheck');
+$assert(1 === ($navigationOnly['concurrency'] ?? 0), 'navigation-only must preserve single-run concurrency');
+try {
+    $service->start();
+    $assert(false, 'full acceptance cannot replace active navigation-only profile');
+} catch (\RuntimeException $error) {
+    $assert(str_contains($error->getMessage(), 'profile_already_active'), 'active profile overlap must be rejected');
+}
+try {
+    $service->startContentOnly();
+    $assert(false, 'content-only acceptance cannot attach to active navigation fixture');
+} catch (\RuntimeException $error) {
+    $assert(str_contains($error->getMessage(), 'profile_already_active'), 'navigation and content fixtures cannot overlap');
+}
+try {
+    $service->startNavigationOnly();
+    $assert(false, 'second confirmed navigation command must not attach to active fixture');
+} catch (\RuntimeException $error) {
+    $assert(str_contains($error->getMessage(), 'already_active'), 'duplicate navigation fixture run must be refused');
+}
+$navPrecheck = $service->report((string) $navigationOnly['run_id'], 'precheck', true, ['validated'=>true]);
+$assert('fixture_navigation_create' === ($navPrecheck['next_step'] ?? ''), 'navigation-only precheck must schedule temporary menu creation');
+$navStopped = $service->cancel();
+$assert('cleanup' === ($navStopped['next_step'] ?? ''), 'navigation-only cancel must go directly to cleanup');
+$assert(5 === ($navStopped['step_index'] ?? -1), 'navigation-only cleanup must use its own phase count');
+$assert(true === ($navStopped['had_failure'] ?? false), 'cancelled navigation test must not be certified');
+
+/* Revoking navigation.write must deny a new navigation-only start. */
+$previous = (array) get_option(RemoteAcceptanceService::STATE_OPTION, []);
+$previous['status'] = 'failed';
+$GLOBALS['site_manager_test_options'][RemoteAcceptanceService::STATE_OPTION] = $previous;
+$connection['scopes'] = ['site.read', 'content.write'];
+$GLOBALS['site_manager_test_options'][RemoteConnectionStore::OPTION] = $connection;
+try {
+    $service->startNavigationOnly();
+    $assert(false, 'navigation fixture cannot start without navigation.write');
+} catch (\RuntimeException $error) {
+    $assert(str_contains($error->getMessage(), 'missing_scopes'), 'navigation-only scope must fail closed');
+}
+
 echo "PASS: WordPress MCP remote acceptance low-resource state contract\n";

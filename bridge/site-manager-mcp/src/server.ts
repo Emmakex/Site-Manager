@@ -284,6 +284,51 @@ export function createSiteManagerMcpServer(
     );
   }
 
+  // A confirmed, bounded fixture test backed by WordPress Acceptance Center.
+  // No menu IDs, client content or routes can be selected by the caller.
+  if (scopes.has('navigation.write') && scopes.has('site.read')) {
+    server.registerTool(
+      'navigation_acceptance_start',
+      {
+        title: 'Start isolated Site Manager navigation acceptance',
+        description: 'Create one unassigned temporary classic menu/item, plan and verify an update, roll back and delete the menu. Never touches assigned customer menus, content or SEO.',
+        inputSchema: fromJsonSchema<{ confirmed: true }>({
+          type: 'object',
+          additionalProperties: false,
+          required: ['confirmed'],
+          properties: { confirmed: { const: true } },
+        }),
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ confirmed }) => {
+        if (confirmed !== true) {
+          return toolError('Explicit isolated navigation acceptance confirmation is required.');
+        }
+        try {
+          return toolResult(await client.remoteAcceptanceStartNavigationOnly());
+        } catch {
+          return toolError('Site Manager could not start isolated navigation acceptance.');
+        }
+      },
+    );
+
+    server.registerTool(
+      'navigation_acceptance_status',
+      {
+        title: 'Read isolated Site Manager navigation acceptance progress',
+        description: 'Read the current WordPress-owned acceptance run and its verification evidence; no WordPress mutation.',
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async () => {
+        try {
+          return toolResult(await client.remoteAcceptanceJob());
+        } catch {
+          return toolError('Site Manager could not read navigation acceptance status.');
+        }
+      },
+    );
+  }
+
   if (scopes.has('navigation.write')) {
     server.registerTool(
       'navigation_update_plan',

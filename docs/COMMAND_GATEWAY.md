@@ -527,3 +527,59 @@ disposable acceptance should exercise actual apply/rollback through a
 separately authorized, isolated draft, without affecting production SEO,
 theme routing, navigation or client content. Existing GitHub idempotent
 replay guards apply to all SEO commands.
+
+## SM-4G isolated navigation acceptance — official disposable fixture
+
+The `navigation.acceptance` business action runs the WordPress-owned
+`mcp-navigation-only` profile; it **never accepts caller-selected menu
+IDs**. It requires `site.read` and the separately granted
+`navigation.write` on the bound Site Manager administrator. It does not
+require `content.write`, `seo.write`, any extra plugin permissions, or
+a full 13-step Acceptance Center run.
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-nav-acceptance-example-01",
+  "site": "acceptance-site",
+  "action": "navigation.acceptance",
+  "requested_by": "chatgpt",
+  "payload": {"confirmed": true}
+}
+```
+
+The six mandatory steps are `precheck → fixture_navigation_create →
+navigation_plan → navigation_apply_verify → navigation_rollback → cleanup`.
+WordPress creates an **unassigned** temporary classic menu and one custom
+menu item, updates its `attr_title` via the normal Site Manager plan,
+verifies the change, rolls back, and deletes the entire fixture.
+The fixed path cannot assign the menu to a theme location, alter the
+existing site's navigation, create content, or mutate SEO.
+
+The Gateway polls the scoped MCP status and returns `verified=true`
+**only if** it sees the exact six-step profile, successful WordPress
+apply verification, successful rollback, a genuinely unassigned fixture,
+deletion of the menu and item, and no post fixture remaining. Failed
+deletion, missing or mismatched plan identity, unverified mutation,
+replay/collision, another profile, or a timed-out job fails closed;
+reconcile WordPress state before attempting recovery.
+
+The cleanup endpoint verifies the active run identifier and required
+`cleanup` step. It requires the **current profile's** write scope:
+`navigation.write` for navigation-only, and `content.write` for
+the existing content-only/full acceptance. All writes still require
+the connection-bound WordPress administrator. Active full, content,
+and navigation fixture tests cannot overlap.
+
+**Deployment gate:** the WordPress plugin must be updated to official
+**0.11.5**, and the corresponding new immutable MCP image must be
+deployed through the protected OVH workflow before executing a
+navigation acceptance command. PR/CI integration does not update the
+installed WordPress plugin. The profile must only run after a separate,
+explicit authorization for a temporary menu; previous content-draft
+consent is not authorization for a navigation mutation. No real menu
+is changed as part of this engineering cut.
+
+The original 13-step Acceptance Center, content-only acceptance, and
+regular `navigation.update` plan/confirmation/rollback contracts
+are preserved. SM-4H SEO-only acceptance remains a separate scope.

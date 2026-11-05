@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.11.4
+Stable tag: 0.11.5
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -15,6 +15,8 @@ Site Manager is a platform-neutral control plane. WordPress is its first adapter
 On activation Site Manager performs a bounded local discovery of the installation, including runtime, routing, active theme, public content types, taxonomies, navigation providers, active plugins and known providers. Detection never grants write access.
 
 The WordPress admin surface follows the configured WordPress/user locale. English is the source language and Spanish (`es_ES`) is bundled.
+
+Version 0.11.5 adds a strictly navigation-only, connection-bound MCP acceptance profile. It creates a temporary unassigned classic menu and item, runs native plan/apply/verify/rollback, and deletes the temporary menu. It requires site.read and navigation.write but not content.write, and the cleanup endpoint now authorizes the active fixture profile and run ID instead of requiring content.write for menu-only tests. No real menu, post or SEO data is selected. Existing content-only and full acceptance flows remain unchanged.
 
 Version 0.11.4 adds an isolated content-only MCP acceptance profile for authorized ChatGPT operations. It creates only a disposable draft, executes the existing governed title update and rollback, verifies both and deletes the draft. Navigation/SEO acceptance is excluded. The full legacy Acceptance Center test remains unchanged. This operation requires explicit site.read + content.write scopes and a bound write principal; no scopes are automatically added.
 
@@ -59,6 +61,11 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 8. When remote access is required, generate a scoped token and copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.11.5 =
+* Adds a navigation-only temporary classic-menu acceptance profile and scoped REST start endpoint.
+* Preserves single-run concurrency and authorizes cleanup by the current fixture profile and run ID.
+* Refuses unexpected cross-profile post/menu fixtures and failed WordPress menu deletions; does not touch assigned menus or SEO.
 
 = 0.11.4 =
 * Reuses the existing remote draft fixture and plan/apply/verify/rollback/cleanup lifecycle through a content-only profile.

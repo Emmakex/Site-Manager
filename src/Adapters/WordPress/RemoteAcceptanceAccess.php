@@ -37,6 +37,22 @@ final class RemoteAcceptanceAccess
             },
         ], true);
 
+        // Only the existing WordPress-owned unassigned temporary navigation
+        // fixture is eligible; no caller-selected menu IDs or arbitrary routes.
+        register_rest_route('site-manager/v1', '/acceptance/remote/navigation-only/start', [
+            'methods'=>\WP_REST_Server::CREATABLE,
+            'permission_callback'=>static fn(\WP_REST_Request $request): bool => self::authorizeMcpWrite($request, 'navigation.write'),
+            'callback'=>static function (): \WP_REST_Response {
+                try {
+                    return self::response(200, (new RemoteAcceptanceService())->startNavigationOnly());
+                } catch (RuntimeException) {
+                    return self::error(409, 'acceptance_state_conflict');
+                } catch (Throwable) {
+                    return self::error(500, 'acceptance_navigation_only_start_failed');
+                }
+            },
+        ], true);
+
         register_rest_route('site-manager/v1', '/acceptance/remote/fixture/content', [
             'methods'=>\WP_REST_Server::CREATABLE,
             'permission_callback'=>static fn(\WP_REST_Request $request): bool => self::authorizeMcpWrite($request, 'content.write'),
@@ -88,7 +104,7 @@ final class RemoteAcceptanceAccess
 
         register_rest_route('site-manager/v1', '/acceptance/remote/cleanup', [
             'methods'=>\WP_REST_Server::CREATABLE,
-            'permission_callback'=>static fn(\WP_REST_Request $request): bool => self::authorizeMcpWrite($request, 'content.write'),
+            'permission_callback'=>static fn(\WP_REST_Request $request): bool => self::authorizeCleanup($request),
             'callback'=>static function (\WP_REST_Request $request): \WP_REST_Response {
                 try {
                     return self::response(200, (new RemoteAcceptanceService())->cleanup(self::runId($request)));
@@ -99,6 +115,26 @@ final class RemoteAcceptanceAccess
                 }
             },
         ], true);
+    }
+
+    /**
+     * Cleanup is never a generic deletion endpoint: it is authorized against
+     * the exact active acceptance profile and bound WordPress administrator.
+     * RemoteAcceptanceService additionally requires the matching run ID and
+     * the next step to be cleanup.
+     */
+    private static function authorizeCleanup(\WP_REST_Request $request): bool
+    {
+        $state = (new RemoteAcceptanceService())->current();
+        $runId = self::runId($request);
+        if ('' === $runId || $runId !== (string) ($state['run_id'] ?? '')
+            || 'cleanup' !== (string) ($state['next_step'] ?? '')) {
+            return false;
+        }
+        if ('mcp-navigation-only' === (string) ($state['profile'] ?? '')) {
+            return self::authorizeMcpWrite($request, 'navigation.write');
+        }
+        return self::authorizeMcpWrite($request, 'content.write');
     }
 
     private static function authorizeMcp(\WP_REST_Request $request): bool
