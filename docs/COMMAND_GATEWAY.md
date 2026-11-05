@@ -583,3 +583,71 @@ is changed as part of this engineering cut.
 The original 13-step Acceptance Center, content-only acceptance, and
 regular `navigation.update` plan/confirmation/rollback contracts
 are preserved. SM-4H SEO-only acceptance remains a separate scope.
+
+## SM-4H — isolated provider-authoritative SEO acceptance
+
+The new `seo.acceptance` business action is **not** an arbitrary SEO
+editing endpoint. It triggers only the WordPress-owned `mcp-seo-only`
+profile on a **temporary unpublished draft created by Site Manager**.
+The caller cannot select the post ID, provider, plugin meta key, field
+value, REST route, or desired site URL.
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-seo-acceptance-example-01",
+  "site": "acceptance-site",
+  "action": "seo.acceptance",
+  "requested_by": "chatgpt",
+  "payload": { "confirmed": true }
+}
+```
+
+The sequence is fixed to **six** server-owned steps:
+
+```text
+precheck → fixture_content_create → seo_plan →
+seo_apply_verify → seo_rollback → cleanup
+```
+
+1. The remote WordPress Acceptance Center requires `site.read`,
+   `content.write` (draft creation and final deletion) and `seo.write`
+   (provider-governed description update); all three must be explicitly
+   granted to the connection and tied to an authorized administrator.
+2. The SEO plan uses the **actual provider** resolved by
+   `SeoProviderRegistry` (e.g. SEO/GEO Theme, Yoast, Rank Math,
+   AIOSEO), with the semantic `description` field. The provider can
+   refuse unsupported or conflicting ownership. No caller-supplied
+   meta key, provider choice, or customer post is accepted.
+3. WordPress applies only a confirmed, owned, short-lived plan,
+   verifies its read-back, rolls back that exact plan, and verifies
+   restoration. A full-suite or parallel acceptance run blocks the
+   isolated start.
+4. Cleanup permanently deletes **only the newly created draft**.
+   The Gateway verifies `post_status=draft`, all six passing phase
+   records, matching run/plan IDs, `apply_verified=true`,
+   `rollback_success=true`, `draft_deleted=true`, and that no
+   menu fixture was created or left behind.
+5. Only if every gate passes does the result contain
+   `status=success, verified=true`. Any failure, timeout, incomplete
+   cleanup, malformed evidence or unexpected profile fails closed.
+   Reconcile WordPress state manually before retrying; do not
+   automatically create a second fixture after uncertainty.
+
+The GitHub result retains **only bounded sanitized evidence**, such as
+the temporary draft ID, plan ID, lifecycle and cleanup statuses; it
+does not retain SEO description text, historical values, credentials
+or provider-specific metadata. Existing command replay protection
+prevents repeat mutations for the same `command_id`.
+
+**Rollout order:** merge exact-head CI-green PR, certify `main`,
+build official WordPress plugin **0.11.6**, publish immutable MCP image,
+deploy via the protected OVH workflow and verify public `site.read`;
+then install 0.11.6 in the WordPress admin and confirm it is active
+using the Gateway. The isolated **real-site** SEO acceptance test requires
+the user's **separate explicit authorization**. Prior approval for
+content or navigation tests does not cover SEO. No commercial page,
+published SEO, homepage or navigation changes are part of this cut.
+
+The pre-existing content-only, navigation-only and full 13-stage
+Acceptance Center workflows remain unchanged and independently scoped.
