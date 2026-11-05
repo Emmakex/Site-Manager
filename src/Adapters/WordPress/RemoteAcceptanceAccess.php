@@ -21,6 +21,22 @@ final class RemoteAcceptanceAccess
             'callback'=>static fn(): \WP_REST_Response => self::response(200, (new RemoteAcceptanceService())->bridgeState()),
         ], true);
 
+        // A dedicated, connection-bound content-only acceptance flow. No arbitrary
+        // post ID is accepted, and no navigation or SEO fixture is created.
+        register_rest_route('site-manager/v1', '/acceptance/remote/content-only/start', [
+            'methods'=>\WP_REST_Server::CREATABLE,
+            'permission_callback'=>static fn(\WP_REST_Request $request): bool => self::authorizeMcpWrite($request, 'content.write'),
+            'callback'=>static function (): \WP_REST_Response {
+                try {
+                    return self::response(200, (new RemoteAcceptanceService())->startContentOnly());
+                } catch (RuntimeException) {
+                    return self::error(409, 'acceptance_state_conflict');
+                } catch (Throwable) {
+                    return self::error(500, 'acceptance_content_only_start_failed');
+                }
+            },
+        ], true);
+
         register_rest_route('site-manager/v1', '/acceptance/remote/fixture/content', [
             'methods'=>\WP_REST_Server::CREATABLE,
             'permission_callback'=>static fn(\WP_REST_Request $request): bool => self::authorizeMcpWrite($request, 'content.write'),
