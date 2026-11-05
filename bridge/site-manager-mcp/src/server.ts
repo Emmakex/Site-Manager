@@ -388,6 +388,51 @@ export function createSiteManagerMcpServer(
     );
   }
 
+  // A confirmed SEO-only acceptance run uses a disposable WordPress-owned
+  // draft and the real resolved provider. No client-selected post or meta key.
+  if (scopes.has('site.read') && scopes.has('content.write') && scopes.has('seo.write')) {
+    server.registerTool(
+      'seo_acceptance_start',
+      {
+        title: 'Start isolated WordPress SEO acceptance',
+        description: 'Create a temporary unpublished page via the WordPress Acceptance Center; run provider-governed SEO plan, verified apply, rollback and fixture deletion. No customer pages, navigation or arbitrary metadata are touched.',
+        inputSchema: fromJsonSchema<{ confirmed: true }>({
+          type: 'object',
+          additionalProperties: false,
+          required: ['confirmed'],
+          properties: { confirmed: { const: true } },
+        }),
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ confirmed }) => {
+        if (confirmed !== true) {
+          return toolError('Explicit SEO-only acceptance confirmation is required.');
+        }
+        try {
+          return toolResult(await client.remoteAcceptanceStartSeoOnly());
+        } catch {
+          return toolError('Site Manager could not start isolated SEO acceptance.');
+        }
+      },
+    );
+
+    server.registerTool(
+      'seo_acceptance_status',
+      {
+        title: 'Read isolated WordPress SEO acceptance state',
+        description: 'Read WordPress-owned acceptance progress and lifecycle evidence without mutating WordPress.',
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async () => {
+        try {
+          return toolResult(await client.remoteAcceptanceJob());
+        } catch {
+          return toolError('Site Manager could not read SEO acceptance status.');
+        }
+      },
+    );
+  }
+
   if (scopes.has('seo.write')) {
     server.registerTool(
       'seo_update_plan',
