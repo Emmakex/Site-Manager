@@ -15,6 +15,7 @@ on:
       - 'tests/site_manager_site_catalog_test.py'
       - 'tests/site_manager_overview_test.py'
       - 'docs/COMMAND_GATEWAY.md'
+      - 'docs/SITE_CATALOG.md'
   push:
     branches: [main]
     paths:
@@ -30,6 +31,7 @@ on:
       - 'tests/site_manager_site_catalog_test.py'
       - 'tests/site_manager_overview_test.py'
       - 'docs/COMMAND_GATEWAY.md'
+      - 'docs/SITE_CATALOG.md'
 
 permissions:
   contents: read
