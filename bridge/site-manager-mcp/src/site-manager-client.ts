@@ -17,6 +17,7 @@ export type SiteManagerWriteResource =
   | 'write/seo/plan'
   | 'write/seo/apply'
   | 'write/seo/rollback'
+  | 'acceptance/remote/content-only/start'
   | 'acceptance/remote/fixture/content'
   | 'acceptance/remote/fixture/navigation'
   | 'acceptance/remote/report'
@@ -112,6 +113,14 @@ export class SiteManagerClient {
 
   public async seoUpdateRollback(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
     return this.request('write/seo/rollback', 'POST', input);
+  }
+
+  public async remoteAcceptanceStartContentOnly(): Promise<JsonRecord> {
+    const data = await this.request('acceptance/remote/content-only/start', 'POST', {});
+    if (!isRecord(data)) {
+      throw new SiteManagerClientError('Site Manager returned an invalid content-only acceptance start contract.');
+    }
+    return data;
   }
 
   public async remoteAcceptanceJob(): Promise<JsonRecord> {
