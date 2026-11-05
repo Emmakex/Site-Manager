@@ -1,0 +1,33 @@
+{
+  "action": "seo.acceptance",
+  "command_id": "cmd-emmake-seo-acceptance-20261105-01",
+  "command_sha256": "78800a801a65dfffbdc2296e47ec47cd4f617525f06b25e4e27a1c8ea0fe22e4",
+  "data": {
+    "apply_verified": true,
+    "draft_deleted": true,
+    "navigation_and_customer_content_untouched_by_test": true,
+    "plan_id": "sm-plan-d28d75a65880d75e5f477da6",
+    "planned": true,
+    "post_status": "draft",
+    "profile": "mcp-seo-only",
+    "rollback_verified": true,
+    "run_id": "sm-mcp-accept-1d469d8afdb03b60af5a",
+    "semantic_field": "description",
+    "step_statuses": {
+      "cleanup": "passed",
+      "fixture_content_create": "passed",
+      "precheck": "passed",
+      "seo_apply_verify": "passed",
+      "seo_plan": "passed",
+      "seo_rollback": "passed"
+    },
+    "temporary_post_id": 54359
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "seo.write",
+  "site": "emmake-nuevaweb",
+  "stage": "seo-only-roundtrip",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
