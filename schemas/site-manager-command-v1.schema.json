@@ -31,7 +31,8 @@
         "content.update",
         "content.acceptance",
         "navigation.update",
-        "seo.update"
+        "seo.update",
+        "navigation.acceptance"
       ]
     },
     "requested_by": {
@@ -495,11 +496,39 @@
               }
             },
             "else": {
-              "properties": {
-                "payload": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "maxProperties": 0
+              "if": {
+                "properties": {
+                  "action": {
+                    "const": "navigation.acceptance"
+                  }
+                },
+                "required": [
+                  "action"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "confirmed"
+                    ],
+                    "properties": {
+                      "confirmed": {
+                        "const": true
+                      }
+                    }
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "maxProperties": 0
+                  }
                 }
               }
             }
