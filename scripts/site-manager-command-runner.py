@@ -843,6 +843,93 @@ def run_navigation_acceptance(client: McpClient) -> dict[str, Any]:
     raise VerificationError("navigation acceptance timed out; inspect WordPress fixture and cleanup state")
 
 
+def summarize_seo_acceptance(state: Any, run_id: str) -> dict[str, Any]:
+    """Only certify a disposable WordPress SEO fixture after verified apply, rollback and deletion."""
+    if (not isinstance(state, dict) or state.get("run_id") != run_id
+            or state.get("profile") != SEO_ACCEPTANCE_PROFILE):
+        raise VerificationError("SEO acceptance identity or profile mismatch")
+    if state.get("status") != "completed" or state.get("had_failure") is not False:
+        raise VerificationError("SEO acceptance has not completed successfully")
+    if state.get("steps") != list(SEO_ACCEPTANCE_STEPS):
+        raise VerificationError("SEO acceptance performed an unauthorized step sequence")
+    results = state.get("results")
+    if not isinstance(results, dict) or set(results) != set(SEO_ACCEPTANCE_STEPS):
+        raise VerificationError("SEO acceptance lacks exact six-step evidence")
+    for step in SEO_ACCEPTANCE_STEPS:
+        record = results.get(step)
+        if (not isinstance(record, dict) or record.get("status") != "passed"
+                or not isinstance(record.get("evidence"), dict)):
+            raise VerificationError("SEO acceptance step not verified: " + step)
+    precheck = results["precheck"]["evidence"]
+    fixture = results["fixture_content_create"]["evidence"]
+    planned = results["seo_plan"]["evidence"]
+    applied = results["seo_apply_verify"]["evidence"]
+    rollback = results["seo_rollback"]["evidence"]
+    cleanup = results["cleanup"]["evidence"]
+    if precheck.get("discovery_received") is not True or precheck.get("capabilities_received") is not True:
+        raise VerificationError("SEO acceptance lacks WordPress discovery/capability precheck")
+    post_id = fixture.get("post_id")
+    if type(post_id) is not int or post_id < 1 or fixture.get("status") != "draft":
+        raise VerificationError("SEO acceptance did not create its own unpublished draft")
+    if any(key in fixture for key in ("menu_id", "menu_item_id")):
+        raise VerificationError("SEO acceptance fixture unexpectedly contains a menu")
+    plan_id = planned.get("plan_id")
+    if not isinstance(plan_id, str) or not plan_id.startswith("sm-plan-"):
+        raise VerificationError("SEO acceptance lacks a WordPress-generated plan")
+    if (applied.get("plan_id") != plan_id or applied.get("verified") is not True
+            or applied.get("status") != "verified"):
+        raise VerificationError("SEO apply was not provider-verified")
+    if (rollback.get("plan_id") != plan_id or rollback.get("rollback_success") is not True
+            or rollback.get("status") != "rolled-back"):
+        raise VerificationError("SEO rollback did not restore the original provider state")
+    removed = cleanup.get("removed")
+    if not isinstance(removed, dict) or removed.get("post") is not True:
+        raise VerificationError("SEO temporary draft deletion was not verified")
+    after = state.get("fixture")
+    if (not isinstance(after, dict) or after.get("post_id") != 0
+            or after.get("menu_id") != 0 or after.get("menu_item_id") != 0):
+        raise VerificationError("SEO acceptance left an orphaned fixture")
+    return {
+        "profile": SEO_ACCEPTANCE_PROFILE,
+        "run_id": run_id,
+        "temporary_post_id": post_id,
+        "post_status": "draft",
+        "plan_id": plan_id,
+        "semantic_field": "description",
+        "planned": True,
+        "apply_verified": True,
+        "rollback_verified": True,
+        "draft_deleted": True,
+        "navigation_and_customer_content_untouched_by_test": True,
+        "step_statuses": {step: "passed" for step in SEO_ACCEPTANCE_STEPS},
+    }
+
+
+def run_seo_acceptance(client: McpClient) -> dict[str, Any]:
+    """Run the fixed, explicitly confirmed SEO-only WordPress Acceptance Center profile."""
+    started = client.call(SEO_ACCEPTANCE_TOOLS["start"], {"confirmed": True})
+    if (not isinstance(started, dict) or started.get("profile") != SEO_ACCEPTANCE_PROFILE
+            or started.get("status") != "queued"):
+        raise VerificationError("WordPress refused an isolated SEO acceptance run")
+    run_id = started.get("run_id")
+    if not isinstance(run_id, str) or re.fullmatch(r"sm-mcp-accept-[a-f0-9]{20}", run_id) is None:
+        raise VerificationError("WordPress returned invalid SEO acceptance run identity")
+    deadline = time.monotonic() + ACCEPTANCE_TIMEOUT_SECONDS
+    while time.monotonic() < deadline:
+        state = client.call(SEO_ACCEPTANCE_TOOLS["status"])
+        if not isinstance(state, dict) or state.get("run_id") != run_id or state.get("profile") != SEO_ACCEPTANCE_PROFILE:
+            raise VerificationError("SEO acceptance identity or profile changed while running")
+        status = state.get("status")
+        if status == "completed":
+            return summarize_seo_acceptance(state, run_id)
+        if status == "failed":
+            raise VerificationError("SEO acceptance failed update, rollback or cleanup")
+        if status not in {"queued", "running", "cleaning"}:
+            raise VerificationError("SEO acceptance entered unsupported state")
+        time.sleep(4)
+    raise VerificationError("SEO acceptance timed out; inspect WordPress acceptance/cleanup state")
+
+
 def execute(command_path: Path, result_dir: Path) -> int:
     registry = load_json(REGISTRY_PATH)
     validate_registry(registry)
