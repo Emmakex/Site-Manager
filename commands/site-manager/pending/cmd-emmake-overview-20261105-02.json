@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-overview-20261105-02",
+  "site": "emmake-nuevaweb",
+  "action": "site.overview",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
