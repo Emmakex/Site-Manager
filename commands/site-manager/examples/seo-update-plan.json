@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-seo-plan-example-01",
+  "site": "acceptance-site",
+  "action": "seo.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_id": 123,
+    "fields": {
+      "title": "Proposed SEO title",
+      "description": "Proposed description"
+    },
+    "reason": "Review provider-governed SEO changes"
+  }
+}
