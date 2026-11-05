@@ -53,6 +53,22 @@ final class RemoteAcceptanceAccess
             },
         ], true);
 
+        // An isolated SEO-only acceptance run may create its own draft through
+        // the existing fixture route; it can never choose a customer post ID.
+        register_rest_route('site-manager/v1', '/acceptance/remote/seo-only/start', [
+            'methods'=>\WP_REST_Server::CREATABLE,
+            'permission_callback'=>static fn(\WP_REST_Request $request): bool => self::authorizeMcpWrite($request, 'seo.write'),
+            'callback'=>static function (): \WP_REST_Response {
+                try {
+                    return self::response(200, (new RemoteAcceptanceService())->startSeoOnly());
+                } catch (RuntimeException) {
+                    return self::error(409, 'acceptance_state_conflict');
+                } catch (Throwable) {
+                    return self::error(500, 'acceptance_seo_only_start_failed');
+                }
+            },
+        ], true);
+
         register_rest_route('site-manager/v1', '/acceptance/remote/fixture/content', [
             'methods'=>\WP_REST_Server::CREATABLE,
             'permission_callback'=>static fn(\WP_REST_Request $request): bool => self::authorizeMcpWrite($request, 'content.write'),
