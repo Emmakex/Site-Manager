@@ -25,7 +25,13 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance"}
+SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update"}
+NAVIGATION_TOOLS = {"plan": "navigation_update_plan", "apply": "navigation_update_apply", "rollback": "navigation_update_rollback"}
+NAVIGATION_FIELDS = {
+    "wordpress-classic-menu": {"title": 500, "url": 4096, "description": 5000, "attr_title": 500,
+                               "target": 6, "classes": 2000, "xfn": 2000},
+    "wordpress-block-navigation": {"title": 500, "content": 200_000, "status": 7},
+}
 ACCEPTANCE_TOOLS = {"start": "content_acceptance_start", "status": "content_acceptance_status"}
 ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "content_plan", "content_apply_verify", "content_rollback", "cleanup")
 ACCEPTANCE_PROFILE = "mcp-content-only"
@@ -109,6 +115,14 @@ def validate_registry(registry: dict[str, Any]) -> None:
     if acceptance["read_only"] is not False:
         raise CommandError("content.acceptance is not a read-only action")
 
+    navigation = actions.get("navigation.update")
+    if not isinstance(navigation, dict) or set(navigation) != {"tools", "required_scope", "read_only"}:
+        raise CommandError("navigation.update must be a closed governed business action")
+    if navigation["tools"] != NAVIGATION_TOOLS or navigation["required_scope"] != "navigation.write":
+        raise CommandError("navigation.update must route only to accepted WordPress navigation MCP tools")
+    if navigation["read_only"] is not False:
+        raise CommandError("navigation.update cannot be marked read-only")
+
 
 def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
     allowed = {"version", "command_id", "site", "action", "requested_by", "payload"}
@@ -146,6 +160,8 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
     elif action == "content.acceptance":
         if set(payload) != {"confirmed"} or payload.get("confirmed") is not True:
             raise CommandError("content-only acceptance requires exact confirmed=true, with no caller-selected target")
+    elif action == "navigation.update":
+        validate_navigation_payload(payload)
     else:
         raise CommandError("unregistered business action")
 
@@ -185,6 +201,61 @@ def validate_content_payload(payload: dict[str, Any]) -> None:
             raise CommandError("explicit confirmed=true is required for content mutations")
     else:
         raise CommandError("unregistered content.update stage")
+
+
+def validate_navigation_payload(payload: dict[str, Any]) -> None:
+    """Restrict navigation business intent to WordPress-discovered provider-owned fields."""
+    stage = payload.get("stage")
+    if stage == "plan":
+        if not {"stage", "provider", "target_id", "fields"} <= set(payload):
+            raise CommandError("navigation plan requires provider, target_id and fields")
+        if set(payload) - {"stage", "provider", "target_id", "fields", "reason"}:
+            raise CommandError("navigation plan contains unsupported fields")
+        provider = payload["provider"]
+        if not isinstance(provider, str) or provider not in NAVIGATION_FIELDS:
+            raise CommandError("unsupported WordPress navigation provider")
+        target_id = payload["target_id"]
+        if type(target_id) is not int or target_id < 1:
+            raise CommandError("navigation target_id must be a positive integer")
+        fields = payload["fields"]
+        if not isinstance(fields, dict) or not fields or set(fields) - NAVIGATION_FIELDS[provider].keys():
+            raise CommandError("navigation provider fields violate the allowlist")
+        for field, value in fields.items():
+            if field == "classes":
+                if isinstance(value, str):
+                    if len(value) > 2000:
+                        raise CommandError("navigation classes string exceeds size limit")
+                elif isinstance(value, list):
+                    if len(value) > 50 or any(not isinstance(item, str) or len(item) > 100 for item in value):
+                        raise CommandError("navigation classes list is invalid")
+                else:
+                    raise CommandError("navigation classes must be a string or bounded array")
+            elif not isinstance(value, str) or len(value) > NAVIGATION_FIELDS[provider][field]:
+                raise CommandError(f"navigation field {field} has an invalid type or length")
+            if field == "title" and not value.strip():
+                raise CommandError("navigation title cannot be empty")
+            if field == "target" and value not in {"", "_blank"}:
+                raise CommandError("unsupported navigation link target")
+            if field == "status" and value not in {"draft", "publish"}:
+                raise CommandError("unsupported navigation publication state")
+            if field == "url":
+                parsed = urlparse(value)
+                is_absolute = parsed.scheme in {"http", "https"} and bool(parsed.netloc) and not parsed.username and not parsed.password
+                is_relative = value.startswith("/") and not value.startswith("//")
+                if not value.strip() or not (is_absolute or is_relative) or any(ord(c) < 32 for c in value):
+                    raise CommandError("navigation URL must be an HTTP(S) URL or a safe site-relative path")
+        reason = payload.get("reason")
+        if reason is not None and (not isinstance(reason, str) or len(reason) > 500):
+            raise CommandError("navigation reason must be a short string")
+    elif stage in {"apply", "rollback"}:
+        if set(payload) != {"stage", "plan_id", "confirmed"}:
+            raise CommandError("navigation apply/rollback requires only plan_id and confirmed")
+        if not isinstance(payload["plan_id"], str) or re.fullmatch(r"[A-Za-z0-9_-]{1,200}", payload["plan_id"]) is None:
+            raise CommandError("invalid WordPress navigation plan_id")
+        if payload["confirmed"] is not True:
+            raise CommandError("navigation mutations require explicit confirmed=true")
+    else:
+        raise CommandError("unsupported navigation.update stage")
 
 
 def validate_mcp_url(value: str) -> str:
@@ -374,6 +445,53 @@ def verify_content_response(stage: str, data: Any, request: dict[str, Any]) -> b
     return True
 
 
+def verify_navigation_response(stage: str, data: Any, request: dict[str, Any]) -> bool:
+    """Verify exact WordPress-owned navigation provider, plan and mutation lifecycle."""
+    if not isinstance(data, dict) or not isinstance(data.get("plan"), dict):
+        raise VerificationError("navigation tool did not return a governed plan")
+    plan = data["plan"]
+    if plan.get("capability_id") != "navigation.write" or plan.get("operation") != "navigation.update":
+        raise VerificationError("navigation plan capability/operation mismatch")
+    plan_id = plan.get("plan_id")
+    if not isinstance(plan_id, str) or not plan_id.startswith("sm-plan-"):
+        raise VerificationError("WordPress navigation plan id is invalid")
+    if plan.get("confirmation_required") is not True:
+        raise VerificationError("WordPress navigation did not require explicit confirmation")
+    if stage == "plan":
+        target = plan.get("target")
+        if (not isinstance(target, dict) or target.get("provider") != request["provider"]
+                or target.get("target_id") != request["target_id"]):
+            raise VerificationError("navigation plan targets a different menu/provider")
+        if plan.get("status") != "planned" or plan.get("reversible") is not True:
+            raise VerificationError("navigation plan is not safely planned/reversible")
+        if not isinstance(plan.get("fields"), list) or set(plan["fields"]) != set(request["fields"]):
+            raise VerificationError("navigation plan omitted or added changed fields")
+        changes = data.get("changes")
+        if (not isinstance(changes, dict) or not isinstance(changes.get("before"), dict)
+                or not isinstance(changes.get("after"), dict)):
+            raise VerificationError("navigation plan returned no bounded before/after preview")
+        if set(changes["after"]) != set(request["fields"]):
+            raise VerificationError("navigation plan preview diverges from requested fields")
+        return False
+    if plan_id != request["plan_id"]:
+        raise VerificationError("navigation apply/rollback plan identity changed")
+    if stage == "apply":
+        execution = data.get("execution")
+        verification = data.get("verification")
+        if (data.get("status") != "verified" or plan.get("status") != "applied"
+                or not isinstance(execution, dict) or execution.get("success") is not True
+                or not isinstance(verification, dict) or verification.get("verified") is not True):
+            raise VerificationError("navigation apply lacks verified WordPress evidence")
+        return True
+    if stage == "rollback":
+        rollback = data.get("rollback")
+        if (data.get("status") != "rolled-back" or plan.get("status") != "rolled-back"
+                or not isinstance(rollback, dict) or rollback.get("success") is not True):
+            raise VerificationError("navigation rollback lacks verified restoration evidence")
+        return True
+    raise VerificationError("unknown navigation verification stage")
+
+
 def sanitize_write_evidence(stage: str, data: dict[str, Any], token: str) -> dict[str, Any]:
     """Keep plan identifiers/statuses, not full pre-change WordPress content in Git history."""
     plan = data["plan"]
@@ -536,8 +654,11 @@ def execute(command_path: Path, result_dir: Path) -> int:
             if stage == "read":
                 verified = True
                 sanitized = sanitize_value(data, token)
-            else:
+            elif action_name == "content.update":
                 verified = verify_content_response(stage, data, command["payload"])
+                sanitized = sanitize_write_evidence(stage, data, token)
+            else:
+                verified = verify_navigation_response(stage, data, command["payload"])
                 sanitized = sanitize_write_evidence(stage, data, token)
 
         result = {
@@ -627,6 +748,16 @@ def self_test() -> int:
             next_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "content.acceptance" or
             next_rule.get("then", {}).get("properties", {}).get("payload", {}).get("properties", {}).get("confirmed", {}).get("const") is not True):
         raise CommandError("content.acceptance must require explicit confirmation")
+    navigation_rule = next_rule.get("else", {})
+    if (not isinstance(navigation_rule, dict) or
+            navigation_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "navigation.update"):
+        raise CommandError("navigation.update must be defined by an independent conditional payload schema")
+    nav_stages = navigation_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])
+    if (not isinstance(nav_stages, list) or len(nav_stages) != 4
+            or not all(isinstance(item, dict) and item.get("additionalProperties") is False for item in nav_stages)):
+        raise CommandError("navigation.update must have four closed provider/stage payload variants")
+    if navigation_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0:
+        raise CommandError("other business actions must continue to reject unknown payload keys")
 
     valid = {
         "version": "1",
@@ -770,6 +901,90 @@ def self_test() -> int:
             pass
         else:
             raise CommandError("incomplete or unauthorized content acceptance was considered verified")
+
+    nav_plan = {
+        "stage": "plan", "provider": "wordpress-classic-menu",
+        "target_id": 456, "fields": {"title": "Test menu", "classes": ["test"]},
+        "reason": "Review isolated navigation change"
+    }
+    nav_cmd = {**valid, "action": "navigation.update", "payload": nav_plan}
+    validate_command(nav_cmd, registry)
+    block_plan = {
+        **nav_plan, "provider": "wordpress-block-navigation",
+        "fields": {"title": "Block navigation", "status": "draft"}
+    }
+    validate_command({**nav_cmd, "payload": block_plan}, registry)
+    invalid_nav = (
+        {**nav_plan, "provider": "unknown-menu-provider"},
+        {**nav_plan, "fields": {"content": "Forbidden classic-menu field"}},
+        {**block_plan, "fields": {"classes": ["not supported by block navigation"]}},
+        {**nav_plan, "fields": {"url": "javascript:alert(1)"}},
+        {**nav_plan, "fields": {"url": "//unsafe.example"}},
+        {**nav_plan, "fields": {"target": "_self"}},
+        {**nav_plan, "fields": {"classes": [42]}},
+        {**nav_plan, "fields": {}},
+        {**nav_plan, "target_id": True},
+        {**nav_plan, "mcp_tool": "tools/call"},
+        {"stage": "apply", "plan_id": "sm-plan-test", "confirmed": False},
+        {"stage": "rollback", "plan_id": "sm-plan-test", "confirmed": "true"},
+        {"stage": "apply", "plan_id": "sm-plan-test", "confirmed": True, "url": "https://invalid.test"},
+    )
+    for bad in invalid_nav:
+        try:
+            validate_command({**nav_cmd, "payload": bad}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("unsafe navigation.update command was accepted")
+
+    nav_id = "sm-plan-nav0123456789abcdef01234"
+    nav_response = {
+        "plan": {
+            "plan_id": nav_id, "capability_id": "navigation.write",
+            "operation": "navigation.update", "status": "planned",
+            "target": {"provider": "wordpress-classic-menu", "target_id": 456},
+            "fields": ["title", "classes"], "reversible": True,
+            "confirmation_required": True,
+        },
+        "changes": {"before": {"title": "old", "classes": ["old"]},
+                    "after": {"title": "Test menu", "classes": ["test"]}},
+    }
+    if verify_navigation_response("plan", nav_response, nav_plan) is not False:
+        raise CommandError("navigation planning incorrectly reported an applied write")
+    safe_nav = sanitize_write_evidence("plan", nav_response, "")
+    if "old" in json.dumps(safe_nav) or "Test menu" in json.dumps(safe_nav):
+        raise CommandError("WordPress navigation content leaked into GitHub evidence")
+    for malformed in (
+        {**nav_response, "plan": {**nav_response["plan"], "target": {"provider": "wordpress-block-navigation", "target_id": 456}}},
+        {**nav_response, "plan": {**nav_response["plan"], "fields": ["title"]}},
+        {**nav_response, "plan": {**nav_response["plan"], "confirmation_required": False}},
+    ):
+        try:
+            verify_navigation_response("plan", malformed, nav_plan)
+        except VerificationError:
+            pass
+        else:
+            raise CommandError("invalid navigation plan was considered valid")
+    for phase in ("apply", "rollback"):
+        confirmed = {"stage": phase, "plan_id": nav_id, "confirmed": True}
+        validate_command({**nav_cmd, "payload": confirmed}, registry)
+        success = {"plan": {**nav_response["plan"], "status": "applied" if phase == "apply" else "rolled-back"}}
+        if phase == "apply":
+            success.update(status="verified", execution={"success": True}, verification={"verified": True})
+        else:
+            success.update(status="rolled-back", rollback={"success": True})
+        if verify_navigation_response(phase, success, confirmed) is not True:
+            raise CommandError("verified navigation mutation was rejected")
+        for malformed in (
+            {**success, "plan": {**success["plan"], "plan_id": "sm-plan-other"}},
+            {**success, **({"verification": {"verified": False}} if phase == "apply" else {"rollback": {"success": False}})},
+        ):
+            try:
+                verify_navigation_response(phase, malformed, confirmed)
+            except VerificationError:
+                pass
+            else:
+                raise CommandError("unverified or cross-plan navigation mutation was accepted")
 
     secret = "unit-test-super-secret-token"
     sanitized = sanitize_value(
