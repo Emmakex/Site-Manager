@@ -201,3 +201,32 @@ test('MCP inbound bearer uses the same Site Manager connection secret', () => {
   assert.equal(secureBearerMatches('Bearer wrong', secret), false);
   assert.equal(secureBearerMatches(`Bearer ${secret}`, secret), true);
 });
+
+test('content-only acceptance starts one fixed scoped WordPress profile with no caller-selected target', async () => {
+  const requests: Array<{ path: string; method: string; body: unknown; userAgent: string | null }> = [];
+  const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const url = input instanceof URL ? input : new URL(String(input));
+    const headers = new Headers(init?.headers);
+    requests.push({
+      path: url.pathname,
+      method: init?.method ?? '',
+      body: typeof init?.body === 'string' ? JSON.parse(init.body) : null,
+      userAgent: headers.get('user-agent'),
+    });
+    const data = url.pathname.endsWith('/job')
+      ? { profile: 'mcp-content-only', status: 'running' }
+      : { profile: 'mcp-content-only', status: 'queued', run_id: 'sm-mcp-accept-123' };
+    return new Response(JSON.stringify({ data }), { status: 200 });
+  }) as typeof fetch;
+  const client = new SiteManagerClient(baseConfig(), fakeFetch);
+  assert.equal((await client.remoteAcceptanceStartContentOnly()).profile, 'mcp-content-only');
+  assert.equal((await client.remoteAcceptanceJob()).profile, 'mcp-content-only');
+  assert.deepEqual(requests.map(x => x.path), [
+    '/wp-json/site-manager/v1/acceptance/remote/content-only/start',
+    '/wp-json/site-manager/v1/acceptance/remote/job',
+  ]);
+  assert.equal(requests[0]?.method, 'POST');
+  assert.deepEqual(requests[0]?.body, {});
+  assert.equal(requests[0]?.userAgent, 'site-manager-mcp/0.5.0');
+  assert.equal(requests[1]?.method, 'GET');
+});
