@@ -114,6 +114,25 @@ def load_verified_catalog(
                 or not isinstance(proof.get("command_sha256"), str)
                 or SHA256_RE.fullmatch(proof["command_sha256"]) is None):
             raise SiteCatalogError("site enrollment proof is not a verified matching site.overview")
+        bootstrap = proof.get("bootstrap")
+        if bootstrap is not None:
+            if (not isinstance(bootstrap, dict)
+                    or set(bootstrap) != {
+                        "source", "workflow_run_id", "expected_site_url_verified",
+                        "expected_connection_id_verified", "read_only",
+                    }
+                    or bootstrap.get("source") != "protected-environment-bootstrap"
+                    or bootstrap.get("expected_site_url_verified") is not True
+                    or bootstrap.get("expected_connection_id_verified") is not True
+                    or bootstrap.get("read_only") is not True
+                    or proof.get("gateway_generation") != "sm-4k-bootstrap-v1"
+                    or not isinstance(bootstrap.get("workflow_run_id"), str)
+                    or re.fullmatch(r"[1-9][0-9]{5,19}", bootstrap["workflow_run_id"]) is None
+                    or proof_id != "cmd-bootstrap-" + bootstrap["workflow_run_id"]):
+                raise SiteCatalogError("protected enrollment bootstrap proof is malformed or mismatched")
+        elif proof_id.startswith("cmd-bootstrap-"):
+            raise SiteCatalogError("bootstrap enrollment lacks protected run evidence")
+
         data = proof.get("data")
         if (not isinstance(data, dict) or data.get("source") != "live-site-read"
                 or not isinstance(data.get("connection_id"), str)

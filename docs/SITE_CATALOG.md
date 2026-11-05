@@ -69,17 +69,16 @@ Enrollment is a gated two-stage process:
    GitHub Environment using the **existing approved onboarding
    process**, with site-specific credentials and scopes. The customer
    WordPress does not need a GitHub repository.
-2. Obtain a real, verified `site.overview` result through the site's
-   own existing protected Environment. **Bootstrap exception:** because
-   the Gateway resolver now blocks unenrolled sites, enrollment cannot
-   use the normal `pending/` command before the catalog exists.
-   A future separately reviewed onboarding workflow must authenticate
-   and prove the connection under that protected Environment without
-   weakening this guard. Until then, operator-controlled bootstrap may
-   use the explicitly permitted engineering/connection bootstrap path
-   defined in `ENGINEERING_RULES.md` and persist canonical, redacted
-   equivalent evidence. The ordinary command path must not be bypassed
-   for day-to-day operations.
+2. Run the separate manual **Site Manager Protected Site Bootstrap**
+   workflow under that site's protected Environment. It is the only
+   pre-enrollment exception, and **cannot run content/navigation/SEO writes**.
+   The Environment must already contain a matching site ID, the expected
+   WordPress HTTPS URL and connection ID, plus the existing MCP URL/token.
+   The workflow calls only `site_read` and persists a canonical, redacted
+   `site.overview` result under `cmd-bootstrap-<run-id>`, which the
+   catalog checks against the source, run, WordPress identity and read-only
+   capability. See [SITE_ONBOARDING.md](SITE_ONBOARDING.md) for the entire
+   isolated operator setup and revocation procedure.
 3. Register the logical site ID, label and its **verified** proof
    command ID in the catalog through a normal reviewed GitHub PR.
    Without existing exact-site `site.overview` proof, CI rejects
@@ -131,3 +130,10 @@ site-specific read.
 
 No WordPress plugin or MCP deployment is needed for this first
 catalog slice. Do not grant new scopes or change client content to test it.
+
+The SM-4K bootstrap is an enrollment-only workflow. It does **not** change
+the ordinary Gateway resolver's strict rejection of unregistered site IDs,
+and neither workflow can create a new protected Environment with legitimate
+secrets merely from an arbitrary site ID. No second client is represented
+as live until its own protected bootstrap proof, catalog review and fresh
+`site.overview` read have succeeded.
