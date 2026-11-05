@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update"}
+expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 assert registry["actions"]["site.read"] == {
@@ -39,6 +39,11 @@ assert registry["actions"]["content.acceptance"] == {
 }
 assert registry["actions"]["navigation.update"] == {
     "tools": {"plan": "navigation_update_plan", "apply": "navigation_update_apply", "rollback": "navigation_update_rollback"},
+    "required_scope": "navigation.write",
+    "read_only": False,
+}
+assert registry["actions"]["navigation.acceptance"] == {
+    "tools": {"start": "navigation_acceptance_start", "status": "navigation_acceptance_status"},
     "required_scope": "navigation.write",
     "read_only": False,
 }
@@ -101,7 +106,13 @@ assert set(seo_stages[0]["properties"]["fields"]["properties"]) == {
 for stage in seo_stages[1:]:
     assert stage["properties"]["confirmed"]["const"] is True
     assert set(stage["required"]) == {"stage", "plan_id", "confirmed"}
-assert seo_rule["else"]["properties"]["payload"] == {
+nav_acceptance_rule = seo_rule["else"]
+assert nav_acceptance_rule["if"]["properties"]["action"]["const"] == "navigation.acceptance"
+assert nav_acceptance_rule["then"]["properties"]["payload"] == {
+    "type": "object", "additionalProperties": False,
+    "required": ["confirmed"], "properties": {"confirmed": {"const": True}}
+}
+assert nav_acceptance_rule["else"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False, "maxProperties": 0
 }
 stages = conditional["then"]["properties"]["payload"]["oneOf"]
@@ -127,6 +138,10 @@ assert "tool" not in example
 assert "EXPECTED_TOOLS" in runner
 assert "CONTENT_TOOLS" in runner
 assert "NAVIGATION_TOOLS" in runner
+assert "NAV_ACCEPTANCE_TOOLS" in runner
+assert "NAV_ACCEPTANCE_STEPS" in runner
+assert "summarize_navigation_acceptance" in runner
+assert "run_navigation_acceptance" in runner
 assert "SEO_TOOLS" in runner
 assert "validate_seo_payload" in runner
 assert "verify_seo_response" in runner
