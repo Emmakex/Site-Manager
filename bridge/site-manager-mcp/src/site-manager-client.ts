@@ -18,6 +18,7 @@ export type SiteManagerWriteResource =
   | 'write/seo/apply'
   | 'write/seo/rollback'
   | 'acceptance/remote/content-only/start'
+  | 'acceptance/remote/navigation-only/start'
   | 'acceptance/remote/fixture/content'
   | 'acceptance/remote/fixture/navigation'
   | 'acceptance/remote/report'
@@ -119,6 +120,14 @@ export class SiteManagerClient {
     const data = await this.request('acceptance/remote/content-only/start', 'POST', {});
     if (!isRecord(data)) {
       throw new SiteManagerClientError('Site Manager returned an invalid content-only acceptance start contract.');
+    }
+    return data;
+  }
+
+  public async remoteAcceptanceStartNavigationOnly(): Promise<JsonRecord> {
+    const data = await this.request('acceptance/remote/navigation-only/start', 'POST', {});
+    if (!isRecord(data)) {
+      throw new SiteManagerClientError('Site Manager returned an invalid navigation-only acceptance start contract.');
     }
     return data;
   }
