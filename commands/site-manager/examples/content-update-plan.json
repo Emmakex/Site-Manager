@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "command_id": "cmd-content-plan-example-01",
+  "site": "acceptance-site",
+  "action": "content.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_id": 123,
+    "fields": {
+      "title": "Proposed title"
+    },
+    "reason": "Editorial review"
+  }
+}
