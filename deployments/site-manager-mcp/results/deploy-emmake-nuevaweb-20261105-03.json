@@ -1,0 +1,17 @@
+{
+  "action": "deploy",
+  "deployment_id": "deploy-emmake-nuevaweb-20261105-03",
+  "error": null,
+  "image_ref": "ghcr.io/emmakex/site-manager-mcp@sha256:4a9305351d561dcd86c981738cae497a9bb3ee3058fe6529b98937a994c412d4",
+  "public_acceptance": "passed",
+  "request_sha256": "1829ac4f610ce09f83afbd32fc5f2d34f07da0b49027ed05405721e0a0c292be",
+  "rollback": {
+    "attempted": false,
+    "succeeded": null
+  },
+  "site": "emmake-nuevaweb",
+  "status": "success",
+  "verified": true,
+  "version": "1",
+  "workflow_run_id": "42083881283"
+}
