@@ -24,7 +24,16 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics"}
+SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update"}
+READ_ACTIONS = {"site.read", "site.diagnostics"}
+CONTENT_STAGES = {"plan", "apply", "rollback"}
+CONTENT_TOOLS = {
+    "plan": "content_update_plan",
+    "apply": "content_update_apply",
+    "rollback": "content_update_rollback",
+}
+CONTENT_FIELD_LIMITS = {"title": 500, "slug": 200, "content": 200_000, "excerpt": 20_000, "status": 20}
+CONTENT_STATUSES = {"draft", "publish", "private", "pending"}
 EXPECTED_TOOLS = {
     "site.read": ("site_read", "site.read"),
     "site.diagnostics": ("site_diagnostics", "site.diagnostics"),
@@ -45,6 +54,10 @@ class RefusalError(CommandError):
     """The MCP or Site Manager explicitly refused the bounded operation."""
 
 
+class VerificationError(CommandError):
+    """A write response lacks the required Site Manager lifecycle evidence."""
+
+
 def load_json(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -62,7 +75,7 @@ def validate_registry(registry: dict[str, Any]) -> None:
         raise CommandError("command registry must match the version-1 contract")
     actions = registry.get("actions")
     if not isinstance(actions, dict) or set(actions) != SUPPORTED_ACTIONS:
-        raise CommandError("registry action set does not match the bounded read-only surface")
+        raise CommandError("registry action set does not match the bounded Site Manager surface")
 
     for action_name, (tool, scope) in EXPECTED_TOOLS.items():
         action = actions.get(action_name)
@@ -74,6 +87,14 @@ def validate_registry(registry: dict[str, Any]) -> None:
             raise CommandError(f"registry mapping for {action_name} changed unexpectedly")
         if action.get("read_only") is not True:
             raise CommandError(f"{action_name} must remain read-only in SM-4F slice 1")
+
+    content = actions.get("content.update")
+    if not isinstance(content, dict) or set(content) != {"tools", "required_scope", "read_only"}:
+        raise CommandError("content.update registry must be a closed staged business action")
+    if content["tools"] != CONTENT_TOOLS or content["required_scope"] != "content.write":
+        raise CommandError("content.update must route only to accepted Site Manager content MCP tools")
+    if content["read_only"] is not False:
+        raise CommandError("content.update cannot be marked read-only")
 
 
 def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
@@ -96,14 +117,55 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
     if not isinstance(action, str) or not isinstance(actions, dict) or action not in actions:
         raise CommandError("action is not registered")
     if action not in SUPPORTED_ACTIONS:
-        raise CommandError("action is outside the bounded SM-4F read-only surface")
+        raise CommandError("action is outside the bounded Site Manager surface")
 
     if command.get("requested_by") != "chatgpt":
         raise CommandError("requested_by must be chatgpt")
 
     payload = command.get("payload")
-    if not isinstance(payload, dict) or payload:
-        raise CommandError("read-only Site Manager commands require an empty payload object")
+    if not isinstance(payload, dict):
+        raise CommandError("command payload must be an object")
+    if action in READ_ACTIONS:
+        if payload:
+            raise CommandError("read-only Site Manager commands require an empty payload object")
+    else:
+        validate_content_payload(payload)
+
+
+def validate_content_payload(payload: dict[str, Any]) -> None:
+    """Strict, stage-specific WordPress Core content intent; no arbitrary transport or meta."""
+    stage = payload.get("stage")
+    if stage == "plan":
+        if not {"stage", "post_id", "fields"} <= set(payload):
+            raise CommandError("content plan requires stage, post_id and fields")
+        if set(payload) - {"stage", "post_id", "fields", "reason"}:
+            raise CommandError("content plan contains unsupported fields")
+        post_id = payload["post_id"]
+        if type(post_id) is not int or post_id < 1:
+            raise CommandError("content post_id must be a positive integer")
+        fields = payload["fields"]
+        if not isinstance(fields, dict) or not fields or set(fields) - CONTENT_FIELD_LIMITS.keys():
+            raise CommandError("content plan fields are not within the WordPress Core allowlist")
+        for key, value in fields.items():
+            if not isinstance(value, str) or len(value) > CONTENT_FIELD_LIMITS[key]:
+                raise CommandError(f"content field {key} has an invalid type or length")
+            if key == "status" and value not in CONTENT_STATUSES:
+                raise CommandError("unsupported publication status")
+            if key in {"title", "slug"} and not value.strip():
+                raise CommandError(f"content field {key} may not be empty")
+        reason = payload.get("reason")
+        if reason is not None and (not isinstance(reason, str) or len(reason) > 500):
+            raise CommandError("content plan reason must be a short string")
+    elif stage in {"apply", "rollback"}:
+        if set(payload) != {"stage", "plan_id", "confirmed"}:
+            raise CommandError("content apply/rollback requires only stage, plan_id and confirmed")
+        plan_id = payload["plan_id"]
+        if not isinstance(plan_id, str) or re.fullmatch(r"[A-Za-z0-9_-]{1,200}", plan_id) is None:
+            raise CommandError("invalid Site Manager plan_id")
+        if payload["confirmed"] is not True:
+            raise CommandError("explicit confirmed=true is required for content mutations")
+    else:
+        raise CommandError("unregistered content.update stage")
 
 
 def validate_mcp_url(value: str) -> str:
@@ -224,7 +286,7 @@ class McpClient:
     def initialize(self) -> None:
         self.run(["--method", "initialize"])
 
-    def call(self, tool: str) -> Any:
+    def call(self, tool: str, arguments: dict[str, Any] | None = None) -> Any:
         payload = self.run(
             [
                 "--method",
@@ -232,7 +294,7 @@ class McpClient:
                 "--tool-name",
                 tool,
                 "--tool-args-json",
-                "{}",
+                json.dumps(arguments or {}, ensure_ascii=False, separators=(",", ":")),
             ]
         )
         result = payload.get("result") or {}
@@ -256,6 +318,70 @@ class McpClient:
                         except json.JSONDecodeError:
                             continue
         raise TransportError(f"MCP tool {tool} returned no structured result")
+
+
+def verify_content_response(stage: str, data: Any, request: dict[str, Any]) -> bool:
+    """Require evidence from Site Manager, not a 200 response or inspector success."""
+    if not isinstance(data, dict) or not isinstance(data.get("plan"), dict):
+        raise VerificationError("content tool did not return a governed Site Manager plan")
+    plan = data["plan"]
+    if plan.get("capability_id") != "content.write" or plan.get("operation") != "content.update":
+        raise VerificationError("content plan capability/operation ownership mismatch")
+    if not isinstance(plan.get("plan_id"), str) or not plan["plan_id"]:
+        raise VerificationError("content plan_id missing from governed response")
+    if stage == "plan":
+        target = plan.get("target")
+        if not isinstance(target, dict) or target.get("post_id") != request["post_id"]:
+            raise VerificationError("content plan targets a different WordPress post")
+        if plan.get("status") != "planned" or plan.get("confirmation_required") is not True:
+            raise VerificationError("content plan lacks planned status or explicit confirmation requirement")
+        if not isinstance(data.get("changes"), dict):
+            raise VerificationError("content plan returned no preview")
+        return False  # Planning did not change or verify WordPress content.
+    if plan["plan_id"] != request["plan_id"]:
+        raise VerificationError("confirmed content plan identity changed")
+    if stage == "apply":
+        execution = data.get("execution")
+        verification = data.get("verification")
+        if (data.get("status") != "verified" or plan.get("status") != "applied"
+                or not isinstance(execution, dict) or execution.get("success") is not True
+                or not isinstance(verification, dict) or verification.get("verified") is not True):
+            raise VerificationError("content apply lacks completed WordPress verification")
+        return True
+    rollback = data.get("rollback")
+    if (data.get("status") != "rolled-back" or plan.get("status") != "rolled-back"
+            or not isinstance(rollback, dict) or rollback.get("success") is not True):
+        raise VerificationError("content rollback lacks verified restoration")
+    return True
+
+
+def sanitize_write_evidence(stage: str, data: dict[str, Any], token: str) -> dict[str, Any]:
+    """Keep plan identifiers/statuses, not full pre-change WordPress content in Git history."""
+    plan = data["plan"]
+    safe_keys = ("plan_id", "status", "capability_id", "operation", "target", "fields",
+                 "reversible", "confirmation_required", "created_at", "expires_at",
+                 "rollback_retained_until", "applied_at", "rolled_back_at")
+    plan_summary = {k: plan[k] for k in safe_keys if k in plan}
+    evidence: dict[str, Any] = {"stage": stage, "plan": plan_summary}
+    if stage == "plan":
+        before = data["changes"].get("before", {})
+        after = data["changes"].get("after", {})
+        evidence["preview"] = {
+            "changed_fields": list(after) if isinstance(after, dict) else [],
+            "before_present": list(before) if isinstance(before, dict) else [],
+            "values_retained_in_github": False,
+        }
+    elif stage == "apply":
+        evidence["status"] = data["status"]
+        evidence["verification"] = {
+            "verified": data["verification"]["verified"],
+            "status": data["verification"].get("status"),
+        }
+        evidence["rollback_available"] = data.get("rollback_available") is True
+    else:
+        evidence["status"] = data["status"]
+        evidence["restoration_verified"] = data["rollback"]["success"] is True
+    return sanitize_value(evidence, token)
 
 
 def execute(command_path: Path, result_dir: Path) -> int:
@@ -287,20 +413,30 @@ def execute(command_path: Path, result_dir: Path) -> int:
 
         generation = os.environ.get("SITE_MANAGER_GATEWAY_GENERATION", "sm-4f-v1").strip() or "sm-4f-v1"
         action = registry["actions"][action_name]
-        tool = str(action["tool"])
+        stage = "read" if action_name in READ_ACTIONS else command["payload"]["stage"]
+        tool = str(action["tool"] if stage == "read" else action["tools"][stage])
+        tool_args = {} if stage == "read" else {
+            k: v for k, v in command["payload"].items() if k != "stage"
+        }
 
         client = McpClient(base_url, token)
         client.initialize()
-        data = client.call(tool)
-        sanitized = sanitize_value(data, token)
+        data = client.call(tool, tool_args)
+        if stage == "read":
+            verified = True
+            sanitized = sanitize_value(data, token)
+        else:
+            verified = verify_content_response(stage, data, command["payload"])
+            sanitized = sanitize_write_evidence(stage, data, token)
 
         result = {
             "version": "1",
             "status": "success",
             "site": site,
             "action": action_name,
+            "stage": stage,
             "command_id": command_id,
-            "verified": True,
+            "verified": verified,
             "required_scope": action["required_scope"],
             "gateway_generation": generation,
             "data": sanitized,
@@ -308,9 +444,13 @@ def execute(command_path: Path, result_dir: Path) -> int:
         path = write_result(result_dir, command_id, result)
         print(f"SUCCESS {path}")
         return 0
+    except VerificationError as exc:
+        error_code = "verification_failed"
+        error_message = "Site Manager did not provide the required lifecycle verification evidence."
+        detail = sanitized_message(str(exc), token)
     except RefusalError as exc:
         error_code = "mcp_refused"
-        error_message = "Site Manager refused the bounded read operation."
+        error_message = "Site Manager refused the bounded operation."
         detail = sanitized_message(str(exc), token)
     except TransportError as exc:
         error_code = "transport_failed"
@@ -363,8 +503,14 @@ def self_test() -> int:
     if not isinstance(requested_by, dict) or requested_by.get("const") != "chatgpt":
         raise CommandError("command schema must bind requested_by to chatgpt")
     payload_schema = properties.get("payload")
-    if not isinstance(payload_schema, dict) or payload_schema.get("maxProperties") != 0:
-        raise CommandError("SM-4F slice 1 payload must remain empty/read-only")
+    if not isinstance(payload_schema, dict) or payload_schema.get("type") != "object":
+        raise CommandError("command schema payload must be an object")
+    rule = schema.get("allOf", [{}])[0]
+    if (not isinstance(rule, dict) or
+            rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "content.update"):
+        raise CommandError("write payload must be constrained to the content.update business action")
+    if not isinstance(rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf"), list):
+        raise CommandError("write payload must define closed stage-specific schemas")
 
     valid = {
         "version": "1",
@@ -393,6 +539,75 @@ def self_test() -> int:
         pass
     else:
         raise CommandError("command accepted an arbitrary payload route")
+
+    planned = {
+        "stage": "plan", "post_id": 42,
+        "fields": {"title": "Updated title", "status": "draft"},
+        "reason": "Explicitly requested review",
+    }
+    write_command = {**valid, "action": "content.update", "payload": planned}
+    validate_command(write_command, registry)
+    for malformed in (
+        {**planned, "rest_route": "/wp-json/wp/v2/posts/42"},
+        {**planned, "fields": {"unknown_meta": "unsafe"}},
+        {**planned, "fields": {}},
+        {**planned, "fields": {"status": "trash"}},
+        {"stage": "apply", "plan_id": "plan_42", "confirmed": False},
+        {"stage": "rollback", "plan_id": "plan_42", "confirmed": "true"},
+        {"stage": "apply", "plan_id": "plan_42", "confirmed": True, "url": "https://example.com"},
+    ):
+        try:
+            validate_command({**write_command, "payload": malformed}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("unsafe content.update payload was accepted")
+
+    expected_plan = {
+        "plan": {"plan_id": "plan_42", "status": "planned",
+                 "capability_id": "content.write", "operation": "content.update",
+                 "confirmation_required": True, "target": {"post_id": 42}},
+        "changes": {"before": {"post_title": "private original"}, "after": {"post_title": "Updated title"}},
+    }
+    if verify_content_response("plan", expected_plan, planned) is not False:
+        raise CommandError("planning incorrectly reported a verified mutation")
+    safe_plan = sanitize_write_evidence("plan", expected_plan, "")
+    if "private original" in json.dumps(safe_plan) or "Updated title" in json.dumps(safe_plan):
+        raise CommandError("write preview leaked original or proposed content into Git history")
+    for bad in (
+        {"plan": {**expected_plan["plan"], "status": "applied"}, "changes": expected_plan["changes"]},
+        {"plan": {**expected_plan["plan"], "target": {"post_id": 99}}, "changes": expected_plan["changes"]},
+    ):
+        try:
+            verify_content_response("plan", bad, planned)
+        except VerificationError:
+            pass
+        else:
+            raise CommandError("invalid content plan was accepted")
+    for stage in ("apply", "rollback"):
+        approved = {"stage": stage, "plan_id": "plan_42", "confirmed": True}
+        validate_command({**write_command, "payload": approved}, registry)
+        safe = {"plan": {**expected_plan["plan"], "status": "applied" if stage == "apply" else "rolled-back"}}
+        if stage == "apply":
+            safe.update(status="verified", execution={"success": True},
+                        verification={"verified": True, "status": "verified"})
+        else:
+            safe.update(status="rolled-back", rollback={"success": True})
+        if verify_content_response(stage, safe, approved) is not True:
+            raise CommandError("verified content mutation was rejected")
+        try:
+            verify_content_response(stage, {**safe, "plan": {**safe["plan"], "plan_id": "other"}}, approved)
+        except VerificationError:
+            pass
+        else:
+            raise CommandError("cross-plan write response was accepted")
+        if stage == "apply":
+            try:
+                verify_content_response(stage, {**safe, "verification": {"verified": False}}, approved)
+            except VerificationError:
+                pass
+            else:
+                raise CommandError("unverified content apply was accepted")
 
     secret = "unit-test-super-secret-token"
     sanitized = sanitize_value(

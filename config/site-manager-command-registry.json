@@ -10,6 +10,15 @@
       "tool": "site_diagnostics",
       "required_scope": "site.diagnostics",
       "read_only": true
+    },
+    "content.update": {
+      "tools": {
+        "plan": "content_update_plan",
+        "apply": "content_update_apply",
+        "rollback": "content_update_rollback"
+      },
+      "required_scope": "content.write",
+      "read_only": false
     }
   }
 }

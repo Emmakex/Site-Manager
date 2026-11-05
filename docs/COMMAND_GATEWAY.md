@@ -146,8 +146,118 @@ Do not expose generic mutation tools. Add one business action at a time to the s
 
 Planned next bounded actions after read-only acceptance:
 
-- `content.update`;
-- `navigation.update`;
-- `seo.update`.
+- `content.update` — staged write family described below;
+- `navigation.update` and `seo.update` — not yet exposed by the Gateway.
 
 Each must reuse Site Manager's existing `plan → explicit confirmation → apply → verify → rollback` contracts. The Gateway must never bypass Site Manager by writing WordPress/provider storage directly.
+
+## SM-4F content.update — staged WordPress Core governance
+
+After read-only production acceptance, the first **bounded write family** is
+`content.update`, with a required `payload.stage`. It is a business action,
+**not** a caller-selected MCP tool or REST route. The trusted registry maps
+`plan`, `apply` and `rollback` to the already accepted WordPress Site Manager
+MCP operations.
+
+**Plan only** (does not change WordPress):
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-content-plan-example-01",
+  "site": "example-site",
+  "action": "content.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_id": 123,
+    "fields": { "title": "Proposed title" },
+    "reason": "Editorial review"
+  }
+}
+```
+
+The plan phase is allowed to request only owned native `title`, `slug`,
+`content`, `excerpt` or `status` (with bounded sizes and status allowlist).
+It requires `content.write` scope even to plan. A successful plan returns
+`status=success`, `verified=false`, a WordPress-generated `plan_id`, target,
+changed field names and confirmation requirement. `verified=false` is intentional:
+**planning is not an applied/verified mutation**. No old or proposed raw WordPress
+content is stored in the sanitized GitHub result; the operator reviews the
+explicit proposed change before authorizing a separate command.
+
+**Explicitly approved apply**, in a *different* GitHub command with a new id:
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-content-apply-example-01",
+  "site": "example-site",
+  "action": "content.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-0123456789abcdef01234567",
+    "confirmed": true
+  }
+}
+```
+
+The operator must obtain **explicit user confirmation of the exact plan**
+before generating `confirmed: true`. The Gateway refuses missing, false,
+non-boolean, extra keys or unregistered stages. WordPress remains authoritative
+for write scope, bound administrator, plan retention/generation, target drift,
+capability and verification. `apply` only reports `verified=true` after
+WordPress returns `status=verified`, successful execution and
+`verification.verified=true`. A successful GitHub job alone never proves apply.
+
+**Explicitly approved rollback**, with another new command id:
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-content-rollback-example-01",
+  "site": "example-site",
+  "action": "content.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "rollback",
+    "plan_id": "sm-plan-0123456789abcdef01234567",
+    "confirmed": true
+  }
+}
+```
+
+Only a rollback with `status=rolled-back` and
+`rollback.success=true` is reported as verified restoration. Rollback
+remains bound to the original Site Manager plan, connection and retained
+snapshot, and fails on drift. Original plan window is 15 minutes; applied
+rollback evidence is retained for up to 24 hours by the WordPress plan store.
+
+### Operational safety and activation
+
+- No write scopes are granted by GitHub, MCP, capability discovery or merging
+  this code. The WordPress administrator must opt in to `content.write` on
+  **Site Manager → Connection**, bind an authorized principal, and replace
+  protected deployment credentials after any token rotation.
+- MCP tool visibility is loaded from WordPress scopes when the MCP server
+  starts. Restart/redeploy it through the existing protected GitHub deployment
+  path after a scope change; do not bypass the Gateway.
+- Do not automatically generate `apply` after a `plan`; always show and
+  authorize the target/change separately.
+- A successful exact replay of the same command id is non-executing;
+  a different payload or failed command id fails closed.
+- The Gateway never accepts arbitrary REST, PHP, SQL, shell, filesystem,
+  endpoint URLs, provider-meta keys or user-selected MCP tools.
+- A failure or missing verification after a mutation requires checking the
+  actual Site Manager/WordPress state before any recovery or fresh request.
+- No client site is required to use GitHub: it is the central operator's
+  command transport.
+- `navigation.update` and `seo.update` remain unsupported **in the
+  GitHub Gateway** until independent scoped engineering/acceptance cuts;
+  their pre-existing MCP operations are unchanged.
+
+**Production acceptance gate:** merge only when contract tests pass on the
+final PR head. Real content apply/rollback must be exercised solely on a
+disposable acceptance target with explicit authorization and verification;
+never take a real-site mutation just to prove the gateway is wired.

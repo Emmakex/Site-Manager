@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "command_id": "cmd-content-apply-example-01",
+  "site": "acceptance-site",
+  "action": "content.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-0123456789abcdef01234567",
+    "confirmed": true
+  }
+}
