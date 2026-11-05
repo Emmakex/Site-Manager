@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "command_id": "cmd-overview-example-0001",
+  "site": "acceptance-site",
+  "action": "site.overview",
+  "requested_by": "chatgpt",
+  "payload": {}
+}

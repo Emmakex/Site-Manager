@@ -8,7 +8,9 @@ on:
       - 'config/site-manager-command-registry.json'
       - 'schemas/site-manager-command-v1.schema.json'
       - 'scripts/site-manager-command-*.py'
+      - 'scripts/site_manager_site_overview.py'
       - 'tests/site_manager_command_gateway_test.py'
+      - 'tests/site_manager_overview_test.py'
       - 'docs/COMMAND_GATEWAY.md'
   push:
     branches: [main]
@@ -18,7 +20,9 @@ on:
       - 'config/site-manager-command-registry.json'
       - 'schemas/site-manager-command-v1.schema.json'
       - 'scripts/site-manager-command-*.py'
+      - 'scripts/site_manager_site_overview.py'
       - 'tests/site_manager_command_gateway_test.py'
+      - 'tests/site_manager_overview_test.py'
       - 'docs/COMMAND_GATEWAY.md'
 
 permissions:
@@ -43,5 +47,8 @@ jobs:
       - name: Gateway static contract
         run: python3 tests/site_manager_command_gateway_test.py
 
+      - name: Site overview read-only operator contract
+        run: python3 tests/site_manager_overview_test.py
+
       - name: Python syntax contract
-        run: python3 -m py_compile scripts/site-manager-command-runner.py scripts/site-manager-command-guard.py tests/site_manager_command_gateway_test.py
+        run: python3 -m py_compile scripts/site-manager-command-runner.py scripts/site-manager-command-guard.py scripts/site_manager_site_overview.py tests/site_manager_command_gateway_test.py tests/site_manager_overview_test.py
