@@ -14,6 +14,7 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -24,7 +25,11 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update"}
+SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance"}
+ACCEPTANCE_TOOLS = {"start": "content_acceptance_start", "status": "content_acceptance_status"}
+ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "content_plan", "content_apply_verify", "content_rollback", "cleanup")
+ACCEPTANCE_PROFILE = "mcp-content-only"
+ACCEPTANCE_TIMEOUT_SECONDS = 420
 READ_ACTIONS = {"site.read", "site.diagnostics"}
 CONTENT_STAGES = {"plan", "apply", "rollback"}
 CONTENT_TOOLS = {
@@ -96,6 +101,14 @@ def validate_registry(registry: dict[str, Any]) -> None:
     if content["read_only"] is not False:
         raise CommandError("content.update cannot be marked read-only")
 
+    acceptance = actions.get("content.acceptance")
+    if not isinstance(acceptance, dict) or set(acceptance) != {"tools", "required_scope", "read_only"}:
+        raise CommandError("content.acceptance must be a closed governed business action")
+    if acceptance["tools"] != ACCEPTANCE_TOOLS or acceptance["required_scope"] != "content.write":
+        raise CommandError("content.acceptance may only invoke the registered content-only acceptance tools")
+    if acceptance["read_only"] is not False:
+        raise CommandError("content.acceptance is not a read-only action")
+
 
 def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
     allowed = {"version", "command_id", "site", "action", "requested_by", "payload"}
@@ -128,8 +141,14 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
     if action in READ_ACTIONS:
         if payload:
             raise CommandError("read-only Site Manager commands require an empty payload object")
-    else:
+    elif action == "content.update":
         validate_content_payload(payload)
+    elif action == "content.acceptance":
+        if set(payload) != {"confirmed"} or payload.get("confirmed") is not True:
+            raise CommandError("content-only acceptance requires exact confirmed=true, with no caller-selected target")
+    else:
+        raise CommandError("unregistered business action")
+
 
 
 def validate_content_payload(payload: dict[str, Any]) -> None:
@@ -384,6 +403,94 @@ def sanitize_write_evidence(stage: str, data: dict[str, Any], token: str) -> dic
     return sanitize_value(evidence, token)
 
 
+def summarize_content_acceptance(state: Any, run_id: str) -> dict[str, Any]:
+    """Require completed WordPress-authoritative apply, rollback and fixture deletion."""
+    if not isinstance(state, dict):
+        raise VerificationError("acceptance status is not a structured WordPress response")
+    if state.get("run_id") != run_id or state.get("profile") != ACCEPTANCE_PROFILE:
+        raise VerificationError("content acceptance run/profile identity mismatch")
+    if state.get("status") != "completed" or state.get("had_failure") is not False:
+        raise VerificationError("content acceptance has not finished successfully")
+    steps = state.get("steps")
+    if not isinstance(steps, list) or steps != list(ACCEPTANCE_STEPS):
+        raise VerificationError("content acceptance attempted an unapproved step sequence")
+    results = state.get("results")
+    if not isinstance(results, dict) or set(results) != set(ACCEPTANCE_STEPS):
+        raise VerificationError("content acceptance is missing required step evidence")
+    for step in ACCEPTANCE_STEPS:
+        record = results.get(step)
+        if not isinstance(record, dict) or record.get("status") != "passed":
+            raise VerificationError("content acceptance step was not verified: " + step)
+    fixture = results["fixture_content_create"].get("evidence")
+    applied = results["content_apply_verify"].get("evidence")
+    rollback = results["content_rollback"].get("evidence")
+    cleanup = results["cleanup"].get("evidence")
+    planned = results["content_plan"].get("evidence")
+    if not all(isinstance(x, dict) for x in (fixture, applied, rollback, cleanup, planned)):
+        raise VerificationError("content acceptance evidence is malformed")
+    post_id = fixture.get("post_id")
+    if type(post_id) is not int or post_id < 1 or fixture.get("status") != "draft":
+        raise VerificationError("content acceptance did not start with a disposable draft")
+    plan_id = planned.get("plan_id")
+    if not isinstance(plan_id, str) or not plan_id.startswith("sm-plan-"):
+        raise VerificationError("content acceptance lacks a governed WordPress plan")
+    if (applied.get("plan_id") != plan_id or applied.get("verified") is not True
+            or applied.get("status") != "verified"):
+        raise VerificationError("content acceptance did not verify the applied title change")
+    if (rollback.get("plan_id") != plan_id or rollback.get("rollback_success") is not True
+            or rollback.get("status") != "rolled-back"):
+        raise VerificationError("content acceptance did not verify the rollback")
+    removed = cleanup.get("removed")
+    if not isinstance(removed, dict) or removed.get("post") is not True:
+        raise VerificationError("disposable content acceptance draft was not removed")
+    after = state.get("fixture")
+    if not isinstance(after, dict) or after.get("post_id") != 0:
+        raise VerificationError("disposable content fixture remains present after cleanup")
+    if after.get("menu_id") != 0 or after.get("menu_item_id") != 0:
+        raise VerificationError("content-only acceptance unexpectedly created navigation")
+    return {
+        "profile": ACCEPTANCE_PROFILE,
+        "run_id": run_id,
+        "temporary_post_id": post_id,
+        "post_status": "draft",
+        "plan_id": plan_id,
+        "planned": True,
+        "apply_verified": True,
+        "rollback_verified": True,
+        "draft_deleted": True,
+        "navigation_and_seo_untouched_by_test": True,
+        "step_statuses": {step: "passed" for step in ACCEPTANCE_STEPS},
+    }
+
+
+def run_content_acceptance(client: McpClient) -> dict[str, Any]:
+    """Kick off the existing WordPress-owned test and await its bounded result."""
+    started = client.call(ACCEPTANCE_TOOLS["start"], {"confirmed": True})
+    if not isinstance(started, dict) or started.get("profile") != ACCEPTANCE_PROFILE:
+        raise VerificationError("WordPress refused the isolated acceptance profile")
+    if started.get("status") not in {"queued", "running"}:
+        raise VerificationError("content acceptance did not start from a permitted state")
+    run_id = started.get("run_id")
+    if not isinstance(run_id, str) or not re.fullmatch(r"sm-mcp-accept-[a-f0-9]{20}", run_id):
+        raise VerificationError("WordPress returned an invalid acceptance run identity")
+    deadline = time.monotonic() + ACCEPTANCE_TIMEOUT_SECONDS
+    while time.monotonic() < deadline:
+        state = client.call(ACCEPTANCE_TOOLS["status"])
+        if not isinstance(state, dict) or state.get("run_id") != run_id:
+            raise VerificationError("acceptance job was replaced or its identity changed")
+        if state.get("profile") != ACCEPTANCE_PROFILE:
+            raise VerificationError("an unapproved acceptance profile became active")
+        status = state.get("status")
+        if status == "completed":
+            return summarize_content_acceptance(state, run_id)
+        if status == "failed":
+            raise VerificationError("content acceptance reported a failed step or cleanup")
+        if status not in {"queued", "running", "cleaning"}:
+            raise VerificationError("content acceptance entered an unsupported state")
+        time.sleep(4)
+    raise VerificationError("content acceptance timed out without verified cleanup; inspect WordPress job state")
+
+
 def execute(command_path: Path, result_dir: Path) -> int:
     registry = load_json(REGISTRY_PATH)
     validate_registry(registry)
@@ -413,21 +520,25 @@ def execute(command_path: Path, result_dir: Path) -> int:
 
         generation = os.environ.get("SITE_MANAGER_GATEWAY_GENERATION", "sm-4f-v1").strip() or "sm-4f-v1"
         action = registry["actions"][action_name]
-        stage = "read" if action_name in READ_ACTIONS else command["payload"]["stage"]
-        tool = str(action["tool"] if stage == "read" else action["tools"][stage])
-        tool_args = {} if stage == "read" else {
-            k: v for k, v in command["payload"].items() if k != "stage"
-        }
-
         client = McpClient(base_url, token)
         client.initialize()
-        data = client.call(tool, tool_args)
-        if stage == "read":
+        if action_name == "content.acceptance":
+            stage = "content-only-roundtrip"
+            sanitized = sanitize_value(run_content_acceptance(client), token)
             verified = True
-            sanitized = sanitize_value(data, token)
         else:
-            verified = verify_content_response(stage, data, command["payload"])
-            sanitized = sanitize_write_evidence(stage, data, token)
+            stage = "read" if action_name in READ_ACTIONS else command["payload"]["stage"]
+            tool = str(action["tool"] if stage == "read" else action["tools"][stage])
+            tool_args = {} if stage == "read" else {
+                k: v for k, v in command["payload"].items() if k != "stage"
+            }
+            data = client.call(tool, tool_args)
+            if stage == "read":
+                verified = True
+                sanitized = sanitize_value(data, token)
+            else:
+                verified = verify_content_response(stage, data, command["payload"])
+                sanitized = sanitize_write_evidence(stage, data, token)
 
         result = {
             "version": "1",
@@ -511,6 +622,11 @@ def self_test() -> int:
         raise CommandError("write payload must be constrained to the content.update business action")
     if not isinstance(rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf"), list):
         raise CommandError("write payload must define closed stage-specific schemas")
+    next_rule = rule.get("else", {})
+    if (not isinstance(next_rule, dict) or
+            next_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "content.acceptance" or
+            next_rule.get("then", {}).get("properties", {}).get("payload", {}).get("properties", {}).get("confirmed", {}).get("const") is not True):
+        raise CommandError("content.acceptance must require explicit confirmation")
 
     valid = {
         "version": "1",
@@ -608,6 +724,52 @@ def self_test() -> int:
                 pass
             else:
                 raise CommandError("unverified content apply was accepted")
+
+    acceptance = {**valid, "action": "content.acceptance", "payload": {"confirmed": True}}
+    validate_command(acceptance, registry)
+    for bad in ({}, {"confirmed": False}, {"confirmed": "true"},
+                {"confirmed": True, "post_id": 1}, {"confirmed": True, "url": "https://example.invalid"}):
+        try:
+            validate_command({**acceptance, "payload": bad}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("unsafe content acceptance intent was accepted")
+
+    run_id = "sm-mcp-accept-" + "a" * 20
+    ok_step = lambda evidence: {"status": "passed", "evidence": evidence}
+    valid_state = {
+        "run_id": run_id, "profile": ACCEPTANCE_PROFILE, "status": "completed",
+        "had_failure": False, "steps": list(ACCEPTANCE_STEPS),
+        "fixture": {"post_id": 0, "menu_id": 0, "menu_item_id": 0},
+        "results": {
+            "precheck": ok_step({}),
+            "fixture_content_create": ok_step({"post_id": 42, "status": "draft"}),
+            "content_plan": ok_step({"plan_id": "sm-plan-xyz"}),
+            "content_apply_verify": ok_step({"plan_id": "sm-plan-xyz", "verified": True, "status": "verified"}),
+            "content_rollback": ok_step({"plan_id": "sm-plan-xyz", "rollback_success": True, "status": "rolled-back"}),
+            "cleanup": ok_step({"removed": {"post": True, "menu": True}}),
+        },
+    }
+    evidence = summarize_content_acceptance(valid_state, run_id)
+    if not (evidence["apply_verified"] and evidence["rollback_verified"] and evidence["draft_deleted"]):
+        raise CommandError("verified disposable acceptance result was lost")
+    for bad in (
+        {**valid_state, "profile": "mcp-low-resource"},
+        {**valid_state, "status": "running"},
+        {**valid_state, "results": {**valid_state["results"],
+                                  "content_rollback": ok_step({"plan_id": "sm-plan-xyz", "rollback_success": False, "status": "rollback-failed"})}},
+        {**valid_state, "results": {**valid_state["results"],
+                                  "cleanup": ok_step({"removed": {"post": False}})}},
+        {**valid_state, "fixture": {"post_id": 42, "menu_id": 0, "menu_item_id": 0}},
+        {**valid_state, "fixture": {"post_id": 0, "menu_id": 43, "menu_item_id": 5}},
+    ):
+        try:
+            summarize_content_acceptance(bad, run_id)
+        except VerificationError:
+            pass
+        else:
+            raise CommandError("incomplete or unauthorized content acceptance was considered verified")
 
     secret = "unit-test-super-secret-token"
     sanitized = sanitize_value(

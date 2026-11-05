@@ -28,7 +28,8 @@
       "enum": [
         "site.read",
         "site.diagnostics",
-        "content.update"
+        "content.update",
+        "content.acceptance"
       ]
     },
     "requested_by": {
@@ -159,11 +160,39 @@
         }
       },
       "else": {
-        "properties": {
-          "payload": {
-            "type": "object",
-            "additionalProperties": false,
-            "maxProperties": 0
+        "if": {
+          "properties": {
+            "action": {
+              "const": "content.acceptance"
+            }
+          },
+          "required": [
+            "action"
+          ]
+        },
+        "then": {
+          "properties": {
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "confirmed"
+              ],
+              "properties": {
+                "confirmed": {
+                  "const": true
+                }
+              }
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 0
+            }
           }
         }
       }

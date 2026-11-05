@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"site.read", "site.diagnostics", "content.update"}
+expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 assert registry["actions"]["site.read"] == {
@@ -32,6 +32,11 @@ assert registry["actions"]["content.update"] == {
     "required_scope": "content.write",
     "read_only": False,
 }
+assert registry["actions"]["content.acceptance"] == {
+    "tools": {"start": "content_acceptance_start", "status": "content_acceptance_status"},
+    "required_scope": "content.write",
+    "read_only": False,
+}
 
 assert schema["additionalProperties"] is False
 assert set(schema["required"]) == {"version", "command_id", "site", "action", "requested_by", "payload"}
@@ -40,7 +45,15 @@ assert schema["properties"]["requested_by"]["const"] == "chatgpt"
 assert schema["properties"]["payload"]["type"] == "object"
 conditional = schema["allOf"][0]
 assert conditional["if"]["properties"]["action"]["const"] == "content.update"
-assert conditional["else"]["properties"]["payload"] == {
+followup = conditional["else"]
+assert followup["if"]["properties"]["action"]["const"] == "content.acceptance"
+assert followup["then"]["properties"]["payload"] == {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["confirmed"],
+    "properties": {"confirmed": {"const": True}},
+}
+assert followup["else"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False, "maxProperties": 0
 }
 stages = conditional["then"]["properties"]["payload"]["oneOf"]
@@ -65,6 +78,10 @@ assert "tool" not in example
 
 assert "EXPECTED_TOOLS" in runner
 assert "CONTENT_TOOLS" in runner
+assert "ACCEPTANCE_TOOLS" in runner
+assert "summarize_content_acceptance" in runner
+assert "run_content_acceptance" in runner
+assert "mcp-content-only" in runner
 assert "validate_content_payload" in runner
 assert "verify_content_response" in runner
 assert "sanitize_write_evidence" in runner

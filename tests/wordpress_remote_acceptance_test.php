@@ -80,4 +80,42 @@ $bridgeState = $service->bridgeState();
 $assert('cleanup' === ($bridgeState['next_step'] ?? ''), 'bridge state must expose the persisted next phase');
 $assert(2000 === ($bridgeState['pause_ms'] ?? 0), 'bridge state must expose the active low-resource pause');
 
+
+/* A completed previous full acceptance must not block a new content-only run. */
+$previous = (array) get_option(RemoteAcceptanceService::STATE_OPTION, []);
+$previous['status'] = 'failed';
+$GLOBALS['site_manager_test_options'][RemoteAcceptanceService::STATE_OPTION] = $previous;
+$connection = (array) get_option(RemoteConnectionStore::OPTION, []);
+$connection['scopes'] = ['site.read', 'content.write'];
+$GLOBALS['site_manager_test_options'][RemoteConnectionStore::OPTION] = $connection;
+
+$contentOnly = $service->startContentOnly();
+$assert('mcp-content-only' === ($contentOnly['profile'] ?? ''), 'content-only profile must have its own identity');
+$contentBridge = $service->bridgeState();
+$expectedContentSteps = [
+    'precheck', 'fixture_content_create', 'content_plan',
+    'content_apply_verify', 'content_rollback', 'cleanup',
+];
+$assert($expectedContentSteps === ($contentBridge['steps'] ?? []), 'content-only acceptance must contain only its six authorized phases');
+$assert('precheck' === ($contentBridge['next_step'] ?? ''), 'content-only acceptance must start at read precheck');
+$assert(0 === ($contentOnly['fixture']['post_id'] ?? -1), 'content-only must not reuse an existing fixture');
+$assert(0 === ($contentOnly['fixture']['menu_id'] ?? -1), 'content-only must not create a menu');
+try {
+    $service->start();
+    $assert(false, 'a full acceptance run must not replace active content-only acceptance');
+} catch (\RuntimeException $error) {
+    $assert(str_contains($error->getMessage(), 'profile_already_active'), 'profile overlap must fail closed');
+}
+try {
+    $service->startContentOnly();
+    $assert(false, 'a duplicate content-only start must not attach another command to the same fixture');
+} catch (\RuntimeException $error) {
+    $assert(str_contains($error->getMessage(), 'already_active'), 'duplicate content-only acceptance must fail closed');
+}
+$precheck = $service->report((string) $contentOnly['run_id'], 'precheck', true, ['validated'=>true]);
+$assert('fixture_content_create' === ($precheck['next_step'] ?? ''), 'content-only precheck must advance to disposable draft creation');
+$stopped = $service->cancel();
+$assert('cleanup' === ($stopped['next_step'] ?? ''), 'content-only cancel must skip directly to cleanup');
+$assert(5 === ($stopped['step_index'] ?? -1), 'content-only cleanup uses its own six-step sequence');
+
 echo "PASS: WordPress MCP remote acceptance low-resource state contract\n";
