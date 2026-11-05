@@ -90,6 +90,17 @@ assert all(action["scope_grant_verified"] is False for action in overview["gover
 assert all(action["planning_mutates_wordpress"] is False for action in overview["governed_actions"])
 assert all(action["apply_requires_separate_user_confirmation"] is True
            for action in overview["governed_actions"])
+assert "permission_notice" in overview
+assert "Capability governable is not a grant of permission" in overview["permission_notice"]
+assert "authorization_note" not in overview
+# The command Gateway redacts keys containing authorization, token, secret,
+# password, or cookie; the ordinary non-secret permission note must survive.
+from importlib.util import module_from_spec, spec_from_file_location
+runner_spec = spec_from_file_location("sm_command_runner", Path(__file__).resolve().parents[1] / "scripts" / "site-manager-command-runner.py")
+assert runner_spec is not None and runner_spec.loader is not None
+runner_module = module_from_spec(runner_spec)
+runner_spec.loader.exec_module(runner_module)
+assert runner_module.sanitize_value(overview, "")["permission_notice"] == overview["permission_notice"]
 assert "do-not-leak" not in str(overview)
 assert "Private menu text" not in str(overview)
 assert "123" not in str(overview)

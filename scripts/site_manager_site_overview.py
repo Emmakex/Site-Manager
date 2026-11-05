@@ -192,7 +192,7 @@ def summarize_site_overview(data: Any) -> dict[str, Any]:
             *(['wordpress_discourages_search_engine_indexing'] if search_visibility == "discourage" else []),
             *(['seo_provider_ownership_unresolved'] if seo and not seo_resolved else []),
         ],
-        "authorization_note": (
+        "permission_notice": (
             "Capability governable is not a grant of permission. site.read does not "
             "establish write-scope authorization; plan/apply recheck WordPress scopes "
             "and the bound administrator. No mutation has been performed."
