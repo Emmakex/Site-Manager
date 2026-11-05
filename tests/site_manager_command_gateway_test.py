@@ -151,6 +151,8 @@ assert "url" not in example
 assert "token" not in example
 assert "tool" not in example
 
+assert "require_registered_site" in runner
+assert "SiteCatalogError" in runner
 assert "EXPECTED_TOOLS" in runner
 assert "site.overview" in runner
 assert "summarize_site_overview" in runner
@@ -190,6 +192,8 @@ assert "command_sha256" in guard
 assert "replay_success" in guard
 assert "failed status; use a new command_id" in guard
 
+assert "site_manager_site_catalog.py check --site" in workflow
+assert "scripts/site_manager_site_catalog.py" in workflow
 assert "commands/site-manager/pending/*.json" in workflow
 assert "concurrency:" in workflow
 assert "cancel-in-progress: false" in workflow

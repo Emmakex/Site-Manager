@@ -6,24 +6,32 @@ on:
       - '.github/workflows/site-manager-command-gateway*.yml'
       - 'commands/site-manager/**'
       - 'config/site-manager-command-registry.json'
+      - 'config/site-manager-site-catalog.json'
       - 'schemas/site-manager-command-v1.schema.json'
       - 'scripts/site-manager-command-*.py'
       - 'scripts/site_manager_site_overview.py'
+      - 'scripts/site_manager_site_catalog.py'
       - 'tests/site_manager_command_gateway_test.py'
+      - 'tests/site_manager_site_catalog_test.py'
       - 'tests/site_manager_overview_test.py'
       - 'docs/COMMAND_GATEWAY.md'
+      - 'docs/SITE_CATALOG.md'
   push:
     branches: [main]
     paths:
       - '.github/workflows/site-manager-command-gateway*.yml'
       - 'commands/site-manager/**'
       - 'config/site-manager-command-registry.json'
+      - 'config/site-manager-site-catalog.json'
       - 'schemas/site-manager-command-v1.schema.json'
       - 'scripts/site-manager-command-*.py'
       - 'scripts/site_manager_site_overview.py'
+      - 'scripts/site_manager_site_catalog.py'
       - 'tests/site_manager_command_gateway_test.py'
+      - 'tests/site_manager_site_catalog_test.py'
       - 'tests/site_manager_overview_test.py'
       - 'docs/COMMAND_GATEWAY.md'
+      - 'docs/SITE_CATALOG.md'
 
 permissions:
   contents: read
@@ -50,5 +58,11 @@ jobs:
       - name: Site overview read-only operator contract
         run: python3 tests/site_manager_overview_test.py
 
+      - name: Verified site catalog and cross-tenant isolation
+        run: |
+          python3 tests/site_manager_site_catalog_test.py
+          python3 scripts/site_manager_site_catalog.py list
+          python3 scripts/site_manager_site_catalog.py check --site emmake-nuevaweb
+
       - name: Python syntax contract
-        run: python3 -m py_compile scripts/site-manager-command-runner.py scripts/site-manager-command-guard.py scripts/site_manager_site_overview.py tests/site_manager_command_gateway_test.py tests/site_manager_overview_test.py
+        run: python3 -m py_compile scripts/site-manager-command-runner.py scripts/site-manager-command-guard.py scripts/site_manager_site_overview.py scripts/site_manager_site_catalog.py tests/site_manager_command_gateway_test.py tests/site_manager_overview_test.py tests/site_manager_site_catalog_test.py

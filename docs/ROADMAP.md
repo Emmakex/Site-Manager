@@ -117,6 +117,10 @@ Provide site-specific authentication/scopes, read-only Site Manager MCP resource
 
 MCP remains a bounded adapter behind Site Manager governance. Infrastructure persistence is required for availability but must not become the primary operator interface.
 
+### SM-4I/4J — operator-facing site overview and connected-site selection
+
+SM-4I projects the accepted read-only `site.read` capability graph into a concise operator overview. SM-4J adds a proof-backed list of *explicitly enrolled logical sites*, preventing unknown site IDs from selecting GitHub Environments and requiring a fresh `site.overview` after selection. It does not grant writes or certify multi-site onboarding; additional site registration and the Research Manager parity acceptance remain separate gates.
+
 ### SM-4F — GitHub Command Gateway for ChatGPT governance
 
 Goal: make the accepted Research Manager governance pattern generic for Site Manager:

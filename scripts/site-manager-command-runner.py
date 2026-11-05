@@ -20,6 +20,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from site_manager_site_overview import OverviewError, summarize_site_overview
+from site_manager_site_catalog import SiteCatalogError, require_registered_site
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = ROOT / "config" / "site-manager-command-registry.json"
@@ -949,6 +950,13 @@ def execute(command_path: Path, result_dir: Path) -> int:
     token = ""
     client: McpClient | None = None
     try:
+        # Defense-in-depth: reject unenrolled logical sites even if the trusted
+        # workflow resolver is bypassed or its environment has been misconfigured.
+        try:
+            require_registered_site(site)
+        except SiteCatalogError as exc:
+            raise CommandError("logical Site Manager site lacks verified catalog enrollment") from exc
+
         expected_site = os.environ.get("SITE_MANAGER_SITE_ID", "").strip()
         if not expected_site:
             raise CommandError("SITE_MANAGER_SITE_ID is required")

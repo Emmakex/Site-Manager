@@ -737,3 +737,37 @@ WordPress-only: non-WordPress platforms can return their own
 `discovery.platform` and capability graph without masquerading as
 WordPress. Unknown owners/providers remain visible as gaps, not
 assumed writable adapters.
+
+
+## SM-4J — verified logical-site catalog and operator selection
+
+The first multi-client operator selection slice is a **proof-backed catalog**,
+not a live scan of GitHub Environments or an MCP discovery of unknown sites.
+
+Read `config/site-manager-site-catalog.json` via the connected trusted
+GitHub repository and validate its enrolled logical site IDs against their
+exact `site.overview` results in `commands/site-manager/results/`.
+`python3 scripts/site_manager_site_catalog.py list` produces the
+bounded, private-data-free operator view. Each site is shown as
+**previously verified**, with its original verification date; its current
+connectivity and write privileges are **not** implied.
+
+The Command Gateway resolver refuses unenrolled IDs before selecting
+`site-manager-<site>` as its protected GitHub Environment. The runner
+revalidates enrollment before calling MCP. Site identity and credentials
+remain protected by the actual Environment and WordPress administrator.
+
+After selecting a site, issue a **new `site.overview`** command to
+revalidate WordPress's actual state through the existing canonical path.
+A catalog listing is never an authorization for `content.update`,
+`navigation.update` or `seo.update`.
+
+Only the first EMMake acceptance site currently has an enrolled,
+GitHub-persisted, real `site.overview` proof. Other clients are not
+listed unless separately registered and verified. Adding new sites
+requires separate site bootstrap, protected environment setup and a
+reviewed enrollment with a matching trusted proof. The client website
+itself never needs to run GitHub.
+
+The complete contract, limitations, enrollment procedure and two-site
+security regression are documented in [SITE_CATALOG.md](SITE_CATALOG.md).
