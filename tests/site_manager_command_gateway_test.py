@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance"}
+expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 assert registry["actions"]["site.read"] == {
@@ -25,6 +25,11 @@ assert registry["actions"]["site.read"] == {
 assert registry["actions"]["site.diagnostics"] == {
     "tool": "site_diagnostics",
     "required_scope": "site.diagnostics",
+    "read_only": True,
+}
+assert registry["actions"]["site.overview"] == {
+    "tool": "site_read",
+    "required_scope": "site.read",
     "read_only": True,
 }
 assert registry["actions"]["content.update"] == {
@@ -147,6 +152,9 @@ assert "token" not in example
 assert "tool" not in example
 
 assert "EXPECTED_TOOLS" in runner
+assert "site.overview" in runner
+assert "summarize_site_overview" in runner
+assert "OverviewError" in runner
 assert "CONTENT_TOOLS" in runner
 assert "NAVIGATION_TOOLS" in runner
 assert "NAV_ACCEPTANCE_TOOLS" in runner
