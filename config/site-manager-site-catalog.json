@@ -1,0 +1,10 @@
+{
+  "version": "1",
+  "sites": [
+    {
+      "site": "emmake-nuevaweb",
+      "label": "EMMAKE — WordPress de pruebas",
+      "proof_command_id": "cmd-emmake-overview-20261105-02"
+    }
+  ]
+}
