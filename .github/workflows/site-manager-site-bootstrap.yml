@@ -1,0 +1,108 @@
+name: Site Manager Protected Site Bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 'Exact logical Site Manager site ID to bootstrap (read-only)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: site-manager-protected-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    # Never run onboarding from an untrusted fork, historical rerun or PR.
+    if: github.actor == 'Emmakex' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    outputs:
+      site: ${{ steps.site.outputs.site }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject malformed site or dispatch metadata
+        id: site
+        shell: bash
+        env:
+          REQUESTED_SITE_ID: ${{ inputs.site }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import re
+          site = os.environ["REQUESTED_SITE_ID"]
+          if re.fullmatch(r"[a-z0-9][a-z0-9-]{2,63}", site) is None:
+              raise SystemExit("Invalid site ID")
+          # No site-specific credentials are selected here. The protected
+          # environment and expected WordPress identity are checked in execute.
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as file:
+              file.write("site=" + site + "\n")
+          PY
+
+  bootstrap:
+    needs: validate
+    if: needs.validate.result == 'success'
+    runs-on: ubuntu-latest
+    environment: site-manager-${{ needs.validate.outputs.site }}
+    env:
+      SITE_MANAGER_SITE_ID: ${{ vars.SITE_MANAGER_SITE_ID }}
+      SITE_MANAGER_MCP_BASE_URL: ${{ vars.SITE_MANAGER_MCP_BASE_URL }}
+      SITE_MANAGER_EXPECTED_SITE_URL: ${{ vars.SITE_MANAGER_EXPECTED_SITE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Read-only Site Manager tenant/connection proof
+        id: prove
+        shell: bash
+        env:
+          SITE_MANAGER_MCP_TOKEN: ${{ secrets.SITE_MANAGER_MCP_TOKEN }}
+          SITE_MANAGER_EXPECTED_CONNECTION_ID: ${{ secrets.SITE_MANAGER_EXPECTED_CONNECTION_ID }}
+          REQUESTED_SITE_ID: ${{ needs.validate.outputs.site }}
+          BOOTSTRAP_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          python3 scripts/site_manager_site_bootstrap.py \
+            --site "$REQUESTED_SITE_ID" --run-id "$BOOTSTRAP_RUN_ID"
+
+      - name: Retain bounded sanitized proof artifact
+        if: steps.prove.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-manager-bootstrap-${{ github.run_id }}
+          path: commands/site-manager/results/cmd-bootstrap-${{ github.run_id }}.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Persist verified onboarding proof in trusted repository
+        if: steps.prove.outcome == 'success'
+        shell: bash
+        env:
+          BOOTSTRAP_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          result="commands/site-manager/results/cmd-bootstrap-${BOOTSTRAP_RUN_ID}.json"
+          test -s "$result"
+          cp "$result" /tmp/site-manager-bootstrap-result.json
+          git fetch origin main
+          git checkout -B main origin/main
+          if [[ -e "$result" ]]; then
+            echo 'Bootstrap proof already exists; refusing to overwrite evidence' >&2
+            exit 1
+          fi
+          mkdir -p "$(dirname "$result")"
+          cp /tmp/site-manager-bootstrap-result.json "$result"
+          git config user.name 'site-manager-bootstrap[bot]'
+          git config user.email 'site-manager-bootstrap[bot]@users.noreply.github.com'
+          git add "$result"
+          git commit -m "site-manager: certify protected bootstrap ${BOOTSTRAP_RUN_ID}"
+          git push origin HEAD:main
