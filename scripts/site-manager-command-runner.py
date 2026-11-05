@@ -25,7 +25,10 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance"}
+SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance"}
+SEO_ACCEPTANCE_TOOLS = {"start": "seo_acceptance_start", "status": "seo_acceptance_status"}
+SEO_ACCEPTANCE_PROFILE = "mcp-seo-only"
+SEO_ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "seo_plan", "seo_apply_verify", "seo_rollback", "cleanup")
 NAV_ACCEPTANCE_TOOLS = {"start": "navigation_acceptance_start", "status": "navigation_acceptance_status"}
 NAV_ACCEPTANCE_PROFILE = "mcp-navigation-only"
 NAV_ACCEPTANCE_STEPS = ("precheck", "fixture_navigation_create", "navigation_plan", "navigation_apply_verify", "navigation_rollback", "cleanup")
@@ -137,6 +140,14 @@ def validate_registry(registry: dict[str, Any]) -> None:
             or nav_acceptance["read_only"] is not False):
         raise CommandError("navigation.acceptance must route only to scoped fixed MCP fixture tools")
 
+    seo_acceptance = actions.get("seo.acceptance")
+    if (not isinstance(seo_acceptance, dict)
+            or set(seo_acceptance) != {"tools", "required_scope", "read_only"}
+            or seo_acceptance["tools"] != SEO_ACCEPTANCE_TOOLS
+            or seo_acceptance["required_scope"] != "seo.write"
+            or seo_acceptance["read_only"] is not False):
+        raise CommandError("seo.acceptance must route only to scoped fixed SEO acceptance tools")
+
     seo = actions.get("seo.update")
     if not isinstance(seo, dict) or set(seo) != {"tools", "required_scope", "read_only"}:
         raise CommandError("seo.update must be a closed provider-aware business action")
@@ -189,6 +200,9 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
     elif action == "navigation.acceptance":
         if set(payload) != {"confirmed"} or payload.get("confirmed") is not True:
             raise CommandError("navigation acceptance requires exact confirmed=true without caller-selected menu")
+    elif action == "seo.acceptance":
+        if set(payload) != {"confirmed"} or payload.get("confirmed") is not True:
+            raise CommandError("SEO acceptance requires exact confirmed=true without caller-selected post")
     else:
         raise CommandError("unregistered business action")
 
@@ -868,6 +882,10 @@ def execute(command_path: Path, result_dir: Path) -> int:
             stage = "navigation-only-roundtrip"
             sanitized = sanitize_value(run_navigation_acceptance(client), token)
             verified = True
+        elif action_name == "seo.acceptance":
+            stage = "seo-only-roundtrip"
+            sanitized = sanitize_value(run_seo_acceptance(client), token)
+            verified = True
         else:
             stage = "read" if action_name in READ_ACTIONS else command["payload"]["stage"]
             tool = str(action["tool"] if stage == "read" else action["tools"][stage])
@@ -994,9 +1012,14 @@ def self_test() -> int:
     nav_acceptance_rule = seo_rule.get("else", {})
     if (not isinstance(nav_acceptance_rule, dict)
             or nav_acceptance_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "navigation.acceptance"
-            or nav_acceptance_rule.get("then", {}).get("properties", {}).get("payload", {}).get("properties", {}).get("confirmed", {}).get("const") is not True
-            or nav_acceptance_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
-        raise CommandError("navigation.acceptance must accept only exact confirmation and reject other payloads")
+            or nav_acceptance_rule.get("then", {}).get("properties", {}).get("payload", {}).get("properties", {}).get("confirmed", {}).get("const") is not True):
+        raise CommandError("navigation.acceptance must accept only exact confirmation")
+    seo_acceptance_rule = nav_acceptance_rule.get("else", {})
+    if (not isinstance(seo_acceptance_rule, dict)
+            or seo_acceptance_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "seo.acceptance"
+            or seo_acceptance_rule.get("then", {}).get("properties", {}).get("payload", {}).get("properties", {}).get("confirmed", {}).get("const") is not True
+            or seo_acceptance_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
+        raise CommandError("seo.acceptance requires exact confirmation and blocks unsupported payloads")
 
     valid = {
         "version": "1",
