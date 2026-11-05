@@ -41,6 +41,19 @@ final class RemoteAcceptanceService
     private const CONTENT_ONLY_SCOPES = ['site.read', 'content.write'];
 
     /** @var list<string> */
+    private const NAVIGATION_ONLY_STEPS = [
+        'precheck',
+        'fixture_navigation_create',
+        'navigation_plan',
+        'navigation_apply_verify',
+        'navigation_rollback',
+        'cleanup',
+    ];
+
+    /** @var list<string> */
+    private const NAVIGATION_ONLY_SCOPES = ['site.read', 'navigation.write'];
+
+    /** @var list<string> */
     private const REQUIRED_SCOPES = [
         'site.read',
         'content.write',
@@ -85,6 +98,17 @@ final class RemoteAcceptanceService
     }
 
     /**
+     * Accept only a disposable, unassigned classic menu and a temporary
+     * custom item, without creating posts or modifying SEO.
+     *
+     * @return array<string,mixed>
+     */
+    public function startNavigationOnly(): array
+    {
+        return $this->startProfile('mcp-navigation-only', self::NAVIGATION_ONLY_STEPS, self::NAVIGATION_ONLY_SCOPES);
+    }
+
+    /**
      * @param list<string> $steps
      * @param list<string> $requiredScopes
      * @return array<string,mixed>
@@ -101,9 +125,9 @@ final class RemoteAcceptanceService
             if ((string) ($current['profile'] ?? '') !== $profile) {
                 throw new RuntimeException('mcp_acceptance_profile_already_active');
             }
-            if ('mcp-content-only' === $profile) {
-                // One operator-authorized command owns exactly one disposable fixture run.
-                throw new RuntimeException('mcp_content_acceptance_already_active');
+            if (in_array($profile, ['mcp-content-only', 'mcp-navigation-only'], true)) {
+                // One confirmed Gateway command owns one isolated fixture lifecycle.
+                throw new RuntimeException('mcp_isolated_acceptance_already_active');
             }
             return $current;
         }
@@ -201,6 +225,13 @@ final class RemoteAcceptanceService
         if (is_wp_error($menuId) || (int) $menuId < 1) {
             return $this->failStep($state, 'fixture_navigation_create', 'navigation_fixture_menu_failed');
         }
+        // This is a newly created menu; reject unexpected theme-location
+        // assignments before writing even a temporary item.
+        $locations = function_exists('get_nav_menu_locations') ? get_nav_menu_locations() : [];
+        if (is_array($locations) && in_array((int) $menuId, array_map('intval', $locations), true)) {
+            wp_delete_nav_menu((int) $menuId);
+            return $this->failStep($state, 'fixture_navigation_create', 'navigation_fixture_unexpected_location');
+        }
         $itemId = wp_update_nav_menu_item((int) $menuId, 0, [
             'menu-item-title'=>'Site Manager MCP Acceptance Item',
             'menu-item-url'=>home_url('/'),
@@ -250,6 +281,13 @@ final class RemoteAcceptanceService
     public function cleanup(string $runId): array
     {
         $state = $this->requireStep($runId, 'cleanup');
+        $profile = (string) ($state['profile'] ?? '');
+        if ('mcp-navigation-only' === $profile && (int) ($state['fixture']['post_id'] ?? 0) !== 0) {
+            throw new RuntimeException('mcp_navigation_acceptance_unexpected_post_fixture');
+        }
+        if ('mcp-content-only' === $profile && (int) ($state['fixture']['menu_id'] ?? 0) !== 0) {
+            throw new RuntimeException('mcp_content_acceptance_unexpected_menu_fixture');
+        }
         $removed = ['post'=>true,'menu'=>true];
 
         $postId = (int) ($state['fixture']['post_id'] ?? 0);
@@ -263,7 +301,7 @@ final class RemoteAcceptanceService
         $menuId = (int) ($state['fixture']['menu_id'] ?? 0);
         if ($menuId > 0) {
             $deleted = wp_delete_nav_menu($menuId);
-            $removed['menu'] = ! is_wp_error($deleted);
+            $removed['menu'] = false !== $deleted && ! is_wp_error($deleted);
             if ($removed['menu']) {
                 $state['fixture']['menu_id'] = 0;
                 $state['fixture']['menu_item_id'] = 0;
@@ -382,9 +420,11 @@ final class RemoteAcceptanceService
     /** @param array<string,mixed> $state @return list<string> */
     private function stepsForState(array $state): array
     {
-        return (string) ($state['profile'] ?? '') === 'mcp-content-only'
-            ? self::CONTENT_ONLY_STEPS
-            : self::STEPS;
+        return match ((string) ($state['profile'] ?? '')) {
+            'mcp-content-only' => self::CONTENT_ONLY_STEPS,
+            'mcp-navigation-only' => self::NAVIGATION_ONLY_STEPS,
+            default => self::STEPS,
+        };
     }
 
     /** @param array<string,mixed> $evidence @return array<string,mixed> */
