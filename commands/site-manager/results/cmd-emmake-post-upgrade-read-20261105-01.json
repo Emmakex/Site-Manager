@@ -1,0 +1,1403 @@
+{
+  "action": "site.read",
+  "command_id": "cmd-emmake-post-upgrade-read-20261105-01",
+  "command_sha256": "e1c69355e28dfcf7a1aa870abc6629395b6b0f45cec77e6224fbb5dd486cc469",
+  "data": {
+    "capabilities": {
+      "capabilities": [
+        {
+          "blockers": [],
+          "detected": true,
+          "governable": true,
+          "id": "content.read",
+          "metadata": [],
+          "operations": [
+            "content.inventory"
+          ],
+          "provider": "wordpress-core",
+          "required_scopes": [
+            "site.read"
+          ],
+          "understood": true
+        },
+        {
+          "blockers": [],
+          "detected": true,
+          "governable": true,
+          "id": "content.write",
+          "metadata": {
+            "confirmation": "explicit",
+            "owned_fields": [
+              "title",
+              "slug",
+              "content",
+              "excerpt",
+              "status"
+            ],
+            "post_types": [
+              "post",
+              "page"
+            ],
+            "reversible": true
+          },
+          "operations": [
+            "content.update"
+          ],
+          "provider": "wordpress-core",
+          "required_scopes": [
+            "content.write"
+          ],
+          "understood": true
+        },
+        {
+          "blockers": [],
+          "detected": true,
+          "governable": true,
+          "id": "navigation.write",
+          "metadata": {
+            "block_fields": [
+              "title",
+              "content",
+              "status"
+            ],
+            "classic_fields": [
+              "title",
+              "url",
+              "description",
+              "attr_title",
+              "target",
+              "classes",
+              "xfn"
+            ],
+            "confirmation": "explicit",
+            "providers": [
+              {
+                "actionable": true,
+                "id": "wordpress-classic-menu",
+                "label": "WordPress classic menus",
+                "target_count": 5
+              },
+              {
+                "actionable": false,
+                "id": "wordpress-block-navigation",
+                "label": "WordPress block navigation",
+                "target_count": 0
+              }
+            ],
+            "reversible": true,
+            "stale_plan_protection": true
+          },
+          "operations": [
+            "navigation.update"
+          ],
+          "provider": "wordpress-core",
+          "required_scopes": [
+            "navigation.write"
+          ],
+          "understood": true
+        },
+        {
+          "blockers": [],
+          "detected": true,
+          "governable": true,
+          "id": "seo.write",
+          "metadata": {
+            "authority": {
+              "adapter": "seo-geo-theme-native",
+              "evidence": {
+                "source": "known-theme-family",
+                "stylesheet": "seo-geo-theme",
+                "template": "seo-geo-theme"
+              },
+              "id": "seo-geo-theme",
+              "label": "SEO/GEO Theme",
+              "outputs": [
+                "title-meta",
+                "canonical",
+                "robots",
+                "open-graph",
+                "schema",
+                "hreflang",
+                "sitemap"
+              ],
+              "type": "theme-native"
+            },
+            "candidates": [
+              {
+                "adapter": "seo-geo-theme-native",
+                "evidence": {
+                  "source": "known-theme-family",
+                  "stylesheet": "seo-geo-theme",
+                  "template": "seo-geo-theme"
+                },
+                "id": "seo-geo-theme",
+                "label": "SEO/GEO Theme",
+                "outputs": [
+                  "title-meta",
+                  "canonical",
+                  "robots",
+                  "open-graph",
+                  "schema",
+                  "hreflang",
+                  "sitemap"
+                ],
+                "type": "theme-native"
+              }
+            ],
+            "confirmation": "explicit",
+            "derived_outputs": {
+              "canonical": {
+                "direct_input": null,
+                "sources": [
+                  "permalink"
+                ]
+              },
+              "hreflang": {
+                "direct_input": null,
+                "sources": [
+                  "permalink",
+                  "language-routing"
+                ]
+              },
+              "open-graph": {
+                "direct_input": null,
+                "sources": [
+                  "post_title",
+                  "post_excerpt",
+                  "site-identity"
+                ]
+              },
+              "robots": {
+                "direct_input": null,
+                "sources": [
+                  "publication/indexability runtime"
+                ]
+              },
+              "schema": {
+                "direct_input": null,
+                "sources": [
+                  "post_title",
+                  "post_excerpt",
+                  "content",
+                  "taxonomy",
+                  "site-identity"
+                ]
+              },
+              "sitemap": {
+                "direct_input": null,
+                "sources": [
+                  "publication-state",
+                  "permalink"
+                ]
+              },
+              "title-meta": {
+                "direct_input": "title",
+                "sources": [
+                  "post_title"
+                ]
+              }
+            },
+            "outputs": {
+              "canonical": {
+                "owner": "seo-geo-theme",
+                "resolved": true,
+                "state": "derived-read-only",
+                "writable": false
+              },
+              "hreflang": {
+                "owner": "seo-geo-theme",
+                "resolved": true,
+                "state": "derived-read-only",
+                "writable": false
+              },
+              "open-graph": {
+                "owner": "seo-geo-theme",
+                "resolved": true,
+                "state": "derived-from-governed-native-sources",
+                "writable": false
+              },
+              "robots": {
+                "owner": "seo-geo-theme",
+                "resolved": true,
+                "state": "derived-read-only",
+                "writable": false
+              },
+              "schema": {
+                "owner": "seo-geo-theme",
+                "resolved": true,
+                "state": "derived-from-governed-native-sources",
+                "writable": false
+              },
+              "sitemap": {
+                "owner": "seo-geo-theme",
+                "resolved": true,
+                "state": "derived-read-only",
+                "writable": false
+              },
+              "title-meta": {
+                "owner": "seo-geo-theme",
+                "resolved": true,
+                "state": "derived-from-governed-native-sources",
+                "writable": true
+              }
+            },
+            "plan_adapter": "seo-geo-theme-native",
+            "provider_adapter": "seo-geo-theme",
+            "reversible": true,
+            "stale_plan_protection": true,
+            "writable_inputs": {
+              "description": {
+                "reversible": true,
+                "side_effect": "Changes the native WordPress excerpt and may affect visible excerpt surfaces.",
+                "source": "post_excerpt"
+              },
+              "title": {
+                "reversible": true,
+                "side_effect": "Changes the native WordPress title.",
+                "source": "post_title"
+              }
+            },
+            "write_adapter_ready": true,
+            "write_mode": "semantic-native-sources"
+          },
+          "operations": [
+            "seo.update"
+          ],
+          "provider": "seo-geo-theme",
+          "required_scopes": [
+            "seo.write"
+          ],
+          "understood": true
+        },
+        {
+          "blockers": [],
+          "detected": true,
+          "governable": true,
+          "id": "site.diagnostics",
+          "metadata": [],
+          "operations": [
+            "site.diagnostics"
+          ],
+          "provider": "wordpress-core",
+          "required_scopes": [
+            "site.diagnostics"
+          ],
+          "understood": true
+        },
+        {
+          "blockers": [],
+          "detected": true,
+          "governable": true,
+          "id": "site.read",
+          "metadata": [],
+          "operations": [
+            "site.inspect"
+          ],
+          "provider": "wordpress-core",
+          "required_scopes": [
+            "site.read"
+          ],
+          "understood": true
+        }
+      ]
+    },
+    "connection_id": "smc_5a89543449a7df60d579b2d44a02db56",
+    "discovery": {
+      "fingerprint": "e9275d2252c072c9d96e7ed59557076205c81868c8a880b7302e30d6911c6d4a",
+      "generated_at": "2026-11-05T10:47:37+00:00",
+      "inventory": {
+        "content_types": [
+          {
+            "builtin": true,
+            "hierarchical": false,
+            "label": "Entradas",
+            "name": "post",
+            "rest_base": "posts",
+            "show_in_rest": true,
+            "supports": [
+              "title",
+              "editor",
+              "author",
+              "thumbnail",
+              "excerpt",
+              "trackbacks",
+              "custom-fields",
+              "comments",
+              "revisions",
+              "post-formats",
+              "autosave"
+            ]
+          },
+          {
+            "builtin": true,
+            "hierarchical": true,
+            "label": "Páginas",
+            "name": "page",
+            "rest_base": "pages",
+            "show_in_rest": true,
+            "supports": [
+              "title",
+              "editor",
+              "author",
+              "thumbnail",
+              "page-attributes",
+              "custom-fields",
+              "comments",
+              "revisions",
+              "autosave"
+            ]
+          },
+          {
+            "builtin": true,
+            "hierarchical": false,
+            "label": "Medios",
+            "name": "attachment",
+            "rest_base": "media",
+            "show_in_rest": true,
+            "supports": [
+              "title",
+              "author",
+              "comments"
+            ]
+          }
+        ],
+        "indexability": {
+          "search_visibility": "discourage"
+        },
+        "navigation": {
+          "assigned_locations": [],
+          "block_navigation": [],
+          "classic_menus": [
+            {
+              "item_count": 5,
+              "item_ids": [
+                50084,
+                50101,
+                50492,
+                50367,
+                50104
+              ],
+              "name": "EMMAKE",
+              "slug": "emmake",
+              "targets_truncated": false,
+              "term_id": 6
+            }
+          ],
+          "providers": [
+            {
+              "actionable": true,
+              "detected": true,
+              "id": "wordpress-classic-menu",
+              "label": "WordPress classic menus",
+              "target_count": 5
+            },
+            {
+              "actionable": false,
+              "detected": true,
+              "id": "wordpress-block-navigation",
+              "label": "WordPress block navigation",
+              "target_count": 0
+            }
+          ],
+          "registered_locations": {
+            "footer": "Footer navigation",
+            "primary": "Primary navigation"
+          }
+        },
+        "plugins": {
+          "active_count": 2,
+          "items": {
+            "seo-geo-migration-bridge/seo-geo-migration-bridge.php": {
+              "name": "SEO/GEO Migration Bridge",
+              "version": "0.8.60"
+            },
+            "site-manager/site-manager.php": {
+              "name": "Site Manager",
+              "version": "0.11.3"
+            }
+          }
+        },
+        "providers": [],
+        "routing": {
+          "front_page_id": 7,
+          "permalink_structure": "/{d276abfeceab40cca0e158fc6217176554b8e54a1f85b6eb004941797db52171}category{d276abfeceab40cca0e158fc6217176554b8e54a1f85b6eb004941797db52171}/{d276abfeceab40cca0e158fc6217176554b8e54a1f85b6eb004941797db52171}postname{d276abfeceab40cca0e158fc6217176554b8e54a1f85b6eb004941797db52171}/",
+          "posts_page_id": 0,
+          "show_on_front": "page"
+        },
+        "runtime": {
+          "debug": false,
+          "locale": "es_ES",
+          "multisite": false,
+          "php": "8.5.12",
+          "timezone": "+01:00",
+          "wordpress": "7.1.4"
+        },
+        "seo_authority": {
+          "authority": {
+            "adapter": "seo-geo-theme-native",
+            "evidence": {
+              "source": "known-theme-family",
+              "stylesheet": "seo-geo-theme",
+              "template": "seo-geo-theme"
+            },
+            "id": "seo-geo-theme",
+            "label": "SEO/GEO Theme",
+            "outputs": [
+              "title-meta",
+              "canonical",
+              "robots",
+              "open-graph",
+              "schema",
+              "hreflang",
+              "sitemap"
+            ],
+            "type": "theme-native"
+          },
+          "authority_resolved": true,
+          "candidates": [
+            {
+              "adapter": "seo-geo-theme-native",
+              "evidence": {
+                "source": "known-theme-family",
+                "stylesheet": "seo-geo-theme",
+                "template": "seo-geo-theme"
+              },
+              "id": "seo-geo-theme",
+              "label": "SEO/GEO Theme",
+              "outputs": [
+                "title-meta",
+                "canonical",
+                "robots",
+                "open-graph",
+                "schema",
+                "hreflang",
+                "sitemap"
+              ],
+              "type": "theme-native"
+            }
+          ],
+          "conflict": false,
+          "derived_outputs": {
+            "canonical": {
+              "direct_input": null,
+              "sources": [
+                "permalink"
+              ]
+            },
+            "hreflang": {
+              "direct_input": null,
+              "sources": [
+                "permalink",
+                "language-routing"
+              ]
+            },
+            "open-graph": {
+              "direct_input": null,
+              "sources": [
+                "post_title",
+                "post_excerpt",
+                "site-identity"
+              ]
+            },
+            "robots": {
+              "direct_input": null,
+              "sources": [
+                "publication/indexability runtime"
+              ]
+            },
+            "schema": {
+              "direct_input": null,
+              "sources": [
+                "post_title",
+                "post_excerpt",
+                "content",
+                "taxonomy",
+                "site-identity"
+              ]
+            },
+            "sitemap": {
+              "direct_input": null,
+              "sources": [
+                "publication-state",
+                "permalink"
+              ]
+            },
+            "title-meta": {
+              "direct_input": "title",
+              "sources": [
+                "post_title"
+              ]
+            }
+          },
+          "evidence": {
+            "data_source_trace": {
+              "api_calls": [
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaIdentityResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/BreadcrumbResolver.php"
+                  ],
+                  "key": "get_author_posts_url"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Forms/ContactFormRuntime.php",
+                    "seo-geo-theme/inc/Setup/EntityGeoValidator.php",
+                    "seo-geo-theme/inc/Strategic/CorporateHomeModelResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtPresenter.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternatePresenter.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaGraphBuilder.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaIdentityResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaLocalBusinessResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaVisibleContentResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/BreadcrumbResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/MetaDescriptionResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/OpenGraphResolver.php",
+                    "seo-geo-theme/strategic-templates/corporate-home.php"
+                  ],
+                  "key": "get_bloginfo"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Insights/InsightsIndexRuntime.php",
+                    "seo-geo-theme/inc/Navigation/PresetNavigationRuntime.php",
+                    "seo-geo-theme/inc/Setup/EntityGeoValidator.php",
+                    "seo-geo-theme/inc/Setup/MigrationHandoffReader.php",
+                    "seo-geo-theme/inc/Setup/SetupCompatibilityDetector.php",
+                    "seo-geo-theme/inc/Setup/SetupReportStore.php",
+                    "seo-geo-theme/inc/Setup/WordPressSetupOptionWriter.php",
+                    "seo-geo-theme/inc/Wizard/AdminSetupWizard.php",
+                    "seo-geo-theme/inc/presets.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/CrawlerPolicyAdmin.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/CrawlerPolicyResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/DiscoveryCacheRevision.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Language/NativeLanguageConfiguration.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaIdentityResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaLocalBusinessResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/BreadcrumbResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/IndexabilityResolver.php"
+                  ],
+                  "key": "get_option"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Forms/ContactFormRuntime.php",
+                    "seo-geo-theme/inc/Navigation/PresetNavigationRuntime.php",
+                    "seo-geo-theme/inc/Strategic/CorporateHomeRenderer.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/BreadcrumbResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/LocalizedSeoResolver.php"
+                  ],
+                  "key": "get_permalink"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/ContentProvenanceResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Language/NativeTranslationRegistry.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/BreadcrumbResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/MetaDescriptionResolver.php"
+                  ],
+                  "key": "get_post"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Forms/ContactFormRuntime.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Language/NativeTranslationRegistry.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/NativeSeoMetadata.php"
+                  ],
+                  "key": "get_post_meta"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/functions.php",
+                    "seo-geo-theme/inc/Strategic/StrategicSurfaceRuntime.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaArticleResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaIdentityResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaVisibleContentResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/BreadcrumbResolver.php"
+                  ],
+                  "key": "get_queried_object"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/BreadcrumbResolver.php"
+                  ],
+                  "key": "get_term"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Forms/ContactFormRuntime.php"
+                  ],
+                  "key": "get_the_ID"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Strategic/CorporateHomeRenderer.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/MetaDescriptionResolver.php"
+                  ],
+                  "key": "get_the_excerpt"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/OpenGraphResolver.php"
+                  ],
+                  "key": "get_the_post_thumbnail_url"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Forms/ContactFormRuntime.php",
+                    "seo-geo-theme/inc/Insights/InsightsIndexRuntime.php",
+                    "seo-geo-theme/inc/Navigation/PresetNavigationRuntime.php",
+                    "seo-geo-theme/inc/Strategic/CorporateHomeRenderer.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaArticleResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/BreadcrumbResolver.php"
+                  ],
+                  "key": "get_the_title"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Forms/ContactFormRuntime.php",
+                    "seo-geo-theme/inc/Navigation/PresetNavigationRuntime.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/CrawlerPolicyAdmin.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtPresenter.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternatePresenter.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaGraphBuilder.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaIdentityResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaLocalBusinessResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaNodeIds.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/BreadcrumbResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/CanonicalResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/LocalizedSeoResolver.php",
+                    "seo-geo-theme/preset-patterns/saas-inner-final.php",
+                    "seo-geo-theme/preset-templates/corporate-404.php",
+                    "seo-geo-theme/preset-templates/ecommerce-404.php",
+                    "seo-geo-theme/preset-templates/local-business-404.php",
+                    "seo-geo-theme/preset-templates/publisher-404.php",
+                    "seo-geo-theme/preset-templates/saas-digital-product-404.php"
+                  ],
+                  "key": "home_url"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Strategic/CorporateHomeModelResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php"
+                  ],
+                  "key": "parse_blocks"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/BreadcrumbResolver.php"
+                  ],
+                  "key": "post_type_archive_title"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Strategic/CorporateHomeModelResolver.php"
+                  ],
+                  "key": "render_block"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaVisibleContentResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/MetaDescriptionResolver.php"
+                  ],
+                  "key": "strip_shortcodes"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/CanonicalResolver.php"
+                  ],
+                  "key": "wp_get_canonical_url"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Forms/ContactFormRuntime.php",
+                    "seo-geo-theme/inc/Navigation/PresetNavigationRuntime.php",
+                    "seo-geo-theme/inc/Setup/EntityGeoValidator.php",
+                    "seo-geo-theme/inc/Strategic/CorporateHomeModelResolver.php",
+                    "seo-geo-theme/inc/Strategic/CorporateHomeRenderer.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaArticleResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaGraphBuilder.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaIdentityResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaLocalBusinessResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaVisibleContentResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/BreadcrumbResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/MetaDescriptionResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/OpenGraphResolver.php"
+                  ],
+                  "key": "wp_strip_all_tags"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Strategic/CorporateHomeRenderer.php"
+                  ],
+                  "key": "wp_trim_words"
+                }
+              ],
+              "available": true,
+              "bytes_scanned": 599244,
+              "classification": {
+                "acf": false,
+                "custom_database": false,
+                "native_permalink": true,
+                "native_post_content": true,
+                "native_taxonomy": true,
+                "options": true,
+                "post_meta": true,
+                "site_identity": true,
+                "theme_mod": false
+              },
+              "filter_pipeline": [
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/CanonicalResolver.php"
+                  ],
+                  "key": "seo_geo_canonical_url"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Runtime.php"
+                  ],
+                  "key": "seo_geo_core_ready"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/DiscoveryCacheRevision.php"
+                  ],
+                  "key": "seo_geo_discovery_cache_invalidated"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/HreflangResolver.php"
+                  ],
+                  "key": "seo_geo_hreflang_alternates"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/IndexabilityResolver.php"
+                  ],
+                  "key": "seo_geo_indexability_state"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/MetaDescriptionResolver.php"
+                  ],
+                  "key": "seo_geo_meta_description"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaVisibleContentResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/MetaDescriptionResolver.php"
+                  ],
+                  "key": "seo_geo_normalize_authored_text"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/OpenGraphResolver.php"
+                  ],
+                  "key": "seo_geo_open_graph_metadata"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Strategic/CorporateHomeModelResolver.php"
+                  ],
+                  "key": "seo_geo_theme_corporate_home_model"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/functions.php"
+                  ],
+                  "key": "seo_geo_theme_corporate_master_home_layer"
+                }
+              ],
+              "focus_files": [
+                "seo-geo-theme/functions.php",
+                "seo-geo-theme/inc/Ecommerce/FinalHomePattern.php",
+                "seo-geo-theme/inc/Forms/ContactFormRuntime.php",
+                "seo-geo-theme/inc/Insights/InsightsIndexRuntime.php",
+                "seo-geo-theme/inc/LocalBusiness/FinalInnerPatterns.php",
+                "seo-geo-theme/inc/Navigation/PresetNavigationRuntime.php",
+                "seo-geo-theme/inc/Publisher/FinalHomePattern.php",
+                "seo-geo-theme/inc/Setup/EntityGeoValidator.php",
+                "seo-geo-theme/inc/Setup/MigrationHandoffReader.php",
+                "seo-geo-theme/inc/Setup/PresetLanguageValidator.php",
+                "seo-geo-theme/inc/Setup/SetupCompatibilityDetector.php",
+                "seo-geo-theme/inc/Setup/SetupConfigurationContract.php",
+                "seo-geo-theme/inc/Setup/SetupExecutor.php",
+                "seo-geo-theme/inc/Setup/SetupOptionWriterInterface.php",
+                "seo-geo-theme/inc/Setup/SetupPlanner.php",
+                "seo-geo-theme/inc/Setup/SetupReportStore.php",
+                "seo-geo-theme/inc/Setup/SetupRewriteMaintenance.php",
+                "seo-geo-theme/inc/Setup/SetupWriteFailure.php",
+                "seo-geo-theme/inc/Setup/WordPressSetupOptionWriter.php",
+                "seo-geo-theme/inc/Strategic/CorporateHomeModelResolver.php",
+                "seo-geo-theme/inc/Strategic/CorporateHomeRenderer.php",
+                "seo-geo-theme/inc/Strategic/StrategicSurfaceRuntime.php",
+                "seo-geo-theme/inc/Templates/PresetTemplateRuntime.php",
+                "seo-geo-theme/inc/Wizard/AdminSetupWizard.php",
+                "seo-geo-theme/inc/Wizard/SetupWizardCopy.php",
+                "seo-geo-theme/inc/Wizard/SetupWizardPreview.php",
+                "seo-geo-theme/inc/presets.php",
+                "seo-geo-theme/inc/seo-geo-core/bootstrap.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Geo/ContentProvenancePresenter.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Geo/ContentProvenanceResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Geo/CrawlerPolicyAdmin.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Geo/CrawlerPolicyPresenter.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Geo/CrawlerPolicyResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Geo/DiscoveryCacheInvalidator.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Geo/DiscoveryCachePolicy.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Geo/DiscoveryCacheRevision.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtPresenter.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternatePresenter.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Integrations/IntegrationDetectorInterface.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Integrations/RuntimeIntegrationDetector.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Language/LanguageManager.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Language/LanguageProviderInterface.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Language/NativeLanguageConfiguration.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Language/NativeLanguageRouter.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Language/NativeTranslationRegistry.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Language/NativeTranslationRelationship.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Language/NativeWordPressAdapter.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Plugin.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Runtime.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaArticleResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaBreadcrumbResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaGraphBuilder.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaIdentityResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaLocalBusinessResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaNodeIds.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaPresenter.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaVisibleContentResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Seo/BreadcrumbResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Seo/CanonicalResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Seo/HreflangResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Seo/IndexabilityResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Seo/LocalizedSeoResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Seo/MetaDescriptionResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Seo/NativeSeoMetadata.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Seo/NativeSeoPresenter.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Seo/OpenGraphResolver.php",
+                "seo-geo-theme/inc/seo-geo-core/src/Seo/SeoOutputAuthority.php",
+                "seo-geo-theme/inc/setup.php",
+                "seo-geo-theme/inc/strategic.php",
+                "seo-geo-theme/patterns/author-profile.php",
+                "seo-geo-theme/patterns/contact.php",
+                "seo-geo-theme/patterns/cta.php",
+                "seo-geo-theme/patterns/faq.php",
+                "seo-geo-theme/patterns/hero.php",
+                "seo-geo-theme/patterns/services-features.php",
+                "seo-geo-theme/patterns/trust-proof.php",
+                "seo-geo-theme/preset-patterns/corporate-home-final.php",
+                "seo-geo-theme/preset-patterns/corporate-inner-final.php",
+                "seo-geo-theme/preset-patterns/ecommerce-home-final.php",
+                "seo-geo-theme/preset-patterns/ecommerce-inner-final.php",
+                "seo-geo-theme/preset-patterns/local-business-home-final.php",
+                "seo-geo-theme/preset-patterns/local-business-inner-final.php",
+                "seo-geo-theme/preset-patterns/publisher-home-final.php",
+                "seo-geo-theme/preset-patterns/publisher-inner-final.php",
+                "seo-geo-theme/preset-patterns/saas-home-final.php",
+                "seo-geo-theme/preset-patterns/saas-inner-final.php",
+                "seo-geo-theme/preset-templates/corporate-404.php",
+                "seo-geo-theme/preset-templates/corporate-archive.php",
+                "seo-geo-theme/preset-templates/corporate-single.php",
+                "seo-geo-theme/preset-templates/ecommerce-404.php",
+                "seo-geo-theme/preset-templates/ecommerce-archive.php",
+                "seo-geo-theme/preset-templates/ecommerce-single.php",
+                "seo-geo-theme/preset-templates/local-business-404.php",
+                "seo-geo-theme/preset-templates/local-business-archive.php",
+                "seo-geo-theme/preset-templates/local-business-single.php",
+                "seo-geo-theme/preset-templates/publisher-404.php",
+                "seo-geo-theme/preset-templates/publisher-archive.php",
+                "seo-geo-theme/preset-templates/publisher-single.php",
+                "seo-geo-theme/preset-templates/saas-digital-product-404.php",
+                "seo-geo-theme/preset-templates/saas-digital-product-archive.php",
+                "seo-geo-theme/preset-templates/saas-digital-product-single.php",
+                "seo-geo-theme/strategic-templates/corporate-home.php"
+              ],
+              "focus_files_scanned": 104,
+              "limits": {
+                "max_file_bytes": 524288,
+                "max_files": 120,
+                "max_matches": 250
+              },
+              "mode": "bounded-static-seo-data-source-trace",
+              "post_fields": [
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/ContentProvenanceResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaArticleResolver.php"
+                  ],
+                  "key": "post_author"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/functions.php",
+                    "seo-geo-theme/inc/Strategic/CorporateHomeModelResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaVisibleContentResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/MetaDescriptionResolver.php"
+                  ],
+                  "key": "post_content"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php"
+                  ],
+                  "key": "post_excerpt"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/BreadcrumbResolver.php"
+                  ],
+                  "key": "post_parent"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Navigation/PresetNavigationRuntime.php",
+                    "seo-geo-theme/inc/Strategic/CorporateHomeRenderer.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/ContentProvenanceResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Language/NativeTranslationRegistry.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaArticleResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaVisibleContentResolver.php"
+                  ],
+                  "key": "post_status"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/Navigation/PresetNavigationRuntime.php",
+                    "seo-geo-theme/inc/Strategic/CorporateHomeRenderer.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/ContentProvenanceResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternateResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Language/NativeTranslationRegistry.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaArticleResolver.php",
+                    "seo-geo-theme/inc/seo-geo-core/src/Seo/BreadcrumbResolver.php"
+                  ],
+                  "key": "post_type"
+                }
+              ],
+              "write_adapter_ready": false
+            },
+            "declared_contract_count": 0,
+            "hook_name_candidates": [
+              "added_comment_meta",
+              "added_post_meta",
+              "added_term_meta",
+              "added_user_meta",
+              "admin_post_nopriv_seo_geo_contact_submit",
+              "admin_post_seo_geo_auto_home_content",
+              "admin_post_seo_geo_contact_submit",
+              "admin_post_seo_geo_corporate_insights_apply",
+              "admin_post_seo_geo_corporate_insights_rollback",
+              "admin_post_seo_geo_corporate_page_blueprint",
+              "admin_post_seo_geo_corporate_page_create",
+              "admin_post_seo_geo_corporate_page_hydrate",
+              "admin_post_seo_geo_corporate_page_rollback",
+              "admin_post_seo_geo_corporate_page_seo",
+              "admin_post_seo_geo_cutover_accept",
+              "admin_post_seo_geo_cutover_execute",
+              "admin_post_seo_geo_cutover_rollback",
+              "admin_post_seo_geo_migration_capture_baseline",
+              "admin_post_seo_geo_migration_clone_create_job",
+              "admin_post_seo_geo_migration_clone_database_export",
+              "admin_post_seo_geo_migration_clone_delivery_build",
+              "admin_post_seo_geo_migration_clone_delivery_cleanup",
+              "admin_post_seo_geo_migration_clone_delivery_download",
+              "admin_post_seo_geo_migration_clone_file_export",
+              "admin_post_seo_geo_migration_clone_import_database_activation",
+              "admin_post_seo_geo_migration_clone_import_database_restore",
+              "admin_post_seo_geo_migration_clone_import_environment_rewrite",
+              "admin_post_seo_geo_migration_clone_import_file_promotion",
+              "admin_post_seo_geo_migration_clone_import_file_restore",
+              "admin_post_seo_geo_migration_clone_import_finalize_preflight",
+              "admin_post_seo_geo_migration_clone_import_payload",
+              "admin_post_seo_geo_migration_clone_import_preflight",
+              "admin_post_seo_geo_migration_clone_inventory",
+              "admin_post_seo_geo_migration_clone_local_bootstrap_claim",
+              "admin_post_seo_geo_migration_clone_local_bootstrap_release",
+              "admin_post_seo_geo_migration_clone_local_database",
+              "admin_post_seo_geo_migration_clone_local_database_activation",
+              "admin_post_seo_geo_migration_clone_local_environment_rewrite",
+              "admin_post_seo_geo_migration_clone_local_file_promotion",
+              "admin_post_seo_geo_migration_clone_local_files",
+              "admin_post_seo_geo_migration_clone_local_finalization_plan",
+              "admin_post_seo_geo_migration_clone_local_handoff",
+              "admin_post_seo_geo_migration_clone_local_package_handoff_advance",
+              "admin_post_seo_geo_migration_clone_local_payload",
+              "admin_post_seo_geo_migration_clone_local_plan",
+              "admin_post_seo_geo_migration_clone_local_runtime_advance",
+              "admin_post_seo_geo_migration_clone_local_sandbox_runtime_advance",
+              "admin_post_seo_geo_migration_clone_local_target_preflight",
+              "admin_post_seo_geo_migration_clone_package_integrity",
+              "admin_post_seo_geo_migration_execute",
+              "admin_post_seo_geo_migration_review_dependency",
+              "admin_post_seo_geo_migration_sandbox_handoff",
+              "admin_post_seo_geo_native_replatform_apply_reviewed",
+              "admin_post_seo_geo_native_replatform_create_draft",
+              "admin_post_seo_geo_native_replatform_review_evidence",
+              "admin_post_seo_geo_native_replatform_rollback_reviewed",
+              "admin_post_seo_geo_reset_apply_clone_runtime",
+              "admin_post_seo_geo_reset_apply_corporate_bootstrap",
+              "admin_post_seo_geo_reset_apply_home_seo_handoff",
+              "admin_post_seo_geo_reset_capture_rescue_manifest",
+              "admin_post_seo_geo_reset_create_clean_home",
+              "admin_post_seo_geo_reset_create_clean_services",
+              "admin_post_seo_geo_reset_hydrate_home",
+              "admin_post_seo_geo_reset_import_home_content_blueprint",
+              "admin_post_seo_geo_reset_rollback_home_hydration",
+              "admin_post_seo_geo_reset_save_home_content_kit",
+              "auth_comment_meta__wp_note_status",
+              "auth_post_meta_footnotes_for_page",
+              "auth_post_meta_footnotes_for_post",
+              "auth_post_meta_wp_pattern_sync_status_for_wp_block",
+              "auth_user_meta_wp_persisted_preferences",
+              "delete_option_theme_mods_seo-geo-theme",
+              "deleted_comment_meta",
+              "deleted_post_meta",
+              "deleted_term_meta",
+              "deleted_user_meta",
+              "do_robots",
+              "embed_content_meta",
+              "get_the_post_type_description",
+              "link_description",
+              "nav_menu_description",
+              "pre_link_description",
+              "pre_term_description",
+              "pre_user_description",
+              "register_meta_args",
+              "rest_wp_navigation_item_schema",
+              "robots_txt",
+              "sanitize_post_meta_wp_pattern_sync_status_for_wp_block",
+              "seo_geo_canonical_url",
+              "seo_geo_indexability_state",
+              "seo_geo_meta_description",
+              "seo_geo_normalize_authored_text",
+              "seo_geo_open_graph_metadata",
+              "term_description",
+              "update_option_theme_mods_seo-geo-theme",
+              "updated_comment_meta",
+              "updated_post_meta",
+              "updated_term_meta",
+              "updated_user_meta",
+              "wp_robots"
+            ],
+            "registered_meta_candidates": [],
+            "theme_contract_inspection": {
+              "available": true,
+              "bytes_scanned": 599244,
+              "files_scanned": 104,
+              "hook_registrations": [
+                {
+                  "callback": "'seo_geo_theme_normalize_migrated_text'",
+                  "file": "seo-geo-theme/functions.php",
+                  "hook": "seo_geo_normalize_authored_text",
+                  "kind": "add_filter"
+                },
+                {
+                  "callback": "array( $this",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Geo/ContentProvenancePresenter.php",
+                  "hook": "wp_head",
+                  "kind": "add_action"
+                },
+                {
+                  "callback": "array( $this",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Geo/ContentProvenancePresenter.php",
+                  "hook": "seo_geo_open_graph_metadata",
+                  "kind": "add_filter"
+                },
+                {
+                  "callback": "array( $this",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Geo/CrawlerPolicyPresenter.php",
+                  "hook": "robots_txt",
+                  "kind": "add_filter"
+                },
+                {
+                  "callback": "array( $this",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Geo/DiscoveryCacheInvalidator.php",
+                  "hook": "added_post_meta",
+                  "kind": "add_action"
+                },
+                {
+                  "callback": "array( $this",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Geo/DiscoveryCacheInvalidator.php",
+                  "hook": "updated_post_meta",
+                  "kind": "add_action"
+                },
+                {
+                  "callback": "array( $this",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Geo/DiscoveryCacheInvalidator.php",
+                  "hook": "deleted_post_meta",
+                  "kind": "add_action"
+                },
+                {
+                  "callback": "array( $this",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Geo/LlmsTxtPresenter.php",
+                  "hook": "template_redirect",
+                  "kind": "add_action"
+                },
+                {
+                  "callback": "array( $this",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternatePresenter.php",
+                  "hook": "template_redirect",
+                  "kind": "add_action"
+                },
+                {
+                  "callback": "array( $this",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Geo/MarkdownAlternatePresenter.php",
+                  "hook": "wp_head",
+                  "kind": "add_action"
+                },
+                {
+                  "callback": "array( $this",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Language/NativeLanguageRouter.php",
+                  "hook": "redirect_canonical",
+                  "kind": "add_filter"
+                },
+                {
+                  "callback": "array( $this",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Language/NativeLanguageRouter.php",
+                  "hook": "language_attributes",
+                  "kind": "add_filter"
+                },
+                {
+                  "callback": "array( $native_metadata",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Runtime.php",
+                  "hook": "pre_get_document_title",
+                  "kind": "add_filter"
+                },
+                {
+                  "callback": "array( $native_metadata",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Runtime.php",
+                  "hook": "seo_geo_meta_description",
+                  "kind": "add_filter"
+                },
+                {
+                  "callback": "array( $native_metadata",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Runtime.php",
+                  "hook": "seo_geo_indexability_state",
+                  "kind": "add_filter"
+                },
+                {
+                  "callback": "array( $native_metadata",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Runtime.php",
+                  "hook": "seo_geo_canonical_url",
+                  "kind": "add_filter"
+                },
+                {
+                  "callback": "array( self::$localized_seo",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Runtime.php",
+                  "hook": "seo_geo_indexability_state",
+                  "kind": "add_filter"
+                },
+                {
+                  "callback": "array( self::$localized_seo",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Runtime.php",
+                  "hook": "seo_geo_canonical_url",
+                  "kind": "add_filter"
+                },
+                {
+                  "callback": "array( $this",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Schema/SchemaPresenter.php",
+                  "hook": "wp_head",
+                  "kind": "add_action"
+                },
+                {
+                  "callback": "array( $this",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Seo/NativeSeoPresenter.php",
+                  "hook": "wp_head",
+                  "kind": "add_action"
+                },
+                {
+                  "callback": "array( $this",
+                  "file": "seo-geo-theme/inc/seo-geo-core/src/Seo/NativeSeoPresenter.php",
+                  "hook": "wp_robots",
+                  "kind": "add_filter"
+                }
+              ],
+              "limits": {
+                "max_file_bytes": 524288,
+                "max_files": 120,
+                "max_matches": 200
+              },
+              "meta_keys": [],
+              "mode": "bounded-static-theme-source",
+              "option_keys": [
+                {
+                  "files": [
+                    "seo-geo-theme/inc/presets.php"
+                  ],
+                  "key": "seo_geo_active_preset"
+                },
+                {
+                  "files": [
+                    "seo-geo-theme/inc/seo-geo-core/src/Plugin.php"
+                  ],
+                  "key": "seo_geo_core_version"
+                }
+              ],
+              "output_tokens": "[REDACTED]",
+              "storage_evidence": {
+                "options": true,
+                "post_meta": false
+              },
+              "write_adapter_ready": false
+            }
+          },
+          "next_action": "use-semantic-native-seo-adapter",
+          "outputs": {
+            "canonical": {
+              "owner": "seo-geo-theme",
+              "resolved": true,
+              "state": "derived-read-only",
+              "writable": false
+            },
+            "hreflang": {
+              "owner": "seo-geo-theme",
+              "resolved": true,
+              "state": "derived-read-only",
+              "writable": false
+            },
+            "open-graph": {
+              "owner": "seo-geo-theme",
+              "resolved": true,
+              "state": "derived-from-governed-native-sources",
+              "writable": false
+            },
+            "robots": {
+              "owner": "seo-geo-theme",
+              "resolved": true,
+              "state": "derived-read-only",
+              "writable": false
+            },
+            "schema": {
+              "owner": "seo-geo-theme",
+              "resolved": true,
+              "state": "derived-from-governed-native-sources",
+              "writable": false
+            },
+            "sitemap": {
+              "owner": "seo-geo-theme",
+              "resolved": true,
+              "state": "derived-read-only",
+              "writable": false
+            },
+            "title-meta": {
+              "owner": "seo-geo-theme",
+              "resolved": true,
+              "state": "derived-from-governed-native-sources",
+              "writable": true
+            }
+          },
+          "safe_to_write_seo_metadata": true,
+          "state": "resolved-semantic-native-write-ready",
+          "writable_inputs": {
+            "description": {
+              "reversible": true,
+              "side_effect": "Changes the native WordPress excerpt and may affect visible excerpt surfaces.",
+              "source": "post_excerpt"
+            },
+            "title": {
+              "reversible": true,
+              "side_effect": "Changes the native WordPress title.",
+              "source": "post_title"
+            }
+          },
+          "write_adapter_ready": true,
+          "write_mode": "semantic-native-sources"
+        },
+        "taxonomies": [
+          {
+            "hierarchical": true,
+            "label": "Categorías",
+            "name": "category",
+            "object_types": [
+              "post"
+            ],
+            "show_in_rest": true
+          },
+          {
+            "hierarchical": false,
+            "label": "Etiquetas",
+            "name": "post_tag",
+            "object_types": [
+              "post"
+            ],
+            "show_in_rest": true
+          },
+          {
+            "hierarchical": false,
+            "label": "Formatos",
+            "name": "post_format",
+            "object_types": [
+              "post"
+            ],
+            "show_in_rest": false
+          }
+        ],
+        "theme": {
+          "block_theme": true,
+          "child_theme": false,
+          "name": "SEO GEO Starter",
+          "stylesheet": "seo-geo-theme",
+          "supports": {
+            "block_templates": true,
+            "custom_logo": false,
+            "editor_styles": true,
+            "menus": true,
+            "title_tag": false
+          },
+          "template": "seo-geo-theme",
+          "version": "0.1.1"
+        },
+        "urls": {
+          "home": "https://emmake.com/nuevaweb/",
+          "https": true,
+          "rest": "https://emmake.com/nuevaweb/wp-json/",
+          "site": "https://emmake.com/nuevaweb/"
+        }
+      },
+      "metadata": {
+        "source": "local-runtime"
+      },
+      "platform": {
+        "adapter": "wordpress-core",
+        "metadata": {
+          "environment": "production",
+          "locale": "es_ES",
+          "multisite": false,
+          "php": "8.5.12"
+        },
+        "platform": "wordpress",
+        "version": "7.1.4"
+      },
+      "schema_version": "1"
+    }
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "site.read",
+  "site": "emmake-nuevaweb",
+  "stage": "read",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
