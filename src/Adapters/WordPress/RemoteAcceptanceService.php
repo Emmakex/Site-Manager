@@ -96,11 +96,6 @@ final class RemoteAcceptanceService
             throw new RuntimeException('mcp_not_connected');
         }
 
-        $missing = array_values(array_diff($requiredScopes, (new RemoteConnectionStore())->grantedScopes()));
-        if ([] !== $missing) {
-            throw new RuntimeException('mcp_acceptance_missing_scopes:' . implode(',', $missing));
-        }
-
         $current = $this->current();
         if (in_array((string) ($current['status'] ?? ''), ['queued','running','cleaning'], true)) {
             if ((string) ($current['profile'] ?? '') !== $profile) {
@@ -111,6 +106,11 @@ final class RemoteAcceptanceService
                 throw new RuntimeException('mcp_content_acceptance_already_active');
             }
             return $current;
+        }
+
+        $missing = array_values(array_diff($requiredScopes, (new RemoteConnectionStore())->grantedScopes()));
+        if ([] !== $missing) {
+            throw new RuntimeException('mcp_acceptance_missing_scopes:' . implode(',', $missing));
         }
 
         $connection = (new RemoteConnectionStore())->publicState();
