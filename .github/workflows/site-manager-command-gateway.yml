@@ -123,7 +123,7 @@ jobs:
             '${{ needs.resolve.outputs.path }}' \
             --result-dir commands/site-manager/results
 
-      - name: Execute bounded production MCP read
+      - name: Execute bounded production MCP operation
         id: execute
         if: steps.guard.outputs.decision == 'new'
         shell: bash
