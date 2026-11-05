@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.11.3
+Stable tag: 0.11.4
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -15,6 +15,8 @@ Site Manager is a platform-neutral control plane. WordPress is its first adapter
 On activation Site Manager performs a bounded local discovery of the installation, including runtime, routing, active theme, public content types, taxonomies, navigation providers, active plugins and known providers. Detection never grants write access.
 
 The WordPress admin surface follows the configured WordPress/user locale. English is the source language and Spanish (`es_ES`) is bundled.
+
+Version 0.11.4 adds an isolated content-only MCP acceptance profile for authorized ChatGPT operations. It creates only a disposable draft, executes the existing governed title update and rollback, verifies both and deletes the draft. Navigation/SEO acceptance is excluded. The full legacy Acceptance Center test remains unchanged. This operation requires explicit site.read + content.write scopes and a bound write principal; no scopes are automatically added.
 
 Version 0.11.3 refreshes Site Manager > Tests once after an MCP acceptance run transitions from an active state (`queued`, `running` or `cleaning`) to `completed` or `failed`. This keeps server-rendered failure evidence and Recent runs synchronized with the persisted terminal state without creating reload loops when the page is opened on an already-terminal run.
 
@@ -47,7 +49,7 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 
 == Installation ==
 
-1. Upload the official `site-manager-0.11.3.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.11.4.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review Site Manager > Dashboard and Site Manager > Diagnostics.
@@ -57,6 +59,12 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 8. When remote access is required, generate a scoped token and copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.11.4 =
+* Reuses the existing remote draft fixture and plan/apply/verify/rollback/cleanup lifecycle through a content-only profile.
+* Adds a strictly scoped acceptance start endpoint for the MCP without arbitrary post IDs or new content-write paths.
+* Rejects concurrent fixture acceptance or active full-suite jobs; preserves the existing full Acceptance Center.
+* Restricts acceptance to site.read and explicitly authorized content.write, and does not touch navigation/SEO.
 
 = 0.11.3 =
 * Refreshes Site Manager > Tests once when an MCP acceptance run transitions from active to `completed` or `failed`.
