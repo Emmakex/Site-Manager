@@ -45,6 +45,14 @@
       },
       "required_scope": "seo.write",
       "read_only": false
+    },
+    "navigation.acceptance": {
+      "tools": {
+        "start": "navigation_acceptance_start",
+        "status": "navigation_acceptance_status"
+      },
+      "required_scope": "navigation.write",
+      "read_only": false
     }
   }
 }
