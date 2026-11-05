@@ -29,6 +29,8 @@ Infrastructure such as persistent MCP runtimes, Docker, SSH and WP-CLI may suppo
 
 Detailed Command Gateway contract and per-site environment model: [`docs/COMMAND_GATEWAY.md`](docs/COMMAND_GATEWAY.md).
 
+Operator site selection: the proof-backed [`docs/SITE_CATALOG.md`](docs/SITE_CATALOG.md) catalog lists only enrolled logical sites with past verified `site.overview` evidence. A selected site always needs a fresh protected-environment read before any plan. No customer GitHub repository is required.
+
 ## Product principle
 
 **Install / connect → discover → classify → expose capabilities → govern safely → verify → audit / rollback**
