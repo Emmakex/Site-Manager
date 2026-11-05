@@ -19,13 +19,15 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from site_manager_site_overview import OverviewError, summarize_site_overview
+
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = ROOT / "config" / "site-manager-command-registry.json"
 SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance"}
+SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview"}
 SEO_ACCEPTANCE_TOOLS = {"start": "seo_acceptance_start", "status": "seo_acceptance_status"}
 SEO_ACCEPTANCE_PROFILE = "mcp-seo-only"
 SEO_ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "seo_plan", "seo_apply_verify", "seo_rollback", "cleanup")
@@ -45,7 +47,7 @@ ACCEPTANCE_TOOLS = {"start": "content_acceptance_start", "status": "content_acce
 ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "content_plan", "content_apply_verify", "content_rollback", "cleanup")
 ACCEPTANCE_PROFILE = "mcp-content-only"
 ACCEPTANCE_TIMEOUT_SECONDS = 420
-READ_ACTIONS = {"site.read", "site.diagnostics"}
+READ_ACTIONS = {"site.read", "site.diagnostics", "site.overview"}
 CONTENT_STAGES = {"plan", "apply", "rollback"}
 CONTENT_TOOLS = {
     "plan": "content_update_plan",
@@ -57,6 +59,7 @@ CONTENT_STATUSES = {"draft", "publish", "private", "pending"}
 EXPECTED_TOOLS = {
     "site.read": ("site_read", "site.read"),
     "site.diagnostics": ("site_diagnostics", "site.diagnostics"),
+    "site.overview": ("site_read", "site.read"),
 }
 MAX_RESULT_BYTES = 512_000
 SENSITIVE_KEY_PARTS = ("token", "secret", "password", "authorization", "cookie")
@@ -980,7 +983,14 @@ def execute(command_path: Path, result_dir: Path) -> int:
                 k: v for k, v in command["payload"].items() if k != "stage"
             }
             data = client.call(tool, tool_args)
-            if stage == "read":
+            if action_name == "site.overview":
+                try:
+                    overview = summarize_site_overview(data)
+                except OverviewError as exc:
+                    raise VerificationError(str(exc)) from exc
+                verified = True
+                sanitized = sanitize_value(overview, token)
+            elif stage == "read":
                 verified = True
                 sanitized = sanitize_value(data, token)
             elif action_name == "content.update":
@@ -1117,6 +1127,15 @@ def self_test() -> int:
         "payload": {},
     }
     validate_command(valid, registry)
+    overview_command = {**valid, "action": "site.overview", "payload": {}}
+    validate_command(overview_command, registry)
+    for invalid_overview in ({"scope": "seo.write"}, {"site": "another-site"}, {"provider": "yoast"}):
+        try:
+            validate_command({**overview_command, "payload": invalid_overview}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("site.overview accepted caller-supplied transport or provider intent")
 
     invalid = dict(valid)
     invalid["mcp_url"] = "https://attacker.invalid/mcp"
