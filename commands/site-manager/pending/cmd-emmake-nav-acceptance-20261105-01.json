@@ -1,10 +1,1 @@
-{
-  "version": "1",
-  "command_id": "cmd-emmake-nav-acceptance-20261105-01",
-  "site": "emmake-nuevaweb",
-  "action": "navigation.acceptance",
-  "requested_by": "chatgpt",
-  "payload": {
-    "confirmed": true
-  }
-}
+{"version":"1","command_id":"cmd-emmake-nav-acceptance-20261105-01","site":"emmake-nuevaweb","action":"navigation.acceptance","requested_by":"chatgpt","payload":{"confirmed":true}}
