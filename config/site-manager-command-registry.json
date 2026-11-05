@@ -61,6 +61,11 @@
       },
       "required_scope": "seo.write",
       "read_only": false
+    },
+    "site.overview": {
+      "tool": "site_read",
+      "required_scope": "site.read",
+      "read_only": true
     }
   }
 }
