@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update"}
+expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 assert registry["actions"]["site.read"] == {
@@ -40,6 +40,11 @@ assert registry["actions"]["content.acceptance"] == {
 assert registry["actions"]["navigation.update"] == {
     "tools": {"plan": "navigation_update_plan", "apply": "navigation_update_apply", "rollback": "navigation_update_rollback"},
     "required_scope": "navigation.write",
+    "read_only": False,
+}
+assert registry["actions"]["seo.update"] == {
+    "tools": {"plan": "seo_update_plan", "apply": "seo_update_apply", "rollback": "seo_update_rollback"},
+    "required_scope": "seo.write",
     "read_only": False,
 }
 
@@ -82,7 +87,21 @@ for stage in navigation_stages:
     else:
         assert set(stage["required"]) == {"stage", "plan_id", "confirmed"}
         assert stage["properties"]["confirmed"]["const"] is True
-assert navigation_rule["else"]["properties"]["payload"] == {
+seo_rule = navigation_rule["else"]
+assert seo_rule["if"]["properties"]["action"]["const"] == "seo.update"
+seo_stages = seo_rule["then"]["properties"]["payload"]["oneOf"]
+assert len(seo_stages) == 3
+assert all(stage["additionalProperties"] is False for stage in seo_stages)
+assert {stage["properties"]["stage"]["const"] for stage in seo_stages} == {"plan", "apply", "rollback"}
+assert set(seo_stages[0]["required"]) == {"stage", "post_id", "fields"}
+assert seo_stages[0]["properties"]["fields"]["additionalProperties"] is False
+assert set(seo_stages[0]["properties"]["fields"]["properties"]) == {
+    "title", "description", "canonical", "indexability"
+}
+for stage in seo_stages[1:]:
+    assert stage["properties"]["confirmed"]["const"] is True
+    assert set(stage["required"]) == {"stage", "plan_id", "confirmed"}
+assert seo_rule["else"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False, "maxProperties": 0
 }
 stages = conditional["then"]["properties"]["payload"]["oneOf"]
@@ -108,6 +127,10 @@ assert "tool" not in example
 assert "EXPECTED_TOOLS" in runner
 assert "CONTENT_TOOLS" in runner
 assert "NAVIGATION_TOOLS" in runner
+assert "SEO_TOOLS" in runner
+assert "validate_seo_payload" in runner
+assert "verify_seo_response" in runner
+assert "sanitize_seo_evidence" in runner
 assert "validate_navigation_payload" in runner
 assert "verify_navigation_response" in runner
 assert "ACCEPTANCE_TOOLS" in runner

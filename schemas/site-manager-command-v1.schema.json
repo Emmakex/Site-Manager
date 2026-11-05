@@ -30,7 +30,8 @@
         "site.diagnostics",
         "content.update",
         "content.acceptance",
-        "navigation.update"
+        "navigation.update",
+        "seo.update"
       ]
     },
     "requested_by": {
@@ -380,11 +381,126 @@
             }
           },
           "else": {
-            "properties": {
-              "payload": {
-                "type": "object",
-                "additionalProperties": false,
-                "maxProperties": 0
+            "if": {
+              "properties": {
+                "action": {
+                  "const": "seo.update"
+                }
+              },
+              "required": [
+                "action"
+              ]
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "stage",
+                        "post_id",
+                        "fields"
+                      ],
+                      "properties": {
+                        "stage": {
+                          "const": "plan"
+                        },
+                        "post_id": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "fields": {
+                          "type": "object",
+                          "minProperties": 1,
+                          "additionalProperties": false,
+                          "properties": {
+                            "title": {
+                              "type": "string",
+                              "maxLength": 500
+                            },
+                            "description": {
+                              "type": "string",
+                              "maxLength": 5000
+                            },
+                            "canonical": {
+                              "type": "string",
+                              "maxLength": 4096
+                            },
+                            "indexability": {
+                              "type": "string",
+                              "enum": [
+                                "default",
+                                "index",
+                                "noindex"
+                              ]
+                            }
+                          }
+                        },
+                        "reason": {
+                          "type": "string",
+                          "maxLength": 500
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "stage",
+                        "plan_id",
+                        "confirmed"
+                      ],
+                      "properties": {
+                        "stage": {
+                          "const": "apply"
+                        },
+                        "plan_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "pattern": "^[A-Za-z0-9_-]+$"
+                        },
+                        "confirmed": {
+                          "const": true
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "stage",
+                        "plan_id",
+                        "confirmed"
+                      ],
+                      "properties": {
+                        "stage": {
+                          "const": "rollback"
+                        },
+                        "plan_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "pattern": "^[A-Za-z0-9_-]+$"
+                        },
+                        "confirmed": {
+                          "const": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "payload": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "maxProperties": 0
+                }
               }
             }
           }

@@ -148,7 +148,7 @@ Planned next bounded actions after read-only acceptance:
 
 - `content.update` — staged write family described below;
 - `navigation.update` — staged, provider-aware menu governance (this cut).
-- `seo.update` — still outside the Gateway; independent future cut.
+- `seo.update` — provider-authoritative semantic SEO governance (independent cut).
 
 Each must reuse Site Manager's existing `plan → explicit confirmation → apply → verify → rollback` contracts. The Gateway must never bypass Site Manager by writing WordPress/provider storage directly.
 
@@ -255,8 +255,9 @@ rollback evidence is retained for up to 24 hours by the WordPress plan store.
 - No client site is required to use GitHub: it is the central operator's
   command transport.
 - `navigation.update` is supported only through its separate closed, provider-aware
-  Gateway cut. `seo.update` remains unsupported in the Gateway pending
-  independent engineering/acceptance; its pre-existing MCP operations are unchanged.
+  Gateway cut. `seo.update` is now separately supported through scoped,
+  provider-authoritative semantic inputs; existing MCP/WordPress governance
+  remains the sole authority on provider ownership.
 
 **Production acceptance gate:** merge only when contract tests pass on the
 final PR head. Real content apply/rollback must be exercised solely on a
@@ -418,3 +419,111 @@ mutate any live menu. A later **navigation-only disposable fixture**
 acceptance must be separately designed/authorized, without running
 the existing full content+navigation+SEO Acceptance Center on customer
 production data. The SEO Gateway remains a separate future cut.
+
+
+## SM-4F seo.update — provider-authoritative semantic governance
+
+The GitHub Command Gateway supports `seo.update` as a **separate**
+business action with the explicitly granted `seo.write` scope. The
+existing MCP `seo_update_plan`, `seo_update_apply`,
+`seo_update_rollback` tools are fixed by the trusted registry. No
+arbitrary plugin meta, WordPress REST routes, endpoints, SQL, PHP or
+caller-selected provider adapter can be submitted.
+
+Supported semantic fields (subject to WordPress's actual discovered provider):
+
+- `title` — SEO title (up to 500 characters)
+- `description` — SEO description (up to 5000 characters)
+- `canonical` — absolute HTTP(S) canonical URL, or empty to clear where supported
+- `indexability` — `default`, `index`, `noindex`
+
+**These fields are not universally writable.** WordPress Site Manager's
+SeoProviderRegistry selects the actual active owner of SEO metadata and
+validates writable inputs. For example, the SEO/GEO Theme adapter
+supports semantic title/description through native WordPress fields, and
+may reject canonical/indexability changes. Yoast, Rank Math and AIOSEO
+have independent provider adapters with their own support limits. The
+Gateway neither assumes a provider nor writes storage keys directly.
+Theme-derived output may change as a side effect; the preview must be
+reviewed before confirmation.
+
+**Plan** (no WordPress changes; unique command ID):
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-seo-plan-example-01",
+  "site": "acceptance-site",
+  "action": "seo.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_id": 123,
+    "fields": {
+      "title": "Proposed SEO title",
+      "description": "Proposed meta description"
+    },
+    "reason": "Review SEO improvement"
+  }
+}
+```
+
+The Gateway validates the exact requested semantic field set, WordPress
+post target, `planned` status, `reversible`, explicit confirmation
+requirement and provider/semantic preview evidence. The GitHub result
+contains only plan ID, post ID/type, semantic and storage **field names**,
+derived output count and lifecycle status, never the old or new SEO values.
+A plan is reported as `status=success`, **`verified=false`**.
+
+**Apply**, after the user explicitly approves the reviewed target/change
+(never automatic, always a fresh command ID):
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-seo-apply-example-01",
+  "site": "acceptance-site",
+  "action": "seo.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-0123456789abcdef01234567",
+    "confirmed": true
+  }
+}
+```
+
+Only `status=verified`, `plan.status=applied`, successful execution
+and WordPress provider read-back `verification.verified=true` produce
+a verified apply. The WordPress plan binds provider, connection,
+generation, site/target fingerprints and stale-state checks.
+
+**Rollback**, independently approved with a separate command ID:
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-seo-rollback-example-01",
+  "site": "acceptance-site",
+  "action": "seo.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "rollback",
+    "plan_id": "sm-plan-0123456789abcdef01234567",
+    "confirmed": true
+  }
+}
+```
+
+Only the WordPress-authoritative `rolled-back` response with
+`rollback.success=true` qualifies as restored. Expired,
+already-used, connection-mismatched or stale plans fail closed.
+
+**Deployment/acceptance:** this cut modifies Gateway registry, schema,
+runner, self-tests, examples and docs. It does not require a new WordPress
+plugin or MCP image, grant new scopes, apply any SEO change to
+`emmake.com/nuevaweb`, or create SEO fixtures. A future SEO-only
+disposable acceptance should exercise actual apply/rollback through a
+separately authorized, isolated draft, without affecting production SEO,
+theme routing, navigation or client content. Existing GitHub idempotent
+replay guards apply to all SEO commands.

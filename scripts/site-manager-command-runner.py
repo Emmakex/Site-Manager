@@ -25,7 +25,10 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update"}
+SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update"}
+SEO_TOOLS = {"plan": "seo_update_plan", "apply": "seo_update_apply", "rollback": "seo_update_rollback"}
+SEO_FIELD_LIMITS = {"title": 500, "description": 5000, "canonical": 4096, "indexability": 12}
+SEO_INDEXABILITY = {"default", "index", "noindex"}
 NAVIGATION_TOOLS = {"plan": "navigation_update_plan", "apply": "navigation_update_apply", "rollback": "navigation_update_rollback"}
 NAVIGATION_FIELDS = {
     "wordpress-classic-menu": {"title": 500, "url": 4096, "description": 5000, "attr_title": 500,
@@ -123,6 +126,14 @@ def validate_registry(registry: dict[str, Any]) -> None:
     if navigation["read_only"] is not False:
         raise CommandError("navigation.update cannot be marked read-only")
 
+    seo = actions.get("seo.update")
+    if not isinstance(seo, dict) or set(seo) != {"tools", "required_scope", "read_only"}:
+        raise CommandError("seo.update must be a closed provider-aware business action")
+    if seo["tools"] != SEO_TOOLS or seo["required_scope"] != "seo.write":
+        raise CommandError("seo.update must route only to accepted Site Manager SEO governance tools")
+    if seo["read_only"] is not False:
+        raise CommandError("seo.update cannot be marked read-only")
+
 
 def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
     allowed = {"version", "command_id", "site", "action", "requested_by", "payload"}
@@ -162,6 +173,8 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
             raise CommandError("content-only acceptance requires exact confirmed=true, with no caller-selected target")
     elif action == "navigation.update":
         validate_navigation_payload(payload)
+    elif action == "seo.update":
+        validate_seo_payload(payload)
     else:
         raise CommandError("unregistered business action")
 
@@ -256,6 +269,44 @@ def validate_navigation_payload(payload: dict[str, Any]) -> None:
             raise CommandError("navigation mutations require explicit confirmed=true")
     else:
         raise CommandError("unsupported navigation.update stage")
+
+
+def validate_seo_payload(payload: dict[str, Any]) -> None:
+    """Only semantic SEO fields; never accept selected providers, storage keys or arbitrary routes."""
+    stage = payload.get("stage")
+    if stage == "plan":
+        if not {"stage", "post_id", "fields"} <= set(payload):
+            raise CommandError("SEO plan requires post_id and semantic fields")
+        if set(payload) - {"stage", "post_id", "fields", "reason"}:
+            raise CommandError("SEO plan contains unsupported fields, providers or transport options")
+        post_id = payload["post_id"]
+        if type(post_id) is not int or post_id < 1:
+            raise CommandError("SEO post_id must be a positive integer")
+        fields = payload["fields"]
+        if not isinstance(fields, dict) or not fields or set(fields) - SEO_FIELD_LIMITS.keys():
+            raise CommandError("unsupported SEO semantic fields")
+        for field, value in fields.items():
+            if not isinstance(value, str) or len(value) > SEO_FIELD_LIMITS[field]:
+                raise CommandError(f"invalid SEO field {field} type or length")
+            if field == "indexability" and value not in SEO_INDEXABILITY:
+                raise CommandError("unsupported SEO indexability")
+            if field == "canonical" and value:
+                parsed = urlparse(value)
+                if (parsed.scheme not in {"http", "https"} or not parsed.netloc
+                        or parsed.username or parsed.password or any(c.isspace() for c in value)):
+                    raise CommandError("SEO canonical must be a safe absolute HTTP(S) URL or empty")
+        reason = payload.get("reason")
+        if reason is not None and (not isinstance(reason, str) or len(reason) > 500):
+            raise CommandError("SEO reason must be a bounded string")
+    elif stage in {"apply", "rollback"}:
+        if set(payload) != {"stage", "plan_id", "confirmed"}:
+            raise CommandError("SEO apply/rollback requires only plan_id and explicit confirmation")
+        if not isinstance(payload["plan_id"], str) or re.fullmatch(r"[A-Za-z0-9_-]{1,200}", payload["plan_id"]) is None:
+            raise CommandError("invalid SEO plan ID")
+        if payload["confirmed"] is not True:
+            raise CommandError("SEO mutations require exact confirmed=true")
+    else:
+        raise CommandError("unsupported seo.update stage")
 
 
 def validate_mcp_url(value: str) -> str:
@@ -492,6 +543,77 @@ def verify_navigation_response(stage: str, data: Any, request: dict[str, Any]) -
     raise VerificationError("unknown navigation verification stage")
 
 
+def verify_seo_response(stage: str, data: Any, request: dict[str, Any]) -> bool:
+    """Require verification by the real WordPress SEO authority, not merely MCP transport success."""
+    if not isinstance(data, dict) or not isinstance(data.get("plan"), dict):
+        raise VerificationError("SEO tool did not return a governed WordPress plan")
+    plan = data["plan"]
+    if plan.get("capability_id") != "seo.write" or plan.get("operation") != "seo.update":
+        raise VerificationError("SEO plan capability/operation owner mismatch")
+    plan_id = plan.get("plan_id")
+    if not isinstance(plan_id, str) or not plan_id.startswith("sm-plan-"):
+        raise VerificationError("WordPress SEO plan ID missing or invalid")
+    if plan.get("confirmation_required") is not True:
+        raise VerificationError("SEO write did not require explicit confirmation")
+    if stage == "plan":
+        target = plan.get("target")
+        if not isinstance(target, dict) or target.get("post_id") != request["post_id"]:
+            raise VerificationError("SEO plan targets a different WordPress post")
+        if plan.get("status") != "planned" or plan.get("reversible") is not True:
+            raise VerificationError("SEO plan not safely planned and reversible")
+        if not isinstance(plan.get("fields"), list) or set(plan["fields"]) != set(request["fields"]):
+            raise VerificationError("WordPress SEO provider changed the requested semantic field set")
+        changes = data.get("changes")
+        if (not isinstance(changes, dict) or not isinstance(changes.get("requested"), dict)
+                or not isinstance(changes.get("storage_before"), dict)
+                or not isinstance(changes.get("planned_storage"), dict)
+                or not isinstance(changes.get("derived_outputs"), list)):
+            raise VerificationError("SEO provider did not return semantic/provider preview evidence")
+        if set(changes["requested"]) != set(request["fields"]):
+            raise VerificationError("SEO preview does not match requested semantic fields")
+        return False
+    if plan_id != request["plan_id"]:
+        raise VerificationError("SEO apply/rollback plan ID mismatch")
+    if stage == "apply":
+        execution = data.get("execution")
+        verification = data.get("verification")
+        if (data.get("status") != "verified" or plan.get("status") != "applied"
+                or not isinstance(execution, dict) or execution.get("success") is not True
+                or not isinstance(verification, dict) or verification.get("verified") is not True):
+            raise VerificationError("SEO apply lacks read-back verification by WordPress authority")
+        return True
+    if stage == "rollback":
+        rollback = data.get("rollback")
+        if (data.get("status") != "rolled-back" or plan.get("status") != "rolled-back"
+                or not isinstance(rollback, dict) or rollback.get("success") is not True):
+            raise VerificationError("SEO rollback lacks verified restoration")
+        return True
+    raise VerificationError("invalid SEO verification stage")
+
+
+def sanitize_seo_evidence(stage: str, data: dict[str, Any], token: str) -> dict[str, Any]:
+    """SEO preview is semantic/provider-specific; never persist actual SEO values in GitHub."""
+    if stage != "plan":
+        return sanitize_write_evidence(stage, data, token)
+    plan = data["plan"]
+    safe_keys = ("plan_id", "status", "capability_id", "operation", "target", "fields",
+                 "reversible", "confirmation_required", "created_at", "expires_at",
+                 "rollback_retained_until")
+    safe_plan = {k: plan[k] for k in safe_keys if k in plan}
+    preview = data["changes"]
+    return sanitize_value({
+        "stage": "plan",
+        "plan": safe_plan,
+        "preview": {
+            "semantic_fields": list(preview["requested"]),
+            "storage_fields": list(preview["planned_storage"]),
+            "original_storage_fields": list(preview["storage_before"]),
+            "derived_output_count": len(preview["derived_outputs"]),
+            "values_retained_in_github": False,
+        },
+    }, token)
+
+
 def sanitize_write_evidence(stage: str, data: dict[str, Any], token: str) -> dict[str, Any]:
     """Keep plan identifiers/statuses, not full pre-change WordPress content in Git history."""
     plan = data["plan"]
@@ -657,9 +779,12 @@ def execute(command_path: Path, result_dir: Path) -> int:
             elif action_name == "content.update":
                 verified = verify_content_response(stage, data, command["payload"])
                 sanitized = sanitize_write_evidence(stage, data, token)
-            else:
+            elif action_name == "navigation.update":
                 verified = verify_navigation_response(stage, data, command["payload"])
                 sanitized = sanitize_write_evidence(stage, data, token)
+            else:
+                verified = verify_seo_response(stage, data, command["payload"])
+                sanitized = sanitize_seo_evidence(stage, data, token)
 
         result = {
             "version": "1",
@@ -756,8 +881,16 @@ def self_test() -> int:
     if (not isinstance(nav_stages, list) or len(nav_stages) != 4
             or not all(isinstance(item, dict) and item.get("additionalProperties") is False for item in nav_stages)):
         raise CommandError("navigation.update must have four closed provider/stage payload variants")
-    if navigation_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0:
-        raise CommandError("other business actions must continue to reject unknown payload keys")
+    seo_rule = navigation_rule.get("else", {})
+    if (not isinstance(seo_rule, dict) or
+            seo_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "seo.update"):
+        raise CommandError("seo.update must be an independently constrained business action")
+    seo_variants = seo_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])
+    if (not isinstance(seo_variants, list) or len(seo_variants) != 3
+            or not all(isinstance(x, dict) and x.get("additionalProperties") is False for x in seo_variants)):
+        raise CommandError("SEO must have three closed staged payloads")
+    if seo_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0:
+        raise CommandError("unsupported business actions must reject unknown payloads")
 
     valid = {
         "version": "1",
@@ -985,6 +1118,87 @@ def self_test() -> int:
                 pass
             else:
                 raise CommandError("unverified or cross-plan navigation mutation was accepted")
+
+    seo_plan = {
+        "stage": "plan", "post_id": 77,
+        "fields": {"title": "Semantic SEO title", "description": "Meta description"},
+        "reason": "Review governed SEO title"
+    }
+    seo_cmd = {**valid, "action": "seo.update", "payload": seo_plan}
+    validate_command(seo_cmd, registry)
+    for invalid_seo in (
+        {**seo_plan, "post_id": False},
+        {**seo_plan, "fields": {}},
+        {**seo_plan, "fields": {"yoast_wpseo_title": "arbitrary meta"}},
+        {**seo_plan, "fields": {"canonical": "javascript:alert(1)"}},
+        {**seo_plan, "fields": {"canonical": "//untrusted.example"}},
+        {**seo_plan, "fields": {"canonical": "https://user:password@example.test/"}},
+        {**seo_plan, "fields": {"indexability": "remove"}},
+        {**seo_plan, "fields": {"indexability": True}},
+        {**seo_plan, "seo_provider": "yoast"},
+        {"stage": "apply", "plan_id": "sm-plan-test", "confirmed": False},
+        {"stage": "rollback", "plan_id": "sm-plan-test", "confirmed": "true"},
+        {"stage": "apply", "plan_id": "sm-plan-test", "confirmed": True, "route": "wp-json"},
+    ):
+        try:
+            validate_command({**seo_cmd, "payload": invalid_seo}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("unsafe semantic SEO payload was accepted")
+
+    seo_id = "sm-plan-seo0123456789abcdef01234"
+    seo_response = {
+        "plan": {
+            "plan_id": seo_id, "status": "planned", "capability_id": "seo.write",
+            "operation": "seo.update", "target": {"post_id": 77, "post_type": "page"},
+            "fields": ["title", "description"], "confirmation_required": True, "reversible": True,
+        },
+        "changes": {
+            "requested": {"title": "Semantic SEO title", "description": "Meta description"},
+            "storage_before": {"_private_seo_title": "confidential old value"},
+            "planned_storage": {"_private_seo_title": "private planned value"},
+            "derived_outputs": ["meta", "opengraph"],
+        },
+    }
+    if verify_seo_response("plan", seo_response, seo_plan) is not False:
+        raise CommandError("SEO planning incorrectly reported a verified mutation")
+    safe_seo = sanitize_seo_evidence("plan", seo_response, "")
+    if any(txt in json.dumps(safe_seo) for txt in
+           ("Semantic SEO title", "confidential old value", "private planned value")):
+        raise CommandError("SEO plan preview leaked private provider storage or semantic content")
+    for malformed in (
+        {**seo_response, "plan": {**seo_response["plan"], "target": {"post_id": 999}}},
+        {**seo_response, "plan": {**seo_response["plan"], "fields": ["title"]}},
+        {**seo_response, "plan": {**seo_response["plan"], "confirmation_required": False}},
+        {**seo_response, "changes": {**seo_response["changes"], "requested": {"unknown": "x"}}},
+    ):
+        try:
+            verify_seo_response("plan", malformed, seo_plan)
+        except VerificationError:
+            pass
+        else:
+            raise CommandError("SEO plan missing provider ownership evidence was accepted")
+    for phase in ("apply", "rollback"):
+        confirmed = {"stage": phase, "plan_id": seo_id, "confirmed": True}
+        validate_command({**seo_cmd, "payload": confirmed}, registry)
+        success = {"plan": {**seo_response["plan"], "status": "applied" if phase == "apply" else "rolled-back"}}
+        if phase == "apply":
+            success.update(status="verified", execution={"success": True}, verification={"verified": True})
+        else:
+            success.update(status="rolled-back", rollback={"success": True})
+        if verify_seo_response(phase, success, confirmed) is not True:
+            raise CommandError("verified SEO mutation was rejected")
+        for invalid_response in (
+            {**success, "plan": {**success["plan"], "plan_id": "sm-plan-different"}},
+            {**success, **({"verification": {"verified": False}} if phase == "apply" else {"rollback": {"success": False}})},
+        ):
+            try:
+                verify_seo_response(phase, invalid_response, confirmed)
+            except VerificationError:
+                pass
+            else:
+                raise CommandError("unverified or mismatched SEO mutation was accepted")
 
     secret = "unit-test-super-secret-token"
     sanitized = sanitize_value(
