@@ -119,7 +119,7 @@ MCP remains a bounded adapter behind Site Manager governance. Infrastructure per
 
 ### SM-4I/4J — operator-facing site overview and connected-site selection
 
-SM-4I projects the accepted read-only `site.read` capability graph into a concise operator overview. SM-4J adds a proof-backed list of *explicitly enrolled logical sites*, preventing unknown site IDs from selecting GitHub Environments and requiring a fresh `site.overview` after selection. It does not grant writes or certify multi-site onboarding; additional site registration and the Research Manager parity acceptance remain separate gates.
+SM-4I projects the accepted read-only `site.read` capability graph into a concise operator overview. SM-4J adds a proof-backed list of *explicitly enrolled logical sites*, preventing unknown site IDs from selecting GitHub Environments and requiring a fresh `site.overview` after selection. SM-4K adds a distinct, **protected and manual read-only bootstrap** for generating a first verified `site.overview` without weakening the ordinary Gateway; enrollment still requires separate environment provisioning, a reviewed catalog PR and a fresh post-enrollment read. No write scope is granted; a real second-client onboarding acceptance and Research Manager parity acceptance remain separate gates.
 
 ### SM-4F — GitHub Command Gateway for ChatGPT governance
 
