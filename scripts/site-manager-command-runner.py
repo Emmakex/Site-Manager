@@ -25,7 +25,10 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update"}
+SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance"}
+NAV_ACCEPTANCE_TOOLS = {"start": "navigation_acceptance_start", "status": "navigation_acceptance_status"}
+NAV_ACCEPTANCE_PROFILE = "mcp-navigation-only"
+NAV_ACCEPTANCE_STEPS = ("precheck", "fixture_navigation_create", "navigation_plan", "navigation_apply_verify", "navigation_rollback", "cleanup")
 SEO_TOOLS = {"plan": "seo_update_plan", "apply": "seo_update_apply", "rollback": "seo_update_rollback"}
 SEO_FIELD_LIMITS = {"title": 500, "description": 5000, "canonical": 4096, "indexability": 12}
 SEO_INDEXABILITY = {"default", "index", "noindex"}
@@ -126,6 +129,14 @@ def validate_registry(registry: dict[str, Any]) -> None:
     if navigation["read_only"] is not False:
         raise CommandError("navigation.update cannot be marked read-only")
 
+    nav_acceptance = actions.get("navigation.acceptance")
+    if (not isinstance(nav_acceptance, dict)
+            or set(nav_acceptance) != {"tools", "required_scope", "read_only"}
+            or nav_acceptance["tools"] != NAV_ACCEPTANCE_TOOLS
+            or nav_acceptance["required_scope"] != "navigation.write"
+            or nav_acceptance["read_only"] is not False):
+        raise CommandError("navigation.acceptance must route only to scoped fixed MCP fixture tools")
+
     seo = actions.get("seo.update")
     if not isinstance(seo, dict) or set(seo) != {"tools", "required_scope", "read_only"}:
         raise CommandError("seo.update must be a closed provider-aware business action")
@@ -175,6 +186,9 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
         validate_navigation_payload(payload)
     elif action == "seo.update":
         validate_seo_payload(payload)
+    elif action == "navigation.acceptance":
+        if set(payload) != {"confirmed"} or payload.get("confirmed") is not True:
+            raise CommandError("navigation acceptance requires exact confirmed=true without caller-selected menu")
     else:
         raise CommandError("unregistered business action")
 
@@ -731,6 +745,90 @@ def run_content_acceptance(client: McpClient) -> dict[str, Any]:
     raise VerificationError("content acceptance timed out without verified cleanup; inspect WordPress job state")
 
 
+def summarize_navigation_acceptance(state: Any, run_id: str) -> dict[str, Any]:
+    """Require full WordPress-owned menu update, rollback, and fixture removal evidence."""
+    if not isinstance(state, dict) or state.get("run_id") != run_id or state.get("profile") != NAV_ACCEPTANCE_PROFILE:
+        raise VerificationError("navigation acceptance run or profile identity mismatch")
+    if state.get("status") != "completed" or state.get("had_failure") is not False:
+        raise VerificationError("navigation acceptance has not completed successfully")
+    if state.get("steps") != list(NAV_ACCEPTANCE_STEPS):
+        raise VerificationError("navigation acceptance executed an unapproved step sequence")
+    results = state.get("results")
+    if not isinstance(results, dict) or set(results) != set(NAV_ACCEPTANCE_STEPS):
+        raise VerificationError("navigation acceptance does not contain six exact step records")
+    for step in NAV_ACCEPTANCE_STEPS:
+        record = results.get(step)
+        if not isinstance(record, dict) or record.get("status") != "passed" or not isinstance(record.get("evidence"), dict):
+            raise VerificationError("navigation acceptance step was not verified: " + step)
+    fixture = results["fixture_navigation_create"]["evidence"]
+    planned = results["navigation_plan"]["evidence"]
+    applied = results["navigation_apply_verify"]["evidence"]
+    rollback = results["navigation_rollback"]["evidence"]
+    cleanup = results["cleanup"]["evidence"]
+    menu_id, menu_item_id = fixture.get("menu_id"), fixture.get("menu_item_id")
+    if (type(menu_id) is not int or menu_id < 1
+            or type(menu_item_id) is not int or menu_item_id < 1
+            or fixture.get("assigned_to_theme_location") is not False):
+        raise VerificationError("navigation fixture not proven temporary and unassigned")
+    if "post_id" in fixture:
+        raise VerificationError("navigation fixture unexpectedly contains content")
+    plan_id = planned.get("plan_id")
+    if not isinstance(plan_id, str) or not plan_id.startswith("sm-plan-"):
+        raise VerificationError("navigation fixture lacks a WordPress-governed plan")
+    if (applied.get("plan_id") != plan_id or applied.get("verified") is not True
+            or applied.get("status") != "verified"):
+        raise VerificationError("navigation apply was not verified by WordPress")
+    if (rollback.get("plan_id") != plan_id or rollback.get("rollback_success") is not True
+            or rollback.get("status") != "rolled-back"):
+        raise VerificationError("navigation rollback did not restore the original state")
+    removed = cleanup.get("removed")
+    if not isinstance(removed, dict) or removed.get("menu") is not True:
+        raise VerificationError("temporary WordPress menu was not deleted")
+    after = state.get("fixture")
+    if (not isinstance(after, dict) or after.get("menu_id") != 0
+            or after.get("menu_item_id") != 0 or after.get("post_id") != 0):
+        raise VerificationError("navigation acceptance left a fixture or touched content")
+    return {
+        "profile": NAV_ACCEPTANCE_PROFILE,
+        "run_id": run_id,
+        "temporary_menu_id": menu_id,
+        "temporary_menu_item_id": menu_item_id,
+        "assigned_to_theme_location": False,
+        "plan_id": plan_id,
+        "planned": True,
+        "apply_verified": True,
+        "rollback_verified": True,
+        "menu_deleted": True,
+        "content_and_seo_untouched_by_test": True,
+        "step_statuses": {step: "passed" for step in NAV_ACCEPTANCE_STEPS},
+    }
+
+
+def run_navigation_acceptance(client: McpClient) -> dict[str, Any]:
+    """Start one confirmed temporary-menu test and await WordPress verification."""
+    started = client.call(NAV_ACCEPTANCE_TOOLS["start"], {"confirmed": True})
+    if (not isinstance(started, dict) or started.get("profile") != NAV_ACCEPTANCE_PROFILE
+            or started.get("status") != "queued"):
+        raise VerificationError("WordPress refused an isolated navigation acceptance run")
+    run_id = started.get("run_id")
+    if not isinstance(run_id, str) or re.fullmatch(r"sm-mcp-accept-[a-f0-9]{20}", run_id) is None:
+        raise VerificationError("WordPress navigation acceptance run ID is invalid")
+    deadline = time.monotonic() + ACCEPTANCE_TIMEOUT_SECONDS
+    while time.monotonic() < deadline:
+        state = client.call(NAV_ACCEPTANCE_TOOLS["status"])
+        if not isinstance(state, dict) or state.get("run_id") != run_id or state.get("profile") != NAV_ACCEPTANCE_PROFILE:
+            raise VerificationError("navigation acceptance changed identity or profile")
+        status = state.get("status")
+        if status == "completed":
+            return summarize_navigation_acceptance(state, run_id)
+        if status == "failed":
+            raise VerificationError("navigation acceptance reported failed update, rollback or cleanup")
+        if status not in {"queued", "running", "cleaning"}:
+            raise VerificationError("navigation acceptance entered an unsupported state")
+        time.sleep(4)
+    raise VerificationError("navigation acceptance timed out; inspect WordPress fixture and cleanup state")
+
+
 def execute(command_path: Path, result_dir: Path) -> int:
     registry = load_json(REGISTRY_PATH)
     validate_registry(registry)
@@ -765,6 +863,10 @@ def execute(command_path: Path, result_dir: Path) -> int:
         if action_name == "content.acceptance":
             stage = "content-only-roundtrip"
             sanitized = sanitize_value(run_content_acceptance(client), token)
+            verified = True
+        elif action_name == "navigation.acceptance":
+            stage = "navigation-only-roundtrip"
+            sanitized = sanitize_value(run_navigation_acceptance(client), token)
             verified = True
         else:
             stage = "read" if action_name in READ_ACTIONS else command["payload"]["stage"]
@@ -889,8 +991,12 @@ def self_test() -> int:
     if (not isinstance(seo_variants, list) or len(seo_variants) != 3
             or not all(isinstance(x, dict) and x.get("additionalProperties") is False for x in seo_variants)):
         raise CommandError("SEO must have three closed staged payloads")
-    if seo_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0:
-        raise CommandError("unsupported business actions must reject unknown payloads")
+    nav_acceptance_rule = seo_rule.get("else", {})
+    if (not isinstance(nav_acceptance_rule, dict)
+            or nav_acceptance_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "navigation.acceptance"
+            or nav_acceptance_rule.get("then", {}).get("properties", {}).get("payload", {}).get("properties", {}).get("confirmed", {}).get("const") is not True
+            or nav_acceptance_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
+        raise CommandError("navigation.acceptance must accept only exact confirmation and reject other payloads")
 
     valid = {
         "version": "1",
@@ -1199,6 +1305,68 @@ def self_test() -> int:
                 pass
             else:
                 raise CommandError("unverified or mismatched SEO mutation was accepted")
+
+    nav_acceptance = {**valid, "action": "navigation.acceptance", "payload": {"confirmed": True}}
+    validate_command(nav_acceptance, registry)
+    for invalid in ({}, {"confirmed": False}, {"confirmed": "true"},
+                    {"confirmed": True, "menu_id": 12},
+                    {"confirmed": True, "post_id": 12}):
+        try:
+            validate_command({**nav_acceptance, "payload": invalid}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("unsafe navigation acceptance command was accepted")
+
+    navigation_run_id = "sm-mcp-accept-" + "b" * 20
+    nav_ok = lambda evidence: {"status": "passed", "evidence": evidence}
+    nav_state = {
+        "run_id": navigation_run_id,
+        "profile": NAV_ACCEPTANCE_PROFILE,
+        "status": "completed",
+        "had_failure": False,
+        "steps": list(NAV_ACCEPTANCE_STEPS),
+        "fixture": {"post_id": 0, "menu_id": 0, "menu_item_id": 0},
+        "results": {
+            "precheck": nav_ok({"discovery_received": True}),
+            "fixture_navigation_create": nav_ok({
+                "menu_id": 23, "menu_item_id": 24, "assigned_to_theme_location": False}),
+            "navigation_plan": nav_ok({"plan_id": "sm-plan-nav-fixture"}),
+            "navigation_apply_verify": nav_ok({
+                "plan_id": "sm-plan-nav-fixture", "status": "verified", "verified": True}),
+            "navigation_rollback": nav_ok({
+                "plan_id": "sm-plan-nav-fixture", "status": "rolled-back", "rollback_success": True}),
+            "cleanup": nav_ok({"removed": {"post": True, "menu": True}}),
+        },
+    }
+    safe_navigation = summarize_navigation_acceptance(nav_state, navigation_run_id)
+    if not (safe_navigation["apply_verified"] and safe_navigation["rollback_verified"]
+            and safe_navigation["menu_deleted"]):
+        raise CommandError("verified navigation acceptance fixture was not recognized")
+    for invalid in (
+        {**nav_state, "profile": "mcp-low-resource"},
+        {**nav_state, "status": "running"},
+        {**nav_state, "steps": list(ACCEPTANCE_STEPS)},
+        {**nav_state, "results": {**nav_state["results"],
+             "fixture_navigation_create": nav_ok({
+                 "menu_id": 23, "menu_item_id": 24, "assigned_to_theme_location": True})}},
+        {**nav_state, "results": {**nav_state["results"],
+             "navigation_apply_verify": nav_ok({
+                 "plan_id": "sm-plan-nav-fixture", "status": "verified", "verified": False})}},
+        {**nav_state, "results": {**nav_state["results"],
+             "navigation_rollback": nav_ok({
+                 "plan_id": "sm-plan-nav-fixture", "status": "rolled-back", "rollback_success": False})}},
+        {**nav_state, "results": {**nav_state["results"],
+             "cleanup": nav_ok({"removed": {"post": True, "menu": False}})}},
+        {**nav_state, "fixture": {"post_id": 0, "menu_id": 23, "menu_item_id": 0}},
+        {**nav_state, "fixture": {"post_id": 10, "menu_id": 0, "menu_item_id": 0}},
+    ):
+        try:
+            summarize_navigation_acceptance(invalid, navigation_run_id)
+        except VerificationError:
+            pass
+        else:
+            raise CommandError("incomplete or unsafe navigation fixture acceptance was considered verified")
 
     secret = "unit-test-super-secret-token"
     sanitized = sanitize_value(
