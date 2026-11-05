@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-content-plan-20261105-01",
+  "site": "emmake-nuevaweb",
+  "action": "content.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_id": 7,
+    "fields": {
+      "title": "Site Manager · propuesta de aceptación (no aplicar)"
+    },
+    "reason": "Verificación no mutante del Gateway; no ejecutar apply ni modificar contenido"
+  }
+}
