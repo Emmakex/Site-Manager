@@ -91,6 +91,12 @@ jobs:
           PY
           )
 
+          # An arbitrary but syntactically valid site ID must not silently
+          # create a new GitHub Environment or reach another client's MCP.
+          # Enrollment has to reference an exact, previously verified
+          # site.overview result in the trusted repository.
+          python3 scripts/site_manager_site_catalog.py check --site "${metadata[1]}"
+
           echo 'mode=execute' >> "$GITHUB_OUTPUT"
           echo "path=$command_path" >> "$GITHUB_OUTPUT"
           echo "id=${metadata[0]}" >> "$GITHUB_OUTPUT"
