@@ -1,0 +1,44 @@
+{
+  "action": "content.update",
+  "command_id": "cmd-emmake-content-plan-20261105-01",
+  "command_sha256": "aee4c5d56b7fbe210fa547e1578fe8a61ca09b9b7f6fe7761f14f3633d717ce7",
+  "data": {
+    "plan": {
+      "applied_at": "",
+      "capability_id": "content.write",
+      "confirmation_required": true,
+      "created_at": "2026-11-05T08:44:38+00:00",
+      "expires_at": "2026-11-05T08:59:38+00:00",
+      "fields": [
+        "post_title"
+      ],
+      "operation": "content.update",
+      "plan_id": "sm-plan-d3a5309872201b7882bf36f4",
+      "reversible": true,
+      "rollback_retained_until": "2026-11-06T08:44:38+00:00",
+      "rolled_back_at": "",
+      "status": "planned",
+      "target": {
+        "post_id": 7,
+        "post_type": "page"
+      }
+    },
+    "preview": {
+      "before_present": [
+        "post_title"
+      ],
+      "changed_fields": [
+        "post_title"
+      ],
+      "values_retained_in_github": false
+    },
+    "stage": "plan"
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "content.write",
+  "site": "emmake-nuevaweb",
+  "stage": "plan",
+  "status": "success",
+  "verified": false,
+  "version": "1"
+}
