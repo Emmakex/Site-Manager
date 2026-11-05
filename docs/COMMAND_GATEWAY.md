@@ -651,3 +651,89 @@ published SEO, homepage or navigation changes are part of this cut.
 
 The pre-existing content-only, navigation-only and full 13-stage
 Acceptance Center workflows remain unchanged and independently scoped.
+
+
+## SM-4I — Read-only operator overview (first real-client workflow slice)
+
+The `site.overview` business action is a **small, read-only projection**
+of the canonical `site_read` MCP tool. It exists to make Site Manager's
+existing, real installation discovery usable from an ordinary ChatGPT
+conversation without exposing huge technical inventories as the default
+answer. **There is no new WordPress endpoint, MCP tool, scope or deployment
+requirement.** The Gateway consumes the existing site-specific protected
+Environment and the same `site.read` authorization.
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-overview-example-0001",
+  "site": "acceptance-site",
+  "action": "site.overview",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
+```
+
+The command only accepts an empty payload. It cannot submit WordPress IDs,
+write fields, arbitrary URLs, provider selections, MCP tools or transport
+configuration. The Gateway checks the trusted registry's immutable mapping
+`site.overview → site_read`, rejects ambiguous/malformed live discovery
+and presents a bounded, sanitized view of:
+
+- logical connection ID and real observed homepage, platform, installed
+  Site Manager version and theme where discoverable;
+- discovery timestamp and fingerprint, so stale reports are distinguishable;
+- a capability matrix with `detected / understood / governable / unavailable`,
+  provider, required scopes and **number** of blockers (not private text);
+- actionable navigation providers and provider-owned target counts;
+- discovered SEO authority and **semantic field names** it can write,
+  rather than vendor-specific meta keys;
+- three possible governed business actions (`content.update`,
+  `navigation.update`, `seo.update`) with their required target type
+  and explicit confirmation/rollback contracts;
+- the real WordPress `search_visibility` flag, including a visible warning
+  when search engines are discouraged.
+
+**Important distinction:** `governable=true` does **not** mean the
+write scope was granted. The `site_read` MCP response does not provide
+current write-scope grants to this action. Therefore the overview
+intentionally records `scope_grant_verified=false` for all capabilities
+and actions. Any subsequent `plan`, `apply` or `rollback` must be
+separately authorized by WordPress's actual connection, provider,
+administrator and current target state. It is **not** correct to display
+an overview entry as an executable grant of permission.
+
+### Ordinary ChatGPT sequence
+
+1. The user selects or names a *registered logical site* (the GitHub
+   Environment `site-manager-<site>` must already exist). The Gateway
+   rejects invented site IDs without a matching protected Environment.
+   A multi-site client catalog/UI remains a separate roadmap cut; this
+   action does not enumerate tenants or expose Environment secrets.
+2. ChatGPT submits `site.overview`, reviews the short summary and
+   clearly distinguishes detected support from authorization.
+3. If a user requests a specific change, ChatGPT uses the existing
+   `site.read` discovery evidence for the actual target IDs and sends
+   only the appropriate typed `content.update`, `navigation.update`
+   or `seo.update` command with `stage=plan`.
+4. Before applying, ChatGPT **shows the target and exact requested change
+   from the user's intent** and the WordPress plan metadata, including
+   reversibility/expiry. Raw before/after WordPress content is *not* saved
+   in GitHub; do not claim that the sanitized result contains a full
+   value-level preview. If a value-level preview is needed, develop an
+   independent, private, capability-governed inspection feature.
+5. Only after explicit user confirmation does a new `apply` command
+   carry `confirmed=true` with that WordPress plan ID. Verification
+   must come from WordPress; rollback requires a separate authorization.
+   The normal audit result remains in GitHub.
+
+SM-4I proves only the **read-only, operator-friendly entry point**. It
+does not claim to provide client-wide site selection, a full plan-preview
+UI, or generalized multi-tenant onboarding. Those must retain the same
+site/environment isolation and live WordPress authority in later cuts.
+
+The operator overview is intentionally platform-aware but not
+WordPress-only: non-WordPress platforms can return their own
+`discovery.platform` and capability graph without masquerading as
+WordPress. Unknown owners/providers remain visible as gaps, not
+assumed writable adapters.
