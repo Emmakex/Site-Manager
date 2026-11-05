@@ -106,6 +106,10 @@ final class RemoteAcceptanceService
             if ((string) ($current['profile'] ?? '') !== $profile) {
                 throw new RuntimeException('mcp_acceptance_profile_already_active');
             }
+            if ('mcp-content-only' === $profile) {
+                // One operator-authorized command owns exactly one disposable fixture run.
+                throw new RuntimeException('mcp_content_acceptance_already_active');
+            }
             return $current;
         }
 
