@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-nav-plan-example-01",
+  "site": "acceptance-site",
+  "action": "navigation.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "provider": "wordpress-classic-menu",
+    "target_id": 123,
+    "fields": {
+      "title": "Revised menu label"
+    },
+    "reason": "Review an explicitly requested menu label"
+  }
+}

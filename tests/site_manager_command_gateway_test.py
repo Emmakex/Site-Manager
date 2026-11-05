@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance"}
+expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 assert registry["actions"]["site.read"] == {
@@ -37,6 +37,11 @@ assert registry["actions"]["content.acceptance"] == {
     "required_scope": "content.write",
     "read_only": False,
 }
+assert registry["actions"]["navigation.update"] == {
+    "tools": {"plan": "navigation_update_plan", "apply": "navigation_update_apply", "rollback": "navigation_update_rollback"},
+    "required_scope": "navigation.write",
+    "read_only": False,
+}
 
 assert schema["additionalProperties"] is False
 assert set(schema["required"]) == {"version", "command_id", "site", "action", "requested_by", "payload"}
@@ -53,7 +58,31 @@ assert followup["then"]["properties"]["payload"] == {
     "required": ["confirmed"],
     "properties": {"confirmed": {"const": True}},
 }
-assert followup["else"]["properties"]["payload"] == {
+navigation_rule = followup["else"]
+assert navigation_rule["if"]["properties"]["action"]["const"] == "navigation.update"
+navigation_stages = navigation_rule["then"]["properties"]["payload"]["oneOf"]
+assert len(navigation_stages) == 4
+assert all(stage["additionalProperties"] is False for stage in navigation_stages)
+assert {(stage["properties"]["stage"]["const"], stage["properties"].get("provider", {}).get("const"))
+        for stage in navigation_stages} == {
+    ("plan", "wordpress-classic-menu"),
+    ("plan", "wordpress-block-navigation"),
+    ("apply", None), ("rollback", None),
+}
+classic, block = navigation_stages[:2]
+assert set(classic["properties"]["fields"]["properties"]) == {
+    "title", "url", "description", "attr_title", "target", "classes", "xfn"
+}
+assert set(block["properties"]["fields"]["properties"]) == {"title", "content", "status"}
+for stage in navigation_stages:
+    assert stage["additionalProperties"] is False
+    if stage["properties"]["stage"]["const"] == "plan":
+        assert set(stage["required"]) == {"stage", "provider", "target_id", "fields"}
+        assert stage["properties"]["fields"]["additionalProperties"] is False
+    else:
+        assert set(stage["required"]) == {"stage", "plan_id", "confirmed"}
+        assert stage["properties"]["confirmed"]["const"] is True
+assert navigation_rule["else"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False, "maxProperties": 0
 }
 stages = conditional["then"]["properties"]["payload"]["oneOf"]
@@ -78,6 +107,9 @@ assert "tool" not in example
 
 assert "EXPECTED_TOOLS" in runner
 assert "CONTENT_TOOLS" in runner
+assert "NAVIGATION_TOOLS" in runner
+assert "validate_navigation_payload" in runner
+assert "verify_navigation_response" in runner
 assert "ACCEPTANCE_TOOLS" in runner
 assert "summarize_content_acceptance" in runner
 assert "run_content_acceptance" in runner

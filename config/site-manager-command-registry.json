@@ -27,6 +27,15 @@
       },
       "required_scope": "content.write",
       "read_only": false
+    },
+    "navigation.update": {
+      "tools": {
+        "plan": "navigation_update_plan",
+        "apply": "navigation_update_apply",
+        "rollback": "navigation_update_rollback"
+      },
+      "required_scope": "navigation.write",
+      "read_only": false
     }
   }
 }
