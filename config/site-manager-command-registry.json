@@ -19,6 +19,14 @@
       },
       "required_scope": "content.write",
       "read_only": false
+    },
+    "content.acceptance": {
+      "tools": {
+        "start": "content_acceptance_start",
+        "status": "content_acceptance_status"
+      },
+      "required_scope": "content.write",
+      "read_only": false
     }
   }
 }
