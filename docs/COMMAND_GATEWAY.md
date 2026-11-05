@@ -147,7 +147,8 @@ Do not expose generic mutation tools. Add one business action at a time to the s
 Planned next bounded actions after read-only acceptance:
 
 - `content.update` — staged write family described below;
-- `navigation.update` and `seo.update` — not yet exposed by the Gateway.
+- `navigation.update` — staged, provider-aware menu governance (this cut).
+- `seo.update` — still outside the Gateway; independent future cut.
 
 Each must reuse Site Manager's existing `plan → explicit confirmation → apply → verify → rollback` contracts. The Gateway must never bypass Site Manager by writing WordPress/provider storage directly.
 
@@ -253,9 +254,9 @@ rollback evidence is retained for up to 24 hours by the WordPress plan store.
   actual Site Manager/WordPress state before any recovery or fresh request.
 - No client site is required to use GitHub: it is the central operator's
   command transport.
-- `navigation.update` and `seo.update` remain unsupported **in the
-  GitHub Gateway** until independent scoped engineering/acceptance cuts;
-  their pre-existing MCP operations are unchanged.
+- `navigation.update` is supported only through its separate closed, provider-aware
+  Gateway cut. `seo.update` remains unsupported in the Gateway pending
+  independent engineering/acceptance; its pre-existing MCP operations are unchanged.
 
 **Production acceptance gate:** merge only when contract tests pass on the
 final PR head. Real content apply/rollback must be exercised solely on a
@@ -315,3 +316,105 @@ This test is independent of manual `content.update` commands and cannot
 be used to select or alter real customer posts. It is strictly for accepted
 Site Manager-owned temporary fixtures; the full content creation feature
 remains outside this scope.
+
+
+## SM-4F navigation.update — bounded classic/block menu governance
+
+The `navigation.update` business action is accepted by the central GitHub
+Command Gateway only through the existing `navigation.write` scope and
+WordPress-authoritative `navigation_update_plan`,
+`navigation_update_apply` and `navigation_update_rollback` MCP tools.
+No Site Manager plugin or MCP runtime deployment is needed for this cut,
+because those exact tools are already present and the write scope remains
+explicitly opt-in per WordPress connection.
+
+Supported targets are strictly:
+
+- `wordpress-classic-menu` — **individual existing classic-menu item ID**.
+  Allowed fields: `title`, `url`, `description`, `attr_title`,
+  `target`, `classes`, `xfn`.
+- `wordpress-block-navigation` — **existing `wp_navigation` post ID**.
+  Allowed fields: `title`, `content`, `status` (draft/publish).
+- No menu creation, menu item deletion, arbitrary menu assignment, plugin
+  options or unregistered providers. URL changes are restricted to HTTP(S)
+  or site-relative paths. All fields are size-limited; the WordPress
+  authority ultimately sanitizes and validates the provider-specific
+  request.
+
+The three separate commands use **new command IDs**:
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-nav-plan-example-01",
+  "site": "acceptance-site",
+  "action": "navigation.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "provider": "wordpress-classic-menu",
+    "target_id": 123,
+    "fields": { "title": "Proposed menu label" },
+    "reason": "Review the menu item change"
+  }
+}
+```
+
+Planning is **not a mutation**. The Gateway requires WordPress's matching
+provider/target ID, the exact proposed field names, a `planned` reversible
+plan, `confirmation_required=true`, and an owned before/after preview.
+It records only the field names, target, plan ID and lifecycle status;
+existing or proposed menu labels/URLs/content are not copied into GitHub
+result evidence. A successful plan deliberately has `verified=false`.
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-nav-apply-example-01",
+  "site": "acceptance-site",
+  "action": "navigation.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-0123456789abcdef01234567",
+    "confirmed": true
+  }
+}
+```
+
+**Do not execute apply automatically after plan.** The user must first
+authorize the specific target and proposed change; then a new command may
+carry `confirmed=true` with the exact WordPress-generated plan ID.
+The Gateway only reports `verified=true` when WordPress returns a verified
+apply and successful read-back verification. WordPress rejects plans
+outside the connection/generation, wrong ownership, missing scope,
+stale target/site or expired 15-minute planning window.
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-nav-rollback-example-01",
+  "site": "acceptance-site",
+  "action": "navigation.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "rollback",
+    "plan_id": "sm-plan-0123456789abcdef01234567",
+    "confirmed": true
+  }
+}
+```
+
+Only WordPress-confirmed `status=rolled-back` with
+`rollback.success=true` counts as restored. Its own stale-state protection
+still controls whether restoration remains safe. The normal saved-plan
+retention and existing GitHub replay guards remain in force. Do not
+consider a successful GitHub workflow proof of a WordPress mutation.
+
+**Safety/acceptance:** this PR only extends the Gateway registry,
+schema, runner, tests, examples and documentation. It does not alter
+WordPress/MCP code, grant write permissions, create temporary menus or
+mutate any live menu. A later **navigation-only disposable fixture**
+acceptance must be separately designed/authorized, without running
+the existing full content+navigation+SEO Acceptance Center on customer
+production data. The SEO Gateway remains a separate future cut.
