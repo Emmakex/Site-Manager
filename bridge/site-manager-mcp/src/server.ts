@@ -178,6 +178,53 @@ export function createSiteManagerMcpServer(
     );
   }
 
+
+  // Operator-authorized, disposable content-only acceptance. The WordPress
+  // Acceptance Center owns fixture creation, the scoped plan/apply/verify/
+  // rollback lifecycle and cleanup. No caller-provided post ID is accepted.
+  if (scopes.has('content.write') && scopes.has('site.read')) {
+    server.registerTool(
+      'content_acceptance_start',
+      {
+        title: 'Start isolated Site Manager content acceptance',
+        description: 'Create a disposable draft via WordPress Acceptance Center, update and verify its title, roll back and delete the draft. Requires an explicitly confirmed operator command; never touches existing customer posts or navigation/SEO.',
+        inputSchema: fromJsonSchema<{ confirmed: true }>({
+          type: 'object',
+          additionalProperties: false,
+          required: ['confirmed'],
+          properties: { confirmed: { const: true } },
+        }),
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ confirmed }) => {
+        if (confirmed !== true) {
+          return toolError('Explicit content-only acceptance confirmation is required.');
+        }
+        try {
+          return toolResult(await client.remoteAcceptanceStartContentOnly());
+        } catch {
+          return toolError('Site Manager could not start isolated content-only acceptance.');
+        }
+      },
+    );
+
+    server.registerTool(
+      'content_acceptance_status',
+      {
+        title: 'Read isolated Site Manager content acceptance status',
+        description: 'Read the WordPress-owned acceptance state and verification evidence. This does not mutate WordPress.',
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async () => {
+        try {
+          return toolResult(await client.remoteAcceptanceJob());
+        } catch {
+          return toolError('Site Manager could not read content acceptance status.');
+        }
+      },
+    );
+  }
+
   if (scopes.has('content.write')) {
     server.registerTool(
       'content_update_plan',
