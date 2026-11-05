@@ -29,7 +29,7 @@ Infrastructure such as persistent MCP runtimes, Docker, SSH and WP-CLI may suppo
 
 Detailed Command Gateway contract and per-site environment model: [`docs/COMMAND_GATEWAY.md`](docs/COMMAND_GATEWAY.md).
 
-Operator site selection: the proof-backed [`docs/SITE_CATALOG.md`](docs/SITE_CATALOG.md) catalog lists only enrolled logical sites with past verified `site.overview` evidence. A selected site always needs a fresh protected-environment read before any plan. No customer GitHub repository is required.
+Operator site selection: the proof-backed [`docs/SITE_CATALOG.md`](docs/SITE_CATALOG.md) catalog lists only enrolled logical sites with past verified `site.overview` evidence. A selected site always needs a fresh protected-environment read before any plan. New WordPress clients use the isolated, read-only [`docs/SITE_ONBOARDING.md`](docs/SITE_ONBOARDING.md) bootstrap and separate protected Environment; **no customer GitHub repository is required**.
 
 ## Product principle
 
