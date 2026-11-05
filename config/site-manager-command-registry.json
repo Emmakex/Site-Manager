@@ -36,6 +36,15 @@
       },
       "required_scope": "navigation.write",
       "read_only": false
+    },
+    "seo.update": {
+      "tools": {
+        "plan": "seo_update_plan",
+        "apply": "seo_update_apply",
+        "rollback": "seo_update_rollback"
+      },
+      "required_scope": "seo.write",
+      "read_only": false
     }
   }
 }
