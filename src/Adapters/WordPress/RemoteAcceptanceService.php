@@ -54,6 +54,19 @@ final class RemoteAcceptanceService
     private const NAVIGATION_ONLY_SCOPES = ['site.read', 'navigation.write'];
 
     /** @var list<string> */
+    private const SEO_ONLY_STEPS = [
+        'precheck',
+        'fixture_content_create',
+        'seo_plan',
+        'seo_apply_verify',
+        'seo_rollback',
+        'cleanup',
+    ];
+
+    /** @var list<string> */
+    private const SEO_ONLY_SCOPES = ['site.read', 'content.write', 'seo.write'];
+
+    /** @var list<string> */
     private const REQUIRED_SCOPES = [
         'site.read',
         'content.write',
@@ -109,6 +122,18 @@ final class RemoteAcceptanceService
     }
 
     /**
+     * SEO-only acceptance creates a disposable draft and exercises the
+     * active WordPress SEO provider without content or navigation mutations.
+     * The fixture post ID cannot be supplied by the caller.
+     *
+     * @return array<string,mixed>
+     */
+    public function startSeoOnly(): array
+    {
+        return $this->startProfile('mcp-seo-only', self::SEO_ONLY_STEPS, self::SEO_ONLY_SCOPES);
+    }
+
+    /**
      * @param list<string> $steps
      * @param list<string> $requiredScopes
      * @return array<string,mixed>
@@ -125,7 +150,7 @@ final class RemoteAcceptanceService
             if ((string) ($current['profile'] ?? '') !== $profile) {
                 throw new RuntimeException('mcp_acceptance_profile_already_active');
             }
-            if (in_array($profile, ['mcp-content-only', 'mcp-navigation-only'], true)) {
+            if (in_array($profile, ['mcp-content-only', 'mcp-navigation-only', 'mcp-seo-only'], true)) {
                 // One confirmed Gateway command owns one isolated fixture lifecycle.
                 throw new RuntimeException('mcp_isolated_acceptance_already_active');
             }
@@ -288,6 +313,11 @@ final class RemoteAcceptanceService
         if ('mcp-content-only' === $profile && (int) ($state['fixture']['menu_id'] ?? 0) !== 0) {
             throw new RuntimeException('mcp_content_acceptance_unexpected_menu_fixture');
         }
+        if ('mcp-seo-only' === $profile
+            && ((int) ($state['fixture']['menu_id'] ?? 0) !== 0
+                || (int) ($state['fixture']['menu_item_id'] ?? 0) !== 0)) {
+            throw new RuntimeException('mcp_seo_acceptance_unexpected_navigation_fixture');
+        }
         $removed = ['post'=>true,'menu'=>true];
 
         $postId = (int) ($state['fixture']['post_id'] ?? 0);
@@ -423,6 +453,7 @@ final class RemoteAcceptanceService
         return match ((string) ($state['profile'] ?? '')) {
             'mcp-content-only' => self::CONTENT_ONLY_STEPS,
             'mcp-navigation-only' => self::NAVIGATION_ONLY_STEPS,
+            'mcp-seo-only' => self::SEO_ONLY_STEPS,
             default => self::STEPS,
         };
     }

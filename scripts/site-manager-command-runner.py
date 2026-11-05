@@ -25,7 +25,10 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance"}
+SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance"}
+SEO_ACCEPTANCE_TOOLS = {"start": "seo_acceptance_start", "status": "seo_acceptance_status"}
+SEO_ACCEPTANCE_PROFILE = "mcp-seo-only"
+SEO_ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "seo_plan", "seo_apply_verify", "seo_rollback", "cleanup")
 NAV_ACCEPTANCE_TOOLS = {"start": "navigation_acceptance_start", "status": "navigation_acceptance_status"}
 NAV_ACCEPTANCE_PROFILE = "mcp-navigation-only"
 NAV_ACCEPTANCE_STEPS = ("precheck", "fixture_navigation_create", "navigation_plan", "navigation_apply_verify", "navigation_rollback", "cleanup")
@@ -137,6 +140,14 @@ def validate_registry(registry: dict[str, Any]) -> None:
             or nav_acceptance["read_only"] is not False):
         raise CommandError("navigation.acceptance must route only to scoped fixed MCP fixture tools")
 
+    seo_acceptance = actions.get("seo.acceptance")
+    if (not isinstance(seo_acceptance, dict)
+            or set(seo_acceptance) != {"tools", "required_scope", "read_only"}
+            or seo_acceptance["tools"] != SEO_ACCEPTANCE_TOOLS
+            or seo_acceptance["required_scope"] != "seo.write"
+            or seo_acceptance["read_only"] is not False):
+        raise CommandError("seo.acceptance must route only to scoped fixed SEO acceptance tools")
+
     seo = actions.get("seo.update")
     if not isinstance(seo, dict) or set(seo) != {"tools", "required_scope", "read_only"}:
         raise CommandError("seo.update must be a closed provider-aware business action")
@@ -189,6 +200,9 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
     elif action == "navigation.acceptance":
         if set(payload) != {"confirmed"} or payload.get("confirmed") is not True:
             raise CommandError("navigation acceptance requires exact confirmed=true without caller-selected menu")
+    elif action == "seo.acceptance":
+        if set(payload) != {"confirmed"} or payload.get("confirmed") is not True:
+            raise CommandError("SEO acceptance requires exact confirmed=true without caller-selected post")
     else:
         raise CommandError("unregistered business action")
 
@@ -829,6 +843,93 @@ def run_navigation_acceptance(client: McpClient) -> dict[str, Any]:
     raise VerificationError("navigation acceptance timed out; inspect WordPress fixture and cleanup state")
 
 
+def summarize_seo_acceptance(state: Any, run_id: str) -> dict[str, Any]:
+    """Only certify a disposable WordPress SEO fixture after verified apply, rollback and deletion."""
+    if (not isinstance(state, dict) or state.get("run_id") != run_id
+            or state.get("profile") != SEO_ACCEPTANCE_PROFILE):
+        raise VerificationError("SEO acceptance identity or profile mismatch")
+    if state.get("status") != "completed" or state.get("had_failure") is not False:
+        raise VerificationError("SEO acceptance has not completed successfully")
+    if state.get("steps") != list(SEO_ACCEPTANCE_STEPS):
+        raise VerificationError("SEO acceptance performed an unauthorized step sequence")
+    results = state.get("results")
+    if not isinstance(results, dict) or set(results) != set(SEO_ACCEPTANCE_STEPS):
+        raise VerificationError("SEO acceptance lacks exact six-step evidence")
+    for step in SEO_ACCEPTANCE_STEPS:
+        record = results.get(step)
+        if (not isinstance(record, dict) or record.get("status") != "passed"
+                or not isinstance(record.get("evidence"), dict)):
+            raise VerificationError("SEO acceptance step not verified: " + step)
+    precheck = results["precheck"]["evidence"]
+    fixture = results["fixture_content_create"]["evidence"]
+    planned = results["seo_plan"]["evidence"]
+    applied = results["seo_apply_verify"]["evidence"]
+    rollback = results["seo_rollback"]["evidence"]
+    cleanup = results["cleanup"]["evidence"]
+    if precheck.get("discovery_received") is not True or precheck.get("capabilities_received") is not True:
+        raise VerificationError("SEO acceptance lacks WordPress discovery/capability precheck")
+    post_id = fixture.get("post_id")
+    if type(post_id) is not int or post_id < 1 or fixture.get("status") != "draft":
+        raise VerificationError("SEO acceptance did not create its own unpublished draft")
+    if any(key in fixture for key in ("menu_id", "menu_item_id")):
+        raise VerificationError("SEO acceptance fixture unexpectedly contains a menu")
+    plan_id = planned.get("plan_id")
+    if not isinstance(plan_id, str) or not plan_id.startswith("sm-plan-"):
+        raise VerificationError("SEO acceptance lacks a WordPress-generated plan")
+    if (applied.get("plan_id") != plan_id or applied.get("verified") is not True
+            or applied.get("status") != "verified"):
+        raise VerificationError("SEO apply was not provider-verified")
+    if (rollback.get("plan_id") != plan_id or rollback.get("rollback_success") is not True
+            or rollback.get("status") != "rolled-back"):
+        raise VerificationError("SEO rollback did not restore the original provider state")
+    removed = cleanup.get("removed")
+    if not isinstance(removed, dict) or removed.get("post") is not True:
+        raise VerificationError("SEO temporary draft deletion was not verified")
+    after = state.get("fixture")
+    if (not isinstance(after, dict) or after.get("post_id") != 0
+            or after.get("menu_id") != 0 or after.get("menu_item_id") != 0):
+        raise VerificationError("SEO acceptance left an orphaned fixture")
+    return {
+        "profile": SEO_ACCEPTANCE_PROFILE,
+        "run_id": run_id,
+        "temporary_post_id": post_id,
+        "post_status": "draft",
+        "plan_id": plan_id,
+        "semantic_field": "description",
+        "planned": True,
+        "apply_verified": True,
+        "rollback_verified": True,
+        "draft_deleted": True,
+        "navigation_and_customer_content_untouched_by_test": True,
+        "step_statuses": {step: "passed" for step in SEO_ACCEPTANCE_STEPS},
+    }
+
+
+def run_seo_acceptance(client: McpClient) -> dict[str, Any]:
+    """Run the fixed, explicitly confirmed SEO-only WordPress Acceptance Center profile."""
+    started = client.call(SEO_ACCEPTANCE_TOOLS["start"], {"confirmed": True})
+    if (not isinstance(started, dict) or started.get("profile") != SEO_ACCEPTANCE_PROFILE
+            or started.get("status") != "queued"):
+        raise VerificationError("WordPress refused an isolated SEO acceptance run")
+    run_id = started.get("run_id")
+    if not isinstance(run_id, str) or re.fullmatch(r"sm-mcp-accept-[a-f0-9]{20}", run_id) is None:
+        raise VerificationError("WordPress returned invalid SEO acceptance run identity")
+    deadline = time.monotonic() + ACCEPTANCE_TIMEOUT_SECONDS
+    while time.monotonic() < deadline:
+        state = client.call(SEO_ACCEPTANCE_TOOLS["status"])
+        if not isinstance(state, dict) or state.get("run_id") != run_id or state.get("profile") != SEO_ACCEPTANCE_PROFILE:
+            raise VerificationError("SEO acceptance identity or profile changed while running")
+        status = state.get("status")
+        if status == "completed":
+            return summarize_seo_acceptance(state, run_id)
+        if status == "failed":
+            raise VerificationError("SEO acceptance failed update, rollback or cleanup")
+        if status not in {"queued", "running", "cleaning"}:
+            raise VerificationError("SEO acceptance entered unsupported state")
+        time.sleep(4)
+    raise VerificationError("SEO acceptance timed out; inspect WordPress acceptance/cleanup state")
+
+
 def execute(command_path: Path, result_dir: Path) -> int:
     registry = load_json(REGISTRY_PATH)
     validate_registry(registry)
@@ -867,6 +968,10 @@ def execute(command_path: Path, result_dir: Path) -> int:
         elif action_name == "navigation.acceptance":
             stage = "navigation-only-roundtrip"
             sanitized = sanitize_value(run_navigation_acceptance(client), token)
+            verified = True
+        elif action_name == "seo.acceptance":
+            stage = "seo-only-roundtrip"
+            sanitized = sanitize_value(run_seo_acceptance(client), token)
             verified = True
         else:
             stage = "read" if action_name in READ_ACTIONS else command["payload"]["stage"]
@@ -994,9 +1099,14 @@ def self_test() -> int:
     nav_acceptance_rule = seo_rule.get("else", {})
     if (not isinstance(nav_acceptance_rule, dict)
             or nav_acceptance_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "navigation.acceptance"
-            or nav_acceptance_rule.get("then", {}).get("properties", {}).get("payload", {}).get("properties", {}).get("confirmed", {}).get("const") is not True
-            or nav_acceptance_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
-        raise CommandError("navigation.acceptance must accept only exact confirmation and reject other payloads")
+            or nav_acceptance_rule.get("then", {}).get("properties", {}).get("payload", {}).get("properties", {}).get("confirmed", {}).get("const") is not True):
+        raise CommandError("navigation.acceptance must accept only exact confirmation")
+    seo_acceptance_rule = nav_acceptance_rule.get("else", {})
+    if (not isinstance(seo_acceptance_rule, dict)
+            or seo_acceptance_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "seo.acceptance"
+            or seo_acceptance_rule.get("then", {}).get("properties", {}).get("payload", {}).get("properties", {}).get("confirmed", {}).get("const") is not True
+            or seo_acceptance_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
+        raise CommandError("seo.acceptance requires exact confirmation and blocks unsupported payloads")
 
     valid = {
         "version": "1",
@@ -1367,6 +1477,65 @@ def self_test() -> int:
             pass
         else:
             raise CommandError("incomplete or unsafe navigation fixture acceptance was considered verified")
+
+    seo_acc = {**valid, "action": "seo.acceptance", "payload": {"confirmed": True}}
+    validate_command(seo_acc, registry)
+    for invalid in ({}, {"confirmed": False}, {"confirmed": "true"},
+                    {"confirmed": True, "post_id": 22},
+                    {"confirmed": True, "provider": "yoast"},
+                    {"confirmed": True, "meta_key": "_yoast_wpseo_metadesc"}):
+        try:
+            validate_command({**seo_acc, "payload": invalid}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("unsafe SEO acceptance command was accepted")
+
+    seo_run_id = "sm-mcp-accept-" + "c" * 20
+    passed = lambda evidence: {"status": "passed", "evidence": evidence}
+    seo_state = {
+        "run_id": seo_run_id, "profile": SEO_ACCEPTANCE_PROFILE,
+        "status": "completed", "had_failure": False,
+        "steps": list(SEO_ACCEPTANCE_STEPS),
+        "fixture": {"post_id": 0, "menu_id": 0, "menu_item_id": 0},
+        "results": {
+            "precheck": passed({"discovery_received": True, "capabilities_received": True}),
+            "fixture_content_create": passed({"post_id": 42, "status": "draft"}),
+            "seo_plan": passed({"plan_id": "sm-plan-seo-fixture"}),
+            "seo_apply_verify": passed({"plan_id": "sm-plan-seo-fixture", "verified": True, "status": "verified"}),
+            "seo_rollback": passed({"plan_id": "sm-plan-seo-fixture", "rollback_success": True, "status": "rolled-back"}),
+            "cleanup": passed({"removed": {"post": True, "menu": True}}),
+        },
+    }
+    seo_evidence = summarize_seo_acceptance(seo_state, seo_run_id)
+    if not (seo_evidence["apply_verified"] and seo_evidence["rollback_verified"]
+            and seo_evidence["draft_deleted"]):
+        raise CommandError("verified SEO-only fixture result was lost")
+    for invalid in (
+        {**seo_state, "profile": "mcp-low-resource"},
+        {**seo_state, "status": "running"},
+        {**seo_state, "steps": list(ACCEPTANCE_STEPS)},
+        {**seo_state, "results": {**seo_state["results"],
+            "precheck": passed({"discovery_received": False, "capabilities_received": True})}},
+        {**seo_state, "results": {**seo_state["results"],
+            "fixture_content_create": passed({"post_id": 42, "status": "publish"})}},
+        {**seo_state, "results": {**seo_state["results"],
+            "seo_apply_verify": passed({"plan_id": "sm-plan-seo-fixture", "verified": False, "status": "verified"})}},
+        {**seo_state, "results": {**seo_state["results"],
+            "seo_rollback": passed({"plan_id": "sm-plan-seo-fixture", "rollback_success": False, "status": "rolled-back"})}},
+        {**seo_state, "results": {**seo_state["results"],
+            "cleanup": passed({"removed": {"post": False, "menu": True}})}},
+        {**seo_state, "fixture": {"post_id": 42, "menu_id": 0, "menu_item_id": 0}},
+        {**seo_state, "fixture": {"post_id": 0, "menu_id": 8, "menu_item_id": 0}},
+        {**seo_state, "results": {**seo_state["results"],
+            "seo_plan": passed({"plan_id": "sm-plan-mismatch"})}},
+    ):
+        try:
+            summarize_seo_acceptance(invalid, seo_run_id)
+        except VerificationError:
+            pass
+        else:
+            raise CommandError("incomplete or unverified SEO-only acceptance was accepted")
 
     secret = "unit-test-super-secret-token"
     sanitized = sanitize_value(

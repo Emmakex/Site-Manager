@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.11.5
+Stable tag: 0.11.6
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -15,6 +15,8 @@ Site Manager is a platform-neutral control plane. WordPress is its first adapter
 On activation Site Manager performs a bounded local discovery of the installation, including runtime, routing, active theme, public content types, taxonomies, navigation providers, active plugins and known providers. Detection never grants write access.
 
 The WordPress admin surface follows the configured WordPress/user locale. English is the source language and Spanish (`es_ES`) is bundled.
+
+Version 0.11.6 adds an isolated SEO-only MCP acceptance profile with a temporary unpublished draft and provider-authoritative SEO description update, verified rollback, and verified draft deletion. The exact bounded sequence cannot touch production pages or menus, and requires site.read, content.write, and seo.write on the original bound administrator. The full Acceptance Center, content-only, and navigation-only profiles remain unchanged.
 
 Version 0.11.5 adds a strictly navigation-only, connection-bound MCP acceptance profile. It creates a temporary unassigned classic menu and item, runs native plan/apply/verify/rollback, and deletes the temporary menu. It requires site.read and navigation.write but not content.write, and the cleanup endpoint now authorizes the active fixture profile and run ID instead of requiring content.write for menu-only tests. No real menu, post or SEO data is selected. Existing content-only and full acceptance flows remain unchanged.
 
@@ -61,6 +63,11 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 8. When remote access is required, generate a scoped token and copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.11.6 =
+* Adds one six-phase SEO-only acceptance profile and a fixed MCP-authenticated REST start route.
+* Requires scoped site.read, content.write and seo.write; validates active-run concurrency and forbids menu fixtures.
+* Reuses the WordPress-owned SEO provider registry, existing plan/apply/verify/rollback, and safe draft deletion.
 
 = 0.11.5 =
 * Adds a navigation-only temporary classic-menu acceptance profile and scoped REST start endpoint.

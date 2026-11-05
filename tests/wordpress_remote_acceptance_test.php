@@ -175,4 +175,67 @@ try {
     $assert(str_contains($error->getMessage(), 'missing_scopes'), 'navigation-only scope must fail closed');
 }
 
+/* SEO-only: a draft fixture with provider-governed SEO, not a menu fixture. */
+$previous = (array) get_option(RemoteAcceptanceService::STATE_OPTION, []);
+$previous['status'] = 'failed';
+$GLOBALS['site_manager_test_options'][RemoteAcceptanceService::STATE_OPTION] = $previous;
+$connection = (array) get_option(RemoteConnectionStore::OPTION, []);
+$connection['scopes'] = ['site.read', 'content.write', 'seo.write'];
+$GLOBALS['site_manager_test_options'][RemoteConnectionStore::OPTION] = $connection;
+
+$seoOnly = $service->startSeoOnly();
+$assert('mcp-seo-only' === ($seoOnly['profile'] ?? ''), 'SEO-only acceptance must have a distinct profile');
+$seoState = $service->bridgeState();
+$seoSteps = [
+    'precheck', 'fixture_content_create', 'seo_plan',
+    'seo_apply_verify', 'seo_rollback', 'cleanup',
+];
+$assert($seoSteps === ($seoState['steps'] ?? []), 'SEO-only run must have only six draft/SEO phases');
+$assert('precheck' === ($seoState['next_step'] ?? ''), 'SEO-only must start with safe discovery');
+$assert(0 === ($seoOnly['fixture']['post_id'] ?? -1), 'SEO draft must not exist until fixture step');
+$assert(0 === ($seoOnly['fixture']['menu_id'] ?? -1), 'SEO-only must not create navigation');
+$assert(1 === ($seoOnly['concurrency'] ?? 0), 'SEO-only run must preserve concurrency one');
+try {
+    $service->start();
+    $assert(false, 'full acceptance must not replace active SEO-only run');
+} catch (\RuntimeException $error) {
+    $assert(str_contains($error->getMessage(), 'profile_already_active'), 'SEO-only/full profile collision must fail');
+}
+try {
+    $service->startNavigationOnly();
+    $assert(false, 'navigation-only acceptance must not attach to SEO-only fixture');
+} catch (\RuntimeException $error) {
+    $assert(str_contains($error->getMessage(), 'profile_already_active'), 'SEO/navigation profile collision must fail');
+}
+try {
+    $service->startSeoOnly();
+    $assert(false, 'a second SEO command must not attach to an active SEO fixture');
+} catch (\RuntimeException $error) {
+    $assert(str_contains($error->getMessage(), 'already_active'), 'duplicate SEO fixture must be blocked');
+}
+$seoPrecheck = $service->report((string) $seoOnly['run_id'], 'precheck', true, [
+    'discovery_received'=>true, 'capabilities_received'=>true,
+]);
+$assert('fixture_content_create' === ($seoPrecheck['next_step'] ?? ''), 'SEO precheck must create only a draft');
+$seoStopped = $service->cancel();
+$assert('cleanup' === ($seoStopped['next_step'] ?? ''), 'SEO-only cancel schedules cleanup');
+$assert(5 === ($seoStopped['step_index'] ?? -1), 'SEO-only cleanup has correct six-stage position');
+$assert(true === ($seoStopped['had_failure'] ?? false), 'cancelled SEO test cannot pass');
+foreach ([
+    ['site.read', 'content.write'],
+    ['site.read', 'seo.write'],
+] as $partialScopes) {
+    $old = (array) get_option(RemoteAcceptanceService::STATE_OPTION, []);
+    $old['status'] = 'failed';
+    $GLOBALS['site_manager_test_options'][RemoteAcceptanceService::STATE_OPTION] = $old;
+    $connection['scopes'] = $partialScopes;
+    $GLOBALS['site_manager_test_options'][RemoteConnectionStore::OPTION] = $connection;
+    try {
+        $service->startSeoOnly();
+        $assert(false, 'SEO-only must reject incomplete scope grants');
+    } catch (\RuntimeException $error) {
+        $assert(str_contains($error->getMessage(), 'missing_scopes'), 'SEO-only missing scope must fail closed');
+    }
+}
+
 echo "PASS: WordPress MCP remote acceptance low-resource state contract\n";

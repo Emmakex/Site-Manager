@@ -53,6 +53,14 @@
       },
       "required_scope": "navigation.write",
       "read_only": false
+    },
+    "seo.acceptance": {
+      "tools": {
+        "start": "seo_acceptance_start",
+        "status": "seo_acceptance_status"
+      },
+      "required_scope": "seo.write",
+      "read_only": false
     }
   }
 }

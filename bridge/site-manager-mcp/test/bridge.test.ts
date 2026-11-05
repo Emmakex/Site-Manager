@@ -258,3 +258,31 @@ test('navigation-only acceptance starts a fixed scoped WordPress profile with no
   assert.deepEqual(requests[0]?.body, {});
   assert.ok(requests.every(x => x.auth === `Bearer ${secret}`));
 });
+
+test('SEO-only acceptance uses fixed WordPress REST start and status without a selectable post', async () => {
+  const requests: Array<{ path: string; method: string; body: unknown; auth: string | null }> = [];
+  const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const url = input instanceof URL ? input : new URL(String(input));
+    const headers = new Headers(init?.headers);
+    requests.push({
+      path: url.pathname,
+      method: init?.method ?? '',
+      body: typeof init?.body === 'string' ? JSON.parse(init.body) : null,
+      auth: headers.get('authorization'),
+    });
+    const data = url.pathname.endsWith('/job')
+      ? { profile: 'mcp-seo-only', status: 'running' }
+      : { profile: 'mcp-seo-only', status: 'queued', run_id: 'sm-mcp-accept-123' };
+    return new Response(JSON.stringify({ data }), { status: 200 });
+  }) as typeof fetch;
+  const client = new SiteManagerClient(baseConfig(), fakeFetch);
+  assert.equal((await client.remoteAcceptanceStartSeoOnly()).profile, 'mcp-seo-only');
+  assert.equal((await client.remoteAcceptanceJob()).profile, 'mcp-seo-only');
+  assert.deepEqual(requests.map(x => x.path), [
+    '/wp-json/site-manager/v1/acceptance/remote/seo-only/start',
+    '/wp-json/site-manager/v1/acceptance/remote/job',
+  ]);
+  assert.deepEqual(requests.map(x => x.method), ['POST', 'GET']);
+  assert.deepEqual(requests[0]?.body, {});
+  assert.ok(requests.every(x => x.auth === `Bearer ${secret}`));
+});

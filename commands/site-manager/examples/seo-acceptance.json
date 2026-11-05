@@ -1,0 +1,10 @@
+{
+  "version": "1",
+  "command_id": "cmd-seo-acceptance-example-01",
+  "site": "acceptance-site",
+  "action": "seo.acceptance",
+  "requested_by": "chatgpt",
+  "payload": {
+    "confirmed": true
+  }
+}
