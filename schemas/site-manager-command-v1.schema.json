@@ -33,7 +33,8 @@
         "navigation.update",
         "seo.update",
         "navigation.acceptance",
-        "seo.acceptance"
+        "seo.acceptance",
+        "site.overview"
       ]
     },
     "requested_by": {
