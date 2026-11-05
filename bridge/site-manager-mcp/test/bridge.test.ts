@@ -230,3 +230,31 @@ test('content-only acceptance starts one fixed scoped WordPress profile with no 
   assert.equal(requests[0]?.userAgent, 'site-manager-mcp/0.5.0');
   assert.equal(requests[1]?.method, 'GET');
 });
+
+test('navigation-only acceptance starts a fixed scoped WordPress profile with no caller-selected menu', async () => {
+  const requests: Array<{ path: string; method: string; body: unknown; auth: string | null }> = [];
+  const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const url = input instanceof URL ? input : new URL(String(input));
+    const headers = new Headers(init?.headers);
+    requests.push({
+      path: url.pathname,
+      method: init?.method ?? '',
+      body: typeof init?.body === 'string' ? JSON.parse(init.body) : null,
+      auth: headers.get('authorization'),
+    });
+    const data = url.pathname.endsWith('/job')
+      ? { profile: 'mcp-navigation-only', status: 'running' }
+      : { profile: 'mcp-navigation-only', status: 'queued', run_id: 'sm-mcp-accept-123' };
+    return new Response(JSON.stringify({ data }), { status: 200 });
+  }) as typeof fetch;
+  const client = new SiteManagerClient(baseConfig(), fakeFetch);
+  assert.equal((await client.remoteAcceptanceStartNavigationOnly()).profile, 'mcp-navigation-only');
+  assert.equal((await client.remoteAcceptanceJob()).profile, 'mcp-navigation-only');
+  assert.deepEqual(requests.map(x => x.path), [
+    '/wp-json/site-manager/v1/acceptance/remote/navigation-only/start',
+    '/wp-json/site-manager/v1/acceptance/remote/job',
+  ]);
+  assert.deepEqual(requests.map(x => x.method), ['POST', 'GET']);
+  assert.deepEqual(requests[0]?.body, {});
+  assert.ok(requests.every(x => x.auth === `Bearer ${secret}`));
+});
