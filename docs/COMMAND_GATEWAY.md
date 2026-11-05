@@ -261,3 +261,57 @@ rollback evidence is retained for up to 24 hours by the WordPress plan store.
 final PR head. Real content apply/rollback must be exercised solely on a
 disposable acceptance target with explicit authorization and verification;
 never take a real-site mutation just to prove the gateway is wired.
+
+## Isolated disposable content acceptance (SM-4F)
+
+The `content.acceptance` action runs **only** the WordPress-owned
+`mcp-content-only` profile. It does not accept a post ID, draft title,
+WordPress REST path or caller-provided code. It requires explicit operator
+authorization and valid `site.read` + `content.write` scopes, with a bound
+WordPress administrator and the existing connection identity.
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-content-acceptance-example-01",
+  "site": "acceptance-site",
+  "action": "content.acceptance",
+  "requested_by": "chatgpt",
+  "payload": { "confirmed": true }
+}
+```
+
+On the current WordPress plugin (`>=0.11.4`) and matching MCP image,
+the accepted flow is:
+
+```text
+precheck → create private draft fixture → content plan
+→ confirmed apply + verify → confirmed rollback + verify
+→ delete fixture → verify cleanup → report sanitized result
+```
+
+It reuses `RemoteAcceptanceService` and the normal content governance
+pipeline, not an unrestricted WordPress post creation endpoint. The existing
+13-step Acceptance Center sequence is unchanged. Content-only requests
+cannot attach to an already active test, whether full-suite or content-only.
+The WordPress fixture is always a draft page with known fixed test content.
+No navigation or SEO operations are part of this profile.
+
+The Gateway waits for the complete WordPress evidence chain, and only
+returns `verified=true` after **all six steps pass**, apply verification,
+rollback success, fixture deletion and confirmation that no menu was
+created. A successful HTTP response alone never counts as acceptance.
+Timeouts/failures must be reconciled with actual WordPress acceptance
+state before issuing another command; do not suppress failed cleanup.
+
+Required rollout order: build and install the official 0.11.4 WordPress
+plugin package on the acceptance site (backup/standard safe plugin upgrade),
+build a new immutable `site-manager-mcp` image, deploy it through the
+existing protected OVH Gateway, then execute this command with a **new**
+command ID. GitHub commands cannot upgrade WordPress plugins remotely.
+**Do not run content-only acceptance against the older 0.11.3 plugin**.
+
+This test is independent of manual `content.update` commands and cannot
+be used to select or alter real customer posts. It is strictly for accepted
+Site Manager-owned temporary fixtures; the full content creation feature
+remains outside this scope.
