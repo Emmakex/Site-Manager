@@ -201,4 +201,28 @@ with TemporaryDirectory(prefix="site-manager-sm4k-") as temp:
     assert FakeClient.clients[-1].closed is True
     FakeClient.refusal = False
 
+# The trusted workflow is intentionally dispatch-only and cannot accept
+# a caller-selected MCP endpoint, bearer, provider, WordPress target or tool.
+workflow = (Path(__file__).resolve().parents[1] / ".github" / "workflows"
+            / "site-manager-site-bootstrap.yml").read_text(encoding="utf-8")
+assert "workflow_dispatch:" in workflow
+assert "pull_request:" not in workflow and "schedule:" not in workflow
+assert "github.actor == 'Emmakex'" in workflow
+assert "github.ref == 'refs/heads/main'" in workflow
+assert "github.run_attempt == 1" in workflow
+assert "environment: site-manager-${{ needs.validate.outputs.site }}" in workflow
+assert "SITE_MANAGER_EXPECTED_SITE_URL: ${{ vars.SITE_MANAGER_EXPECTED_SITE_URL }}" in workflow
+assert "SITE_MANAGER_EXPECTED_CONNECTION_ID: ${{ secrets.SITE_MANAGER_EXPECTED_CONNECTION_ID }}" in workflow
+assert "SITE_MANAGER_MCP_TOKEN: ${{ secrets.SITE_MANAGER_MCP_TOKEN }}" in workflow
+assert "site_manager_site_bootstrap.py" in workflow
+assert "commands/site-manager/pending/" not in workflow
+assert "--site \"$REQUESTED_SITE_ID\" --run-id \"$BOOTSTRAP_RUN_ID\"" in workflow
+boot_source = (Path(__file__).resolve().parents[1] / "scripts"
+               / "site_manager_site_bootstrap.py").read_text(encoding="utf-8")
+assert boot_source.count('client.call("site_read", {})') == 1
+for forbidden in ('client.call("content_update_', 'client.call("navigation_update_',
+                  'client.call("seo_update_', 'client.call("tools/call"',
+                  'client.call("content_acceptance_'):
+    assert forbidden not in boot_source
+
 print("site_manager_site_bootstrap_test: OK")
