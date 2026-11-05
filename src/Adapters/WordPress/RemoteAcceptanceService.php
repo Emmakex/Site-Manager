@@ -28,6 +28,19 @@ final class RemoteAcceptanceService
     ];
 
     /** @var list<string> */
+    private const CONTENT_ONLY_STEPS = [
+        'precheck',
+        'fixture_content_create',
+        'content_plan',
+        'content_apply_verify',
+        'content_rollback',
+        'cleanup',
+    ];
+
+    /** @var list<string> */
+    private const CONTENT_ONLY_SCOPES = ['site.read', 'content.write'];
+
+    /** @var list<string> */
     private const REQUIRED_SCOPES = [
         'site.read',
         'content.write',
@@ -57,18 +70,42 @@ final class RemoteAcceptanceService
     /** @return array<string,mixed> */
     public function start(): array
     {
+        return $this->startProfile('mcp-low-resource', self::STEPS, self::REQUIRED_SCOPES);
+    }
+
+    /**
+     * Content-only end-to-end test: creates its own draft, updates and restores it,
+     * then deletes it. Never uses a customer-selected post or any navigation/SEO.
+     *
+     * @return array<string,mixed>
+     */
+    public function startContentOnly(): array
+    {
+        return $this->startProfile('mcp-content-only', self::CONTENT_ONLY_STEPS, self::CONTENT_ONLY_SCOPES);
+    }
+
+    /**
+     * @param list<string> $steps
+     * @param list<string> $requiredScopes
+     * @return array<string,mixed>
+     */
+    private function startProfile(string $profile, array $steps, array $requiredScopes): array
+    {
         $client = (new RemoteClientTracker())->publicState();
         if (empty($client['mcp_connected'])) {
             throw new RuntimeException('mcp_not_connected');
         }
 
-        $missing = array_values(array_diff(self::REQUIRED_SCOPES, (new RemoteConnectionStore())->grantedScopes()));
+        $missing = array_values(array_diff($requiredScopes, (new RemoteConnectionStore())->grantedScopes()));
         if ([] !== $missing) {
             throw new RuntimeException('mcp_acceptance_missing_scopes:' . implode(',', $missing));
         }
 
         $current = $this->current();
         if (in_array((string) ($current['status'] ?? ''), ['queued','running','cleaning'], true)) {
+            if ((string) ($current['profile'] ?? '') !== $profile) {
+                throw new RuntimeException('mcp_acceptance_profile_already_active');
+            }
             return $current;
         }
 
@@ -79,11 +116,11 @@ final class RemoteAcceptanceService
             'run_id'=>'sm-mcp-accept-' . substr(hash('sha256', (string) microtime(true) . ':' . wp_rand()), 0, 20),
             'transport'=>'mcp',
             'status'=>'queued',
-            'profile'=>'mcp-low-resource',
+            'profile'=>$profile,
             'concurrency'=>1,
             'pause_ms'=>self::PAUSE_MS,
             'step_index'=>0,
-            'next_step'=>self::STEPS[0],
+            'next_step'=>$steps[0],
             'started_at'=>$now,
             'updated_at'=>$now,
             'finished_at'=>'',
@@ -109,7 +146,7 @@ final class RemoteAcceptanceService
         $state['had_failure'] = true;
         $state['last_error'] = 'cancelled_by_user';
         $state['status'] = 'cleaning';
-        $state['step_index'] = count(self::STEPS) - 1;
+        $state['step_index'] = count($this->stepsForState($state)) - 1;
         $state['next_step'] = 'cleanup';
         $state['updated_at'] = gmdate(DATE_W3C);
         $this->save($state);
@@ -129,7 +166,7 @@ final class RemoteAcceptanceService
                 'steps'=>self::STEPS,
             ];
         }
-        $state['steps'] = self::STEPS;
+        $state['steps'] = $this->stepsForState($state);
         $state['pause_ms'] = self::PAUSE_MS;
         return $state;
     }
@@ -238,7 +275,7 @@ final class RemoteAcceptanceService
             $state['had_failure'] = true;
             $state['last_error'] = 'acceptance_cleanup_failed';
         }
-        $state['step_index'] = count(self::STEPS);
+        $state['step_index'] = count($this->stepsForState($state));
         $state['next_step'] = '';
         $state['status'] = ! empty($state['had_failure']) ? 'failed' : 'completed';
         $state['finished_at'] = gmdate(DATE_W3C);
@@ -281,11 +318,12 @@ final class RemoteAcceptanceService
             'evidence'=>$this->boundedEvidence($evidence),
         ];
         $index++;
-        if ($index >= count(self::STEPS)) {
+        $steps = $this->stepsForState($state);
+        if ($index >= count($steps)) {
             throw new RuntimeException('mcp_acceptance_invalid_terminal_step');
         }
         $state['step_index'] = $index;
-        $state['next_step'] = self::STEPS[$index];
+        $state['next_step'] = $steps[$index];
         $state['status'] = 'cleanup' === $state['next_step'] ? 'cleaning' : 'running';
         $state['updated_at'] = gmdate(DATE_W3C);
         $this->save($state);
@@ -307,7 +345,7 @@ final class RemoteAcceptanceService
         $state['had_failure'] = true;
         $state['last_error'] = $code;
         $state['status'] = 'cleaning';
-        $state['step_index'] = count(self::STEPS) - 1;
+        $state['step_index'] = count($this->stepsForState($state)) - 1;
         $state['next_step'] = 'cleanup';
         $state['updated_at'] = gmdate(DATE_W3C);
         $this->save($state);
@@ -335,6 +373,14 @@ final class RemoteAcceptanceService
             'last_error'=>(string) ($state['last_error'] ?? ''),
         ]);
         update_option(AcceptanceCenterService::HISTORY_OPTION, array_slice($history, 0, 10), false);
+    }
+
+    /** @param array<string,mixed> $state @return list<string> */
+    private function stepsForState(array $state): array
+    {
+        return (string) ($state['profile'] ?? '') === 'mcp-content-only'
+            ? self::CONTENT_ONLY_STEPS
+            : self::STEPS;
     }
 
     /** @param array<string,mixed> $evidence @return array<string,mixed> */
