@@ -34,7 +34,8 @@
         "seo.update",
         "navigation.acceptance",
         "seo.acceptance",
-        "site.overview"
+        "site.overview",
+        "site.content_targets"
       ]
     },
     "requested_by": {
