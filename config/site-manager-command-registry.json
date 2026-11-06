@@ -66,6 +66,11 @@
       "tool": "site_read",
       "required_scope": "site.read",
       "read_only": true
+    },
+    "site.content_targets": {
+      "tool": "site_content_targets",
+      "required_scope": "site.read",
+      "read_only": true
     }
   }
 }
