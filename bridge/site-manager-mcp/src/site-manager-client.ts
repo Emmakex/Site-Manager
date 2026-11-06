@@ -5,6 +5,7 @@ export type SiteManagerReadResource =
   | 'discovery'
   | 'capabilities'
   | 'diagnostics'
+  | 'content/targets'
   | 'acceptance/remote/job';
 
 export type SiteManagerWriteResource =
@@ -70,6 +71,17 @@ export class SiteManagerClient {
       connection_id: this.config.connectionId,
       discovery,
       capabilities,
+    };
+  }
+
+  public async contentTargets(): Promise<JsonRecord> {
+    const targets = await this.request('content/targets', 'GET');
+    if (!isRecord(targets)) {
+      throw new SiteManagerClientError('Site Manager returned invalid published content targets.');
+    }
+    return {
+      connection_id: this.config.connectionId,
+      ...targets,
     };
   }
 
