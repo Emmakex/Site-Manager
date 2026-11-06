@@ -80,8 +80,8 @@ export class SiteManagerClient {
       throw new SiteManagerClientError('Site Manager returned invalid published content targets.');
     }
     return {
-      connection_id: this.config.connectionId,
       ...targets,
+      connection_id: this.config.connectionId,
     };
   }
 
