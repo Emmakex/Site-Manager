@@ -771,3 +771,59 @@ itself never needs to run GitHub.
 
 The complete contract, limitations, enrollment procedure and two-site
 security regression are documented in [SITE_CATALOG.md](SITE_CATALOG.md).
+
+
+## SM-4L — Bounded published-content target selection for EMMAKE delivery
+
+The operator can now use a **separate read-only** business action to
+discover IDs of real public WordPress pages and posts before planning any
+edit. The action does **not** inspect private drafts and does not read
+body text, excerpts, post metadata, passwords or unpublished plans.
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-content-targets-example-0001",
+  "site": "acceptance-site",
+  "action": "site.content_targets",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
+```
+
+The trusted Gateway maps `site.content_targets` exclusively to the
+`site_content_targets` MCP tool under the already-required `site.read`
+scope. The MCP client calls only the new fixed WordPress REST
+`GET /site-manager/v1/content/targets` endpoint. The endpoint returns
+**published** `page` and `post` metadata, capped at 80 pages and 40
+posts, including each content ID, public title, slug, site-relative
+permalink, modified GMT and homepage marker. If the cap is exceeded,
+`pages_truncated` or `posts_truncated` is true, and the operator
+must not claim to have inventoried the entire site.
+
+WordPress refuses any target whose status changed to private/draft or
+whose generated permalink points outside the current site's HTTPS
+base path. The Gateway independently validates the exact public-only
+response shape and connection identity, permitted native post type,
+published status, URL containment, bounded list lengths, ID uniqueness
+and homepage consistency. It persists **only the safe, whitelisted
+published metadata** as an auditable, read-only result.
+
+This action **does not authorize editing**. Once a user selects a
+published WordPress ID, follow the already-scoped `content.update`
+`plan` → separate, explicit `apply` → verify → rollback sequence.
+For EMMAKE, homepage ID 7 is known from the live discovery, but the
+published content selector must verify that it is actually present
+before treating it as an editable target. No source content or original
+values are stored in the GitHub result; the separate **private
+before/after preview** still needs its own accepted contract.
+
+Deployment: WordPress plugin **0.11.7** and the matching immutable MCP
+image must be installed/deployed before a real Gateway
+`site.content_targets` can succeed. Adding the Gateway action to
+`main` alone is not deployment. The production acceptance is read-only
+and requires no permission to mutate any WordPress page.
+
+This is the **first cut** in [EMMAKE delivery #73](https://github.com/Emmakex/Site-Manager/issues/73).
+It does not imply finished publication, SEO, navigation, visual UX,
+forms, accessibility or launch readiness.
