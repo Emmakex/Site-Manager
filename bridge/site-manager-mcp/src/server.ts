@@ -160,6 +160,24 @@ export function createSiteManagerMcpServer(
     );
   }
 
+  if (scopes.has('site.read')) {
+    server.registerTool(
+      'site_content_targets',
+      {
+        title: 'List published WordPress pages and posts',
+        description: 'Read a bounded published-only list of native WordPress content targets, including homepage ID, titles and permalinks. No private drafts, bodies, excerpts or arbitrary post meta are returned.',
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async () => {
+        try {
+          return toolResult(await client.contentTargets());
+        } catch {
+          return toolError('Site Manager could not read published WordPress content targets.');
+        }
+      },
+    );
+  }
+
   if (scopes.has('site.diagnostics')) {
     server.registerTool(
       'site_diagnostics',
