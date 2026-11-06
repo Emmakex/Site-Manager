@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.11.6
+Stable tag: 0.11.7
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -15,6 +15,8 @@ Site Manager is a platform-neutral control plane. WordPress is its first adapter
 On activation Site Manager performs a bounded local discovery of the installation, including runtime, routing, active theme, public content types, taxonomies, navigation providers, active plugins and known providers. Detection never grants write access.
 
 The WordPress admin surface follows the configured WordPress/user locale. English is the source language and Spanish (`es_ES`) is bundled.
+
+Version 0.11.7 adds a strictly published-only, bounded content target inventory to Site Manager's site.read API. It lists native public WordPress posts and pages with IDs, titles, slugs, permalinks, homepage marker and last modified time, but never private drafts, excerpts, bodies or arbitrary meta. This read-only entry point supports selecting real content for independently authorized plan/verify/rollback governance through ChatGPT. No write grants or new publishing operations are introduced.
 
 Version 0.11.6 adds an isolated SEO-only MCP acceptance profile with a temporary unpublished draft and provider-authoritative SEO description update, verified rollback, and verified draft deletion. The exact bounded sequence cannot touch production pages or menus, and requires site.read, content.write, and seo.write on the original bound administrator. The full Acceptance Center, content-only, and navigation-only profiles remain unchanged.
 
@@ -63,6 +65,13 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 8. When remote access is required, generate a scoped token and copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.11.7 =
+* Adds scoped, read-only `content/targets` WordPress REST inventory for published pages and posts.
+* Restricts results to 80 pages and 40 posts and reports truncation and the homepage ID.
+* Excludes drafts, private fields, content bodies, excerpts and cross-site permalinks.
+* Preserves existing read/write scope boundaries and preview/verify/rollback lifecycles.
+
 
 = 0.11.6 =
 * Adds one six-phase SEO-only acceptance profile and a fixed MCP-authenticated REST start route.
