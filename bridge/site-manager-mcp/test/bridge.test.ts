@@ -286,3 +286,32 @@ test('SEO-only acceptance uses fixed WordPress REST start and status without a s
   assert.deepEqual(requests[0]?.body, {});
   assert.ok(requests.every(x => x.auth === `Bearer ${secret}`));
 });
+
+test('published WordPress content targets are read-only, scoped and bound to the MCP connection identity', async () => {
+  const calls: Array<{ method: string; path: string; authorization: string | null }> = [];
+  const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const target = input instanceof URL ? input : new URL(String(input));
+    calls.push({
+      method: init?.method ?? '',
+      path: target.pathname,
+      authorization: new Headers(init?.headers).get('authorization'),
+    });
+    return new Response(JSON.stringify({
+      data: {
+        source: 'wordpress-native-published-content',
+        connection_id: 'smc_attacker_controlled_value',
+        pages: [{ post_id: 7 }],
+        posts: [],
+      },
+    }), { status: 200 });
+  }) as typeof fetch;
+  const client = new SiteManagerClient(baseConfig(), fakeFetch);
+  const result = await client.contentTargets();
+  assert.equal(result.connection_id, connectionId);
+  assert.equal(result.source, 'wordpress-native-published-content');
+  assert.deepEqual(calls, [{
+    method: 'GET',
+    path: '/wp-json/site-manager/v1/content/targets',
+    authorization: `Bearer ${secret}`,
+  }]);
+});
