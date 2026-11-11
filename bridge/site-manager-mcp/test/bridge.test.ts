@@ -315,3 +315,34 @@ test('published WordPress content targets are read-only, scoped and bound to the
     authorization: `Bearer ${secret}`,
   }]);
 });
+
+test('Theme semantic model read uses fixed site.read endpoint and bound connection', async () => {
+  const requests: Array<{method: string; path: string; auth: string | null; redirect: string | undefined}> = [];
+  const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const target = input instanceof URL ? input : new URL(String(input));
+    requests.push({
+      method: init?.method ?? '',
+      path: target.pathname,
+      auth: new Headers(init?.headers).get('authorization'),
+      redirect: init?.redirect,
+    });
+    return new Response(JSON.stringify({ data: {
+      source: 'seo-geo-theme-corporate-model',
+      connection_id: 'smc_untrusted_wordpress_value',
+      model_id: 'corporate-home-v1',
+      post_id: 7,
+      slots: [{ id: 'hero-lead', type: 'text', present: true }],
+    }}), { status: 200, headers: { 'content-type': 'application/json' } });
+  }) as typeof fetch;
+  const client = new SiteManagerClient(baseConfig(), fakeFetch);
+  const result = await client.themeModel();
+  assert.equal(result.connection_id, connectionId);
+  assert.equal(result.model_id, 'corporate-home-v1');
+  assert.equal(result.post_id, 7);
+  assert.deepEqual(requests, [{
+    method: 'GET',
+    path: '/wp-json/site-manager/v1/theme/model',
+    auth: `Bearer ${secret}`,
+    redirect: 'error',
+  }]);
+});
