@@ -25,13 +25,13 @@ jobs:
         run: node scripts/site_manager_emmake_browser_audit.cjs --self-test
 
   browser-staging:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     needs: safety-contract
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     concurrency:
-      group: emmake-public-chromium-acceptance
+      group: emmake-public-chromium-acceptance-${{ github.sha }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +44,7 @@ jobs:
         run: |
           mkdir -p .qa-deps
           npm install --prefix .qa-deps --ignore-scripts --no-save --no-audit --no-fund playwright@1.65.0
-          .qa-deps/node_modules/.bin/playwright install --with-deps chromium
+          .qa-deps/node_modules/.bin/playwright install chromium
       - name: Audit fixed staging routes in desktop and mobile browser
         env:
           NODE_PATH: ${{ github.workspace }}/.qa-deps/node_modules
@@ -58,6 +58,7 @@ jobs:
           retention-days: 2
           if-no-files-found: warn
       - name: Commit JSON findings only, no HTML or screenshots
+        if: github.event_name == 'push'
         run: |
           set -euo pipefail
           if ! compgen -G 'audits/emmake/browser/results/*.json' >/dev/null; then
@@ -83,6 +84,7 @@ jobs:
             done
           fi
       - name: Gate responsive and link audit
+        if: github.event_name == 'push'
         run: |
           python3 - <<'PY'
           import glob
