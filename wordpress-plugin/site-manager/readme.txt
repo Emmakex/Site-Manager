@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.11.9
+Stable tag: 0.11.10
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -55,7 +55,7 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 
 == Installation ==
 
-1. Upload the official `site-manager-0.11.4.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.11.10.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review Site Manager > Dashboard and Site Manager > Diagnostics.
@@ -65,6 +65,15 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 8. When remote access is required, generate a scoped token and copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.11.10 =
+* Adds an optional SEO/GEO Theme semantic-homepage readiness probe to the existing scoped `site.diagnostics` response.
+* Distinguishes unavailable providers, missing published homepage, missing Theme contract, missing native markers, resolver rejection, incomplete required slots and inventory rejection through fixed codes.
+* Only safe booleans, bounded counts and published homepage ID leave WordPress; no semantic values, raw page body, post metadata, URLs or secrets.
+* Generic Site Manager WordPress discovery, content, navigation and SEO governance remain usable with any unrelated theme.
+* No homepage mutations, new write grants, manual terminal steps or new WordPress plugin dependencies.
+
+
 
 = 0.11.9 =
 * Direct Site Manager governance for SEO/GEO Theme Corporate homepage text slots; no additional manager plugin required.

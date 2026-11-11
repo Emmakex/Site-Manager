@@ -35,6 +35,10 @@ final class RemoteAccess
                 'callback'=>static function () use ($resource): \WP_REST_Response {
                     $state = (new Plugin())->ensureCurrent();
                     $data = 'discovery' === $resource ? ($state['snapshot'] ?? []) : ($state[$resource] ?? []);
+                    if ('diagnostics' === $resource && is_array($data)) {
+                        // Optional Theme compatibility lives outside Core and exposes only fixed, safe states.
+                        $data['theme_model_readiness'] = (new ThemeModelReadiness())->inspect();
+                    }
                     return new \WP_REST_Response(['data'=>$data], 200);
                 },
             ], true);
