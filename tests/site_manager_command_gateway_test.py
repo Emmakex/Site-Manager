@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.theme_model"}
+expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.theme_model", "theme.update"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 assert registry["actions"]["site.read"] == {
@@ -41,6 +41,11 @@ assert registry["actions"]["site.theme_model"] == {
     "tool": "site_theme_model",
     "required_scope": "site.read",
     "read_only": True,
+}
+assert registry["actions"]["theme.update"] == {
+    "tools": {"plan": "theme_update_plan", "apply": "theme_update_apply", "rollback": "theme_update_rollback"},
+    "required_scope": "content.write",
+    "read_only": False,
 }
 assert registry["actions"]["content.update"] == {
     "tools": {"plan": "content_update_plan", "apply": "content_update_apply", "rollback": "content_update_rollback"},
@@ -138,7 +143,16 @@ assert seo_acceptance_rule["then"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False,
     "required": ["confirmed"], "properties": {"confirmed": {"const": True}},
 }
-assert seo_acceptance_rule["else"]["properties"]["payload"] == {
+theme_rule = seo_acceptance_rule["else"]
+assert theme_rule["if"]["properties"]["action"]["const"] == "theme.update"
+theme_stages = theme_rule["then"]["properties"]["payload"]["oneOf"]
+assert len(theme_stages) == 3
+assert set(theme_stages[0]["required"]) == {"stage", "fields"}
+assert theme_stages[0]["properties"]["fields"]["additionalProperties"] is False
+assert theme_stages[0]["properties"]["fields"]["maxProperties"] == 5
+assert all(x["additionalProperties"] is False for x in theme_stages)
+assert {x["properties"]["stage"]["const"] for x in theme_stages} == {"plan","apply","rollback"}
+assert theme_rule["else"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False, "maxProperties": 0
 }
 stages = conditional["then"]["properties"]["payload"]["oneOf"]
@@ -168,6 +182,9 @@ assert "site.overview" in runner
 assert "summarize_site_overview" in runner
 assert "summarize_content_targets" in runner
 assert "summarize_theme_model" in runner
+assert "THEME_TOOLS" in runner
+assert "validate_theme_payload" in runner
+assert "verify_theme_response" in runner
 assert "ContentTargetsError" in runner
 assert "OverviewError" in runner
 assert "CONTENT_TOOLS" in runner
