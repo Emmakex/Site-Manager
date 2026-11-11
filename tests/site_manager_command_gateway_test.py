@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets"}
+expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.theme_model"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 assert registry["actions"]["site.read"] == {
@@ -34,6 +34,11 @@ assert registry["actions"]["site.overview"] == {
 }
 assert registry["actions"]["site.content_targets"] == {
     "tool": "site_content_targets",
+    "required_scope": "site.read",
+    "read_only": True,
+}
+assert registry["actions"]["site.theme_model"] == {
+    "tool": "site_theme_model",
     "required_scope": "site.read",
     "read_only": True,
 }
@@ -162,6 +167,7 @@ assert "EXPECTED_TOOLS" in runner
 assert "site.overview" in runner
 assert "summarize_site_overview" in runner
 assert "summarize_content_targets" in runner
+assert "summarize_theme_model" in runner
 assert "ContentTargetsError" in runner
 assert "OverviewError" in runner
 assert "CONTENT_TOOLS" in runner
