@@ -85,6 +85,15 @@
       },
       "required_scope": "content.write",
       "read_only": false
+    },
+    "theme.bootstrap": {
+      "tools": {
+        "plan": "theme_bootstrap_plan",
+        "apply": "theme_bootstrap_apply",
+        "rollback": "theme_bootstrap_rollback"
+      },
+      "required_scope": "content.write",
+      "read_only": false
     }
   }
 }
