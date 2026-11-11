@@ -76,6 +76,15 @@
       "tool": "site_theme_model",
       "required_scope": "site.read",
       "read_only": true
+    },
+    "theme.update": {
+      "tools": {
+        "plan": "theme_update_plan",
+        "apply": "theme_update_apply",
+        "rollback": "theme_update_rollback"
+      },
+      "required_scope": "content.write",
+      "read_only": false
     }
   }
 }
