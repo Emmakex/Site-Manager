@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-theme-model-0119-20261111-02",
+  "site": "emmake-nuevaweb",
+  "action": "site.theme_model",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
