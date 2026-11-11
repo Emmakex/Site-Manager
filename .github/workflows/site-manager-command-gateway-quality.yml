@@ -12,6 +12,7 @@ on:
       - 'scripts/site-manager-command-*.py'
       - 'scripts/site_manager_site_overview.py'
       - 'scripts/site_manager_content_targets.py'
+      - 'scripts/site_manager_theme_model.py'
       - 'scripts/site_manager_site_catalog.py'
       - 'scripts/site_manager_site_bootstrap.py'
       - 'tests/site_manager_command_gateway_test.py'
@@ -19,6 +20,7 @@ on:
       - 'tests/site_manager_site_bootstrap_test.py'
       - 'tests/site_manager_overview_test.py'
       - 'tests/site_manager_content_targets_test.py'
+      - 'tests/site_manager_theme_model_test.py'
       - 'docs/COMMAND_GATEWAY.md'
       - 'docs/SITE_CATALOG.md'
       - 'docs/SITE_ONBOARDING.md'
@@ -34,6 +36,7 @@ on:
       - 'scripts/site-manager-command-*.py'
       - 'scripts/site_manager_site_overview.py'
       - 'scripts/site_manager_content_targets.py'
+      - 'scripts/site_manager_theme_model.py'
       - 'scripts/site_manager_site_catalog.py'
       - 'scripts/site_manager_site_bootstrap.py'
       - 'tests/site_manager_command_gateway_test.py'
@@ -41,6 +44,7 @@ on:
       - 'tests/site_manager_site_bootstrap_test.py'
       - 'tests/site_manager_overview_test.py'
       - 'tests/site_manager_content_targets_test.py'
+      - 'tests/site_manager_theme_model_test.py'
       - 'docs/COMMAND_GATEWAY.md'
       - 'docs/SITE_CATALOG.md'
       - 'docs/SITE_ONBOARDING.md'
@@ -73,6 +77,9 @@ jobs:
       - name: Published content target discovery and data exclusion contract
         run: python3 tests/site_manager_content_targets_test.py
 
+      - name: Theme semantic model read-only integration and exclusion
+        run: python3 tests/site_manager_theme_model_test.py
+
       - name: Verified site catalog and cross-tenant isolation
         run: |
           python3 tests/site_manager_site_catalog_test.py
@@ -83,4 +90,4 @@ jobs:
         run: python3 tests/site_manager_site_bootstrap_test.py
 
       - name: Python syntax contract
-        run: python3 -m py_compile scripts/site-manager-command-runner.py scripts/site-manager-command-guard.py scripts/site_manager_site_overview.py scripts/site_manager_content_targets.py scripts/site_manager_site_catalog.py scripts/site_manager_site_bootstrap.py tests/site_manager_command_gateway_test.py tests/site_manager_overview_test.py tests/site_manager_content_targets_test.py tests/site_manager_site_catalog_test.py tests/site_manager_site_bootstrap_test.py
+        run: python3 -m py_compile scripts/site-manager-command-runner.py scripts/site-manager-command-guard.py scripts/site_manager_site_overview.py scripts/site_manager_content_targets.py scripts/site_manager_theme_model.py scripts/site_manager_site_catalog.py scripts/site_manager_site_bootstrap.py tests/site_manager_command_gateway_test.py tests/site_manager_overview_test.py tests/site_manager_content_targets_test.py tests/site_manager_theme_model_test.py tests/site_manager_site_catalog_test.py tests/site_manager_site_bootstrap_test.py
