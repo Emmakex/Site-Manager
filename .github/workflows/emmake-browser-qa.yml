@@ -31,7 +31,7 @@ jobs:
     permissions:
       contents: write
     concurrency:
-      group: emmake-public-chromium-acceptance
+      group: emmake-public-chromium-acceptance-${{ github.event_name }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
