@@ -881,3 +881,63 @@ EMMAKE remains the only active implementation. The full web must be
 finished and tested at `/nuevaweb` before migration to the primary
 domain; preserve prior successful content migration and do not repeat
 Reset/Hydration.
+
+
+## SM-4N — Govern the SEO/GEO Theme directly from Site Manager
+
+The **one-plugin architecture** is now enforced at the Theme's canonical
+semantic model boundary: Site Manager is the sole permanent governance
+plugin, while SEO/GEO Theme alone owns the corporate frontend renderer.
+No SEO/GEO Manager plugin needs installation.
+
+Site Manager uses the existing native Theme filter
+`seo_geo_theme_corporate_home_model`. It preserves the original
+Gutenberg-hydrated source and stores a reversible semantic overlay
+privately in the target WordPress's post meta (never in GitHub). The
+Theme's own resolver validates the model before rendering.
+
+The first bounded editing capability is **text slots only** on the
+real published WordPress homepage selected by `page_on_front`.
+Neither caller nor operator can select arbitrary pages, HTML blocks,
+CSS selectors, Theme files, provider meta keys or arbitrary REST tools.
+Each plan accepts at most five nonempty text fields that occur in the
+active Theme `corporate-home-v1` contract. Claims requiring
+verification, link slots and list slots cannot be written in this cut.
+The Theme's model owner must be the native hydrated source or an
+existing Site Manager overlay; conflicting external model providers
+cause refusal.
+
+**Business action:** `theme.update`; fixed `theme_update_plan`,
+`theme_update_apply`, `theme_update_rollback` MCP tools under existing
+`content.write` plus `site.read` for model discovery. Payloads:
+
+```json
+{"version":"1","command_id":"cmd-theme-text-plan-0001","site":"acceptance-site","action":"theme.update","requested_by":"chatgpt","payload":{"stage":"plan","fields":{"hero-lead":"A better, reviewed editorial message"}}}
+```
+
+Plan does **not** mutate WordPress. It stores the exact pre-change
+model, expected fingerprint and validated after-model **privately in
+WordPress** under the connection and short plan TTL. The REST/MCP
+preview can return the exact before/after values to an authenticated
+private client; the GitHub Gateway **intentionally persists only slot
+IDs and plan/evidence metadata, never text values**.
+
+Only a separate `apply` command with `confirmed:true` and the
+exact plan ID can commit. WordPress rechecks the connection-bound
+administrator, expected site/model fingerprint, Theme owner, and
+read-back semantic values. The execution is stored as applied and
+verified only after the Theme resolver returns the expected model.
+Rollback likewise requires a **new explicit confirmed command** and
+refuses if the model changed after apply.
+
+This is **not** yet a full client-facing layout designer, nor permission
+to modify EMMAKE's commercial homepage without an actual reviewed
+content proposal. The Theme's CSS/images/rendering remain a separate
+theme release/visual QA stream. After installing plugin 0.11.9 and
+deploying matching MCP, perform a read-only `site.theme_model` test on
+`/nuevaweb`, then a **plan-only** acceptance on one approved text
+slot before any public change.
+
+EMMAKE delivery still requires closing missing link/list governance,
+normal-page copy, blog permalink defect, contact forms, visual
+responsive review, indexability and migration gates.
