@@ -27,12 +27,16 @@ cp -R "$ROOT/src" "$PACKAGE/src"
 cp -R "$ROOT/vendor" "$PACKAGE/vendor"
 
 if [[ -d "$LANGUAGES" ]]; then
-  command -v msgfmt >/dev/null 2>&1 || { echo "gettext/msgfmt is required to build WordPress translations" >&2; exit 1; }
+  # Prefer gettext when available; use the tested stdlib compiler on minimal runners.
   mkdir -p "$PACKAGE/languages"
   find "$LANGUAGES" -maxdepth 1 -type f -name '*.po' -print0 | while IFS= read -r -d '' po; do
     base="$(basename "$po" .po)"
     cp "$po" "$PACKAGE/languages/$base.po"
-    msgfmt --check --statistics "$po" -o "$PACKAGE/languages/$base.mo"
+    if command -v msgfmt >/dev/null 2>&1; then
+      msgfmt --check --statistics "$po" -o "$PACKAGE/languages/$base.mo"
+    else
+      python3 "$ROOT/scripts/compile-po.py" "$po" "$PACKAGE/languages/$base.mo"
+    fi
   done
 fi
 
