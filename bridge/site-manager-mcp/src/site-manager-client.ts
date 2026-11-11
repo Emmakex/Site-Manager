@@ -13,6 +13,9 @@ export type SiteManagerWriteResource =
   | 'write/theme/plan'
   | 'write/theme/apply'
   | 'write/theme/rollback'
+  | 'write/theme/bootstrap/plan'
+  | 'write/theme/bootstrap/apply'
+  | 'write/theme/bootstrap/rollback'
   | 'write/content/plan'
   | 'write/content/apply'
   | 'write/content/rollback'
@@ -106,6 +109,21 @@ export class SiteManagerClient {
       connection_id: this.config.connectionId,
       diagnostics,
     };
+  }
+
+  public async themeBootstrapPlan(input: {
+    fields: Record<string, string | { label: string; url: string }>;
+    reason?: string;
+  }): Promise<unknown> {
+    return this.request('write/theme/bootstrap/plan', 'POST', input);
+  }
+
+  public async themeBootstrapApply(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
+    return this.request('write/theme/bootstrap/apply', 'POST', input);
+  }
+
+  public async themeBootstrapRollback(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
+    return this.request('write/theme/bootstrap/rollback', 'POST', input);
   }
 
   public async themeUpdatePlan(input: { fields: Record<string, string>; reason?: string }): Promise<unknown> {
