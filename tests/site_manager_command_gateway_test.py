@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.theme_model", "theme.update"}
+expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.theme_model", "theme.update", "theme.bootstrap"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 assert registry["actions"]["site.read"] == {
@@ -44,6 +44,11 @@ assert registry["actions"]["site.theme_model"] == {
 }
 assert registry["actions"]["theme.update"] == {
     "tools": {"plan": "theme_update_plan", "apply": "theme_update_apply", "rollback": "theme_update_rollback"},
+    "required_scope": "content.write",
+    "read_only": False,
+}
+assert registry["actions"]["theme.bootstrap"] == {
+    "tools": {"plan": "theme_bootstrap_plan", "apply": "theme_bootstrap_apply", "rollback": "theme_bootstrap_rollback"},
     "required_scope": "content.write",
     "read_only": False,
 }
@@ -184,6 +189,9 @@ assert "summarize_content_targets" in runner
 assert "summarize_theme_model" in runner
 assert "THEME_TOOLS" in runner
 assert "validate_theme_payload" in runner
+assert "validate_bootstrap_payload" in runner
+assert "verify_bootstrap_response" in runner
+assert "sanitize_bootstrap_evidence" in runner
 assert "verify_theme_response" in runner
 assert "ContentTargetsError" in runner
 assert "OverviewError" in runner
