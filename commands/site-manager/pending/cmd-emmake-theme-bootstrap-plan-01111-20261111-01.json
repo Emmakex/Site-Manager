@@ -1,0 +1,59 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-theme-bootstrap-plan-01111-20261111-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.bootstrap",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "fields": {
+      "hero-eyebrow": "Estrategia digital, tecnología e inteligencia artificial",
+      "hero-lead": "Conectamos estrategia, datos y tecnología para impulsar lo que viene.",
+      "hero-primary-cta": {
+        "label": "Hablemos de tu proyecto",
+        "url": "https://emmake.com/nuevaweb/contacto/"
+      },
+      "hero-secondary-cta": {
+        "label": "Conoce Emmake",
+        "url": "https://emmake.com/nuevaweb/sobre-nosotros/"
+      },
+      "capabilities-heading": "Un ecosistema digital pensado para avanzar",
+      "capabilities-intro": "Unimos visión de negocio, experiencia digital y ejecución tecnológica para abordar los retos desde distintas perspectivas, con objetivos claros.",
+      "capability-1-title": "Estrategia y transformación digital",
+      "capability-1-body": "Analizamos necesidades, procesos y oportunidades para definir prioridades digitales conectadas con los objetivos del negocio.",
+      "capability-1-link": {
+        "label": "Explorar servicios",
+        "url": "https://emmake.com/nuevaweb/servicios/"
+      },
+      "capability-2-title": "Soluciones y proyectos digitales",
+      "capability-2-body": "Exploramos cómo el diseño, el desarrollo y la automatización pueden crear experiencias más sencillas y procesos mejor conectados.",
+      "capability-2-link": {
+        "label": "Conocer nuestras marcas",
+        "url": "https://emmake.com/nuevaweb/nuestras-marcas/"
+      },
+      "capability-3-title": "Marketing, contenidos y analítica",
+      "capability-3-body": "Conectamos posicionamiento, contenidos y medición para que cada decisión digital tenga contexto y posibilidades de mejora.",
+      "capability-3-link": {
+        "label": "Leer el blog",
+        "url": "https://emmake.com/nuevaweb/blog/"
+      },
+      "process-heading": "Del reto a una dirección clara",
+      "process-intro": "Un recorrido práctico para entender el punto de partida, elegir las acciones adecuadas y aprender de los resultados.",
+      "process-1-title": "Entender el contexto",
+      "process-1-body": "Definimos el problema, escuchamos las necesidades y revisamos los datos disponibles antes de proponer soluciones.",
+      "process-2-title": "Diseñar y ejecutar",
+      "process-2-body": "Priorizamos iniciativas, alineamos tecnología y experiencia de usuario y convertimos las decisiones en acciones concretas.",
+      "process-3-title": "Medir y evolucionar",
+      "process-3-body": "Revisamos lo que funciona, identificamos fricciones y ajustamos el rumbo con aprendizaje continuo.",
+      "insights-heading": "Ideas para comprender el cambio digital",
+      "insights-intro": "Reflexiones y recursos sobre estrategia, marketing, inteligencia artificial y tecnología para convertir información en criterio.",
+      "final-cta-heading": "Tu próximo paso digital empieza con una conversación",
+      "final-cta-body": "Cuéntanos qué quieres mejorar, explorar o construir. Empecemos por entender el reto y encontrar un punto de partida útil.",
+      "final-cta-button": {
+        "label": "Contactar con Emmake",
+        "url": "https://emmake.com/nuevaweb/contacto/"
+      }
+    },
+    "reason": "Propuesta editorial de portada EMMAKE aprobada por el propietario el 11/11/2026; preparar vista previa segura de primera adopción, sin aplicar hasta confirmar separadamente."
+  }
+}
