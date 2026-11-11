@@ -21,6 +21,7 @@
       "@php tests/wordpress_theme_model_inventory_test.php",
       "@php tests/wordpress_theme_model_readiness_test.php",
       "@php tests/wordpress_theme_text_governance_test.php",
+      "@php tests/wordpress_theme_model_bootstrap_test.php",
       "@php tests/wordpress_theme_portability_test.php",
       "@php tests/wordpress_navigation_governance_test.php",
       "@php tests/wordpress_seo_ownership_test.php",
