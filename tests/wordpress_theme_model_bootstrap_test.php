@@ -131,7 +131,7 @@ namespace {
                 'source'=>'site-manager-native-override',
                 'slots'=>$valid,
             ],
-            'fields'=>array_keys($valid),
+            'fields'=>array_fill_keys(array_keys($valid), true),
         ],
         snapshot:[
             'before_fingerprint'=>$start['fingerprint'],
