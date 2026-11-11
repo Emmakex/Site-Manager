@@ -60,7 +60,7 @@ final class ThemeModelBootstrap
                 'target'=>['post_id'=>$state['post_id'], 'model_id'=>self::MODEL_ID],
                 'precondition_fingerprint'=>$state['fingerprint'],
                 'after_model'=>$model,
-                'fields'=>array_keys($slots),
+                'fields'=>array_fill_keys(array_keys($slots), true),
             ],
             snapshot:[
                 'before_fingerprint'=>$state['fingerprint'],
