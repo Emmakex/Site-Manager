@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.11.7
+Stable tag: 0.11.8
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -65,6 +65,12 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 8. When remote access is required, generate a scoped token and copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.11.8 =
+* Adds read-only Theme semantic-model inspection for the active SEO/GEO Corporate homepage without SEO/GEO Manager.
+* Exposes only slot names, types and completeness states, never original copy, Gutenberg HTML, private posts or write permissions.
+* Maintains plan/apply/verify/rollback as separate governed editing capabilities; no Theme mutation introduced.
+
 
 = 0.11.7 =
 * Adds scoped, read-only `content/targets` WordPress REST inventory for published pages and posts.

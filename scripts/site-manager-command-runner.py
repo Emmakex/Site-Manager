@@ -21,6 +21,7 @@ from urllib.parse import urlparse
 
 from site_manager_site_overview import OverviewError, summarize_site_overview
 from site_manager_content_targets import ContentTargetsError, summarize_content_targets
+from site_manager_theme_model import ThemeModelError, summary as summarize_theme_model
 from site_manager_site_catalog import SiteCatalogError, require_registered_site
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +30,7 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets"}
+SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.theme_model"}
 SEO_ACCEPTANCE_TOOLS = {"start": "seo_acceptance_start", "status": "seo_acceptance_status"}
 SEO_ACCEPTANCE_PROFILE = "mcp-seo-only"
 SEO_ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "seo_plan", "seo_apply_verify", "seo_rollback", "cleanup")
@@ -49,7 +50,7 @@ ACCEPTANCE_TOOLS = {"start": "content_acceptance_start", "status": "content_acce
 ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "content_plan", "content_apply_verify", "content_rollback", "cleanup")
 ACCEPTANCE_PROFILE = "mcp-content-only"
 ACCEPTANCE_TIMEOUT_SECONDS = 420
-READ_ACTIONS = {"site.read", "site.diagnostics", "site.overview", "site.content_targets"}
+READ_ACTIONS = {"site.read", "site.diagnostics", "site.overview", "site.content_targets", "site.theme_model"}
 CONTENT_STAGES = {"plan", "apply", "rollback"}
 CONTENT_TOOLS = {
     "plan": "content_update_plan",
@@ -63,6 +64,7 @@ EXPECTED_TOOLS = {
     "site.diagnostics": ("site_diagnostics", "site.diagnostics"),
     "site.overview": ("site_read", "site.read"),
     "site.content_targets": ("site_content_targets", "site.read"),
+    "site.theme_model": ("site_theme_model", "site.read"),
 }
 MAX_RESULT_BYTES = 512_000
 SENSITIVE_KEY_PARTS = ("token", "secret", "password", "authorization", "cookie")
@@ -1007,6 +1009,13 @@ def execute(command_path: Path, result_dir: Path) -> int:
                     raise VerificationError(str(exc)) from exc
                 verified = True
                 sanitized = sanitize_value(published, token)
+            elif action_name == "site.theme_model":
+                try:
+                    theme = summarize_theme_model(data)
+                except ThemeModelError as exc:
+                    raise VerificationError(str(exc)) from exc
+                verified = True
+                sanitized = sanitize_value(theme, token)
             elif stage == "read":
                 verified = True
                 sanitized = sanitize_value(data, token)
@@ -1148,6 +1157,15 @@ def self_test() -> int:
     validate_command(overview_command, registry)
     targets_command = {**valid, "action": "site.content_targets", "payload": {}}
     validate_command(targets_command, registry)
+    theme_command = {**valid, "action": "site.theme_model", "payload": {}}
+    validate_command(theme_command, registry)
+    for unsafe in ({"post_id": 7}, {"slot_id": "hero-lead"}, {"meta_key": "_seo_geo_model"}, {"url": "https://another.site/"}):
+        try:
+            validate_command({**theme_command, "payload": unsafe}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("site.theme_model allowed caller-selected Theme model values")
     for bad_targets in ({"post_id": 7}, {"status": "draft"}, {"page": 2}, {"url": "https://attacker.invalid/"}):
         try:
             validate_command({**targets_command, "payload": bad_targets}, registry)

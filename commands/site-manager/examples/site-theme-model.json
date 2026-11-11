@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "command_id": "cmd-theme-model-example-0001",
+  "site": "acceptance-site",
+  "action": "site.theme_model",
+  "requested_by": "chatgpt",
+  "payload": {}
+}

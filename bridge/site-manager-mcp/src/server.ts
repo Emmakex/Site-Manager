@@ -178,6 +178,24 @@ export function createSiteManagerMcpServer(
     );
   }
 
+  if (scopes.has('site.read')) {
+    server.registerTool(
+      'site_theme_model',
+      {
+        title: 'Inspect SEO/GEO Theme strategic homepage model',
+        description: 'Read only semantic slot identifiers, types and completion states from the active Theme-owned Corporate homepage model. It never reveals page bodies, slot values, private metadata or write grants.',
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async () => {
+        try {
+          return toolResult(await client.themeModel());
+        } catch {
+          return toolError('Site Manager could not inspect the active Theme semantic model.');
+        }
+      },
+    );
+  }
+
   if (scopes.has('site.diagnostics')) {
     server.registerTool(
       'site_diagnostics',

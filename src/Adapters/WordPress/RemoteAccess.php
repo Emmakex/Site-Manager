@@ -40,6 +40,29 @@ final class RemoteAccess
             ], true);
         }
 
+        register_rest_route('site-manager/v1', '/theme/model', [
+            'methods'=>\WP_REST_Server::READABLE,
+            'permission_callback'=>static function (\WP_REST_Request $request): bool {
+                if (current_user_can('manage_options')) {
+                    return true;
+                }
+                $token = RemoteConnectionStore::bearerFromRequest($request);
+                return (new RemoteConnectionStore())->authorize($token, 'site.read');
+            },
+            'callback'=>static function (): \WP_REST_Response {
+                try {
+                    return new \WP_REST_Response([
+                        'data'=>(new ThemeModelInventory())->homepage(),
+                    ], 200);
+                } catch (\Throwable) {
+                    // Do not expose the unpublished model, raw content or theme internals.
+                    return new \WP_REST_Response([
+                        'error'=>['code'=>'theme_model_not_ready'],
+                    ], 503);
+                }
+            },
+        ], true);
+
         register_rest_route('site-manager/v1', '/content/targets', [
             'methods'=>\WP_REST_Server::READABLE,
             'permission_callback'=>static function (\WP_REST_Request $request): bool {
