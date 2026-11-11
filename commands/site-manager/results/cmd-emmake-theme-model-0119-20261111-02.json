@@ -1,0 +1,14 @@
+{
+  "action": "site.theme_model",
+  "command_id": "cmd-emmake-theme-model-0119-20261111-02",
+  "command_sha256": "aef7cf5a10a6db045d21a38347d835e45f48b706eecd549602a6078bdfa60c68",
+  "error": {
+    "code": "transport_failed",
+    "detail": "MCP inspector failed (5): {\"error\":{\"code\":\"tool_is_error\",\"message\":\"Tool 'site_theme_model' returned isError:true.\"}}\n",
+    "message": "The production MCP transport did not complete successfully."
+  },
+  "site": "emmake-nuevaweb",
+  "status": "failed",
+  "verified": false,
+  "version": "1"
+}
