@@ -157,7 +157,17 @@ assert theme_stages[0]["properties"]["fields"]["additionalProperties"] is False
 assert theme_stages[0]["properties"]["fields"]["maxProperties"] == 5
 assert all(x["additionalProperties"] is False for x in theme_stages)
 assert {x["properties"]["stage"]["const"] for x in theme_stages} == {"plan","apply","rollback"}
-assert theme_rule["else"]["properties"]["payload"] == {
+bootstrap_rule = theme_rule["else"]
+assert bootstrap_rule["if"]["properties"]["action"]["const"] == "theme.bootstrap"
+bootstrap_stages = bootstrap_rule["then"]["properties"]["payload"]["oneOf"]
+assert len(bootstrap_stages) == 3
+assert {x["properties"]["stage"]["const"] for x in bootstrap_stages} == {"plan", "apply", "rollback"}
+assert all(x["additionalProperties"] is False for x in bootstrap_stages)
+assert bootstrap_stages[0]["properties"]["fields"]["maxProperties"] == 100
+assert bootstrap_stages[0]["properties"]["fields"]["additionalProperties"] is False
+assert set(bootstrap_stages[0]["required"]) == {"stage","fields"}
+assert all(x["properties"]["confirmed"]["const"] is True for x in bootstrap_stages[1:])
+assert bootstrap_rule["else"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False, "maxProperties": 0
 }
 stages = conditional["then"]["properties"]["payload"]["oneOf"]
