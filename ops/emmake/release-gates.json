@@ -1,0 +1,62 @@
+{
+  "version": "1",
+  "site": "emmake-nuevaweb",
+  "gates": {
+    "legacy_files_backup": {
+      "state": "pending",
+      "evidence": null
+    },
+    "legacy_database_backup": {
+      "state": "pending",
+      "evidence": null
+    },
+    "new_files_backup": {
+      "state": "pending",
+      "evidence": null
+    },
+    "new_database_backup": {
+      "state": "pending",
+      "evidence": null
+    },
+    "restore_rehearsal": {
+      "state": "pending",
+      "evidence": null
+    },
+    "legacy_url_crawl_and_redirects": {
+      "state": "pending",
+      "evidence": null
+    },
+    "resolved_post_permalinks": {
+      "state": "pending",
+      "evidence": null
+    },
+    "content_ux_review": {
+      "state": "pending",
+      "evidence": null
+    },
+    "forms_functional_test": {
+      "state": "pending",
+      "evidence": null
+    },
+    "responsive_accessibility": {
+      "state": "pending",
+      "evidence": null
+    },
+    "seo_canonical_robots_sitemap": {
+      "state": "pending",
+      "evidence": null
+    },
+    "internal_links_and_media": {
+      "state": "pending",
+      "evidence": null
+    },
+    "hosting_cutover_access": {
+      "state": "pending",
+      "evidence": null
+    },
+    "cutover_rollback_plan": {
+      "state": "pending",
+      "evidence": null
+    }
+  }
+}
