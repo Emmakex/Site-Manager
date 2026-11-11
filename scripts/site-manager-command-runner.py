@@ -400,6 +400,25 @@ def validate_bootstrap_payload(payload: dict[str, Any]) -> None:
         raise CommandError("Unsupported theme.bootstrap stage")
 
 
+def bootstrap_slot_ids(value: Any) -> list[str]:
+    """Normalize only reviewed slot identities; reject content or truthy masquerades."""
+    if isinstance(value, dict):
+        if not value or not all(isinstance(k, str) and v is True for k, v in value.items()):
+            raise VerificationError("Theme bootstrap slot map must contain only true markers")
+        ids = list(value)
+    elif isinstance(value, list):
+        if not value or not all(isinstance(k, str) for k in value):
+            raise VerificationError("Theme bootstrap slot list is malformed")
+        ids = value
+    else:
+        raise VerificationError("Theme bootstrap has no bounded semantic slot IDs")
+    if len(ids) > 100 or len(set(ids)) != len(ids):
+        raise VerificationError("Theme bootstrap slots are duplicated or unbounded")
+    if any(re.fullmatch(r"[a-z0-9][a-z0-9-]{0,79}", k) is None for k in ids):
+        raise VerificationError("Theme bootstrap slot identifiers are unsafe")
+    return ids
+
+
 def verify_bootstrap_response(stage: str, data: Any, request: dict[str, Any]) -> bool:
     """Verify real WordPress ownership without copying the authored model into Git history."""
     if not isinstance(data, dict) or not isinstance(data.get("plan"), dict):
@@ -416,6 +435,9 @@ def verify_bootstrap_response(stage: str, data: Any, request: dict[str, Any]) ->
     if stage == "plan":
         preview = data.get("preview")
         expected = set(request["fields"])
+        # WP 0.11.11 emits a private field->true marker map; newer adapters may emit IDs.
+        # Both forms must contain IDs only, not any authored text or URL values.
+        slot_ids = bootstrap_slot_ids(preview.get("slot_ids") if isinstance(preview, dict) else None)
         if (plan.get("status") != "planned"
                 or not isinstance(preview, dict)
                 or set(preview) != {
@@ -426,10 +448,8 @@ def verify_bootstrap_response(stage: str, data: Any, request: dict[str, Any]) ->
                 or preview["source"] != "seo-geo-theme-semantic-bootstrap"
                 or preview["target_post_id"] != target["post_id"]
                 or preview["model_id"] != "corporate-home-v1"
-                or not isinstance(preview["slot_ids"], list)
-                or len(preview["slot_ids"]) != len(expected)
-                or len(set(preview["slot_ids"])) != len(preview["slot_ids"])
-                or set(preview["slot_ids"]) != expected
+                or len(slot_ids) != len(expected)
+                or set(slot_ids) != expected
                 or preview["slot_count"] != len(expected)
                 or set(plan.get("fields", [])) != expected
                 or preview["post_content_unchanged"] is not True
@@ -463,7 +483,7 @@ def sanitize_bootstrap_evidence(stage: str, data: dict[str, Any], token: str) ->
     output: dict[str, Any] = {"stage": stage, "plan": {k: plan[k] for k in safe if k in plan}}
     if stage == "plan":
         output["preview"] = {
-            "slot_ids": data["preview"]["slot_ids"],
+            "slot_ids": bootstrap_slot_ids(data["preview"]["slot_ids"]),
             "slot_count": data["preview"]["slot_count"],
             "requires_editorial_confirmation": True,
             "values_retained_in_result": False,
