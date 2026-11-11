@@ -1,0 +1,56 @@
+name: EMMAKE Read-only Launch Preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: emmake-readonly-launch-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run offline evidence and HTTP safety contracts
+        run: |
+          python3 tests/emmake_release_audit_test.py
+          python3 tests/emmake_public_http_probe_test.py
+
+      - name: Assess all cutover blockers (never performs a cutover)
+        run: |
+          set -euo pipefail
+          python3 scripts/emmake_release_audit.py --allow-blocked > /tmp/emmake-cutover-preflight.json
+          python3 - <<'PY'
+          import json, os
+          with open('/tmp/emmake-cutover-preflight.json', encoding='utf-8') as f:
+              result = json.load(f)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as out:
+              out.write('## EMMAKE launch: read-only gate report\n\n')
+              out.write('Ready for cutover review: **' + str(result['ready_for_cutover_review']).lower() + '**\n\n')
+              out.write('Unresolved blockers: **' + str(result['blocker_count']) + '**\n\n')
+              out.write('Actual production cutover performed: **false**\n\n')
+              for item in result['blockers'][:20]:
+                  out.write('- ' + item['code'] + ': ' + item['reason'] + '\n')
+          PY
+
+      - name: Verify actual legacy and staging public HTTP responses
+        run: python3 scripts/emmake_public_http_probe.py > /tmp/emmake-public-http.json
+
+      - name: Upload read-only public audit (no credentials or page bodies)
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-readonly-cutover-preflight-${{ github.run_id }}
+          path: |
+            /tmp/emmake-cutover-preflight.json
+            /tmp/emmake-public-http.json
+          retention-days: 14
+          if-no-files-found: error
