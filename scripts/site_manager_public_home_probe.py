@@ -14,13 +14,17 @@ import re
 import sys
 from datetime import datetime, timezone
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, unquote
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 PENDING = ROOT / "audits" / "emmake" / "public-home" / "pending"
 RESULTS = ROOT / "audits" / "emmake" / "public-home" / "results"
 URL = "https://emmake.com/nuevaweb/"
+BLOG_URLS = {
+    "blog": "https://emmake.com/nuevaweb/blog/",
+    "blog-transformacion": "https://emmake.com/nuevaweb/blog-transformacion-digital/",
+}
 EXPECTED_H1 = "Conectamos estrategia, datos y tecnología para impulsar lo que viene."
 EXPECTED_CLASSES = {
     "corporate_main": "seo-geo-corporate-v5-home",
@@ -76,10 +80,14 @@ class SemanticHTMLParser(HTMLParser):
 
 def unresolved_permalink_link(href: str) -> bool:
     """Detect WordPress permalink substitution markers, not private URL data."""
-    return bool(re.search(
-        r"%category%|%postname%|%25category%25|%25postname%25|\{[a-f0-9]{30,}\}(?:category|postname)",
-        href, re.IGNORECASE
-    ))
+    # WP esc_url() can percent-encode curly braces; nested encoding happens in migrations.
+    # Decode twice for detection only. Never fetch or persist user-authored link URLs.
+    candidates = (href, unquote(href), unquote(unquote(href)))
+    # A second unquote can consume %ca in "%category%"; keep each decoding stage.
+    return any(re.search(
+        r"%category%|%postname%|\{[a-f0-9]{30,}\}(?:category|postname)",
+        candidate, re.IGNORECASE
+    ) is not None for candidate in candidates)
 
 
 def analyze_html(html: str, final_url: str, status: int, x_robots: str) -> dict[str, bool]:
@@ -106,6 +114,47 @@ def analyze_html(html: str, final_url: str, status: int, x_robots: str) -> dict[
         unresolved_permalink_link(href) for href in parser.anchors
     )
     return checks
+
+
+
+def inspect_public_blog_links() -> tuple[dict[str, bool], dict[str, dict[str, int | bool]]]:
+    """Only fetch fixed public pages. Record counts and statuses, never URLs or HTML."""
+    checks: dict[str, bool] = {}
+    counts: dict[str, dict[str, int | bool]] = {}
+    for page_id, address in BLOG_URLS.items():
+        status = 0
+        final = ""
+        body = b""
+        content_type = ""
+        try:
+            request = Request(address, headers={
+                "User-Agent": "SiteManager-PublicHomeAcceptance/1.0 (+read-only)",
+                "Accept": "text/html",
+            })
+            with urlopen(request, timeout=20) as response:
+                status = response.status
+                final = response.geturl()
+                content_type = response.headers.get("content-type", "")
+                body = response.read(MAX_HTML_BYTES + 1)
+        except HTTPError as exc:
+            status = exc.code
+        except (URLError, TimeoutError, OSError):
+            pass
+        final_ok = final.rstrip("/") == address.rstrip("/")
+        html_ok = 0 < len(body) <= MAX_HTML_BYTES and "text/html" in content_type.lower()
+        parser = SemanticHTMLParser()
+        if html_ok:
+            parser.feed(body.decode("utf-8", errors="replace"))
+        bad = sum(unresolved_permalink_link(h) for h in parser.anchors)
+        checks[page_id + "_http_200"] = status == 200 and final_ok and html_ok
+        checks[page_id + "_no_unresolved_permalink_tokens"] = html_ok and bad == 0
+        counts[page_id] = {
+            "http_status": status,
+            "fixed_url_verified": final_ok,
+            "public_links_scanned": len(parser.anchors),
+            "unresolved_permalink_count": bad,
+        }
+    return checks, counts
 
 
 def probe() -> dict[str, object]:
@@ -144,7 +193,10 @@ def probe() -> dict[str, object]:
     )
     parser = SemanticHTMLParser()
     parser.feed(rendered_html)
+    blog_checks, blog_counts = inspect_public_blog_links()
+    checks.update(blog_checks)
     return {
+        "public_blog_pages": blog_counts,
         "public_links_scanned": len(parser.anchors),
         "unresolved_permalink_count": sum(unresolved_permalink_link(h) for h in parser.anchors),
         "status": "passed" if checks and all(checks.values()) and error_code is None else "failed",
@@ -220,6 +272,10 @@ def self_test() -> None:
     )
     assert not analyze_html(malformed_fixture, URL, 200, "")["no_unresolved_blog_permalink_tokens"]
     assert not unresolved_permalink_link("https://emmake.com/nuevaweb/blog/")
+    assert unresolved_permalink_link("https://emmake.com/nuevaweb/%7Bd276abfeceab40cca0e158fc6217176554b8e54a1f85b6eb004941797db52171%7Dcategory%7Bd276abfeceab40cca0e158fc6217176554b8e54a1f85b6eb004941797db52171%7D/")
+    assert unresolved_permalink_link("https://emmake.com/nuevaweb/%257Bd276abfeceab40cca0e158fc6217176554b8e54a1f85b6eb004941797db52171%257Dpostname%257Bd276abfeceab40cca0e158fc6217176554b8e54a1f85b6eb004941797db52171%257D/")
+    assert unresolved_permalink_link("https://emmake.com/nuevaweb/%25category%25/")
+
     print("PASS: bounded public HTML acceptance detects Theme, staging and headline regression")
 
 
