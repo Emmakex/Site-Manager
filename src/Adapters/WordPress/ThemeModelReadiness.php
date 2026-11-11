@@ -84,11 +84,7 @@ final class ThemeModelReadiness
         }
         $result['contract_slot_count'] = count($definitions);
 
-        if (! $result['homepage_marker_present']) {
-            $result['reason'] = 'homepage_marker_missing';
-            return $result;
-        }
-
+        // External and Site Manager-owned semantic models may not need legacy Gutenberg markers.
         try {
             $model = (new \SeoGeo\Theme\Strategic\CorporateHomeModelResolver())->resolve($post);
         } catch (\Throwable) {
@@ -98,7 +94,8 @@ final class ThemeModelReadiness
         if (! is_array($model) || ($model['model_id'] ?? null) !== self::MODEL_ID
             || ! is_array($model['slots'] ?? null)
             || count($model['slots']) > self::MAX_SLOTS) {
-            $result['reason'] = 'resolver_rejected_model';
+            $result['reason'] = ! $result['homepage_marker_present']
+                ? 'homepage_marker_missing' : 'resolver_rejected_model';
             return $result;
         }
 
