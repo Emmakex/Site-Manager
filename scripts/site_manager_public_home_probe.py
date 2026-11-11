@@ -74,6 +74,14 @@ class SemanticHTMLParser(HTMLParser):
             self.h1_parts.append(data)
 
 
+def unresolved_permalink_link(href: str) -> bool:
+    """Detect WordPress permalink substitution markers, not private URL data."""
+    return bool(re.search(
+        r"%category%|%postname%|%25category%25|%25postname%25|\{[a-f0-9]{30,}\}(?:category|postname)",
+        href, re.IGNORECASE
+    ))
+
+
 def analyze_html(html: str, final_url: str, status: int, x_robots: str) -> dict[str, bool]:
     parser = SemanticHTMLParser()
     parser.feed(html)
@@ -93,6 +101,9 @@ def analyze_html(html: str, final_url: str, status: int, x_robots: str) -> dict[
     checks["internal_cta_present"] = any(
         h in parser.anchors
         for h in ("https://emmake.com/nuevaweb/contacto/", "/nuevaweb/contacto/")
+    )
+    checks["no_unresolved_blog_permalink_tokens"] = not any(
+        unresolved_permalink_link(href) for href in parser.anchors
     )
     return checks
 
@@ -127,11 +138,15 @@ def probe() -> dict[str, object]:
         error_code = "not_html"
         response_bytes = b""
 
+    rendered_html = response_bytes.decode("utf-8", errors="replace")
     checks = analyze_html(
-        response_bytes.decode("utf-8", errors="replace"), final_url,
-        status_code, headers.get("x-robots-tag", "")
+        rendered_html, final_url, status_code, headers.get("x-robots-tag", "")
     )
+    parser = SemanticHTMLParser()
+    parser.feed(rendered_html)
     return {
+        "public_links_scanned": len(parser.anchors),
+        "unresolved_permalink_count": sum(unresolved_permalink_link(h) for h in parser.anchors),
         "status": "passed" if checks and all(checks.values()) and error_code is None else "failed",
         "error_code": error_code,
         "http_status": status_code,
@@ -199,6 +214,12 @@ def self_test() -> None:
         checks = analyze_html(broken, URL, 200, "")
         assert not checks[expected], expected
     assert not analyze_html(fixture, "https://attacker.invalid/", 200, "")["https_same_staging_url"]
+    malformed_fixture = fixture.replace(
+        'href="https://emmake.com/nuevaweb/contacto/"',
+        'href="https://emmake.com/nuevaweb/{d276abfeceab40cca0e158fc6217176554b8e54a1f85b6eb004941797db52171}category{d276abfeceab40cca0e158fc6217176554b8e54a1f85b6eb004941797db52171}/"'
+    )
+    assert not analyze_html(malformed_fixture, URL, 200, "")["no_unresolved_blog_permalink_tokens"]
+    assert not unresolved_permalink_link("https://emmake.com/nuevaweb/blog/")
     print("PASS: bounded public HTML acceptance detects Theme, staging and headline regression")
 
 
