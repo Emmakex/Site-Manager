@@ -82,11 +82,12 @@ def unresolved_permalink_link(href: str) -> bool:
     """Detect WordPress permalink substitution markers, not private URL data."""
     # WP esc_url() can percent-encode curly braces; nested encoding happens in migrations.
     # Decode twice for detection only. Never fetch or persist user-authored link URLs.
-    candidate = unquote(unquote(href))
-    return bool(re.search(
+    candidates = (href, unquote(href), unquote(unquote(href)))
+    # A second unquote can consume %ca in "%category%"; keep each decoding stage.
+    return any(re.search(
         r"%category%|%postname%|\{[a-f0-9]{30,}\}(?:category|postname)",
         candidate, re.IGNORECASE
-    ))
+    ) is not None for candidate in candidates)
 
 
 def analyze_html(html: str, final_url: str, status: int, x_robots: str) -> dict[str, bool]:
