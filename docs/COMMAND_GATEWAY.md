@@ -941,3 +941,35 @@ slot before any public change.
 EMMAKE delivery still requires closing missing link/list governance,
 normal-page copy, blog permalink defect, contact forms, visual
 responsive review, indexability and migration gates.
+
+## First-time Theme semantic adoption (SM-4P)
+
+The active SEO/GEO Theme may expose the versioned `corporate-home-v1` semantic
+contract while the *existing published WordPress homepage* lacks hydrated
+Gutenberg semantic markers. Site Manager now supports an **optional**
+`theme.bootstrap` business action, separate from regular `theme.update`.
+
+- `plan`: caller supplies all required Theme-native text/link fields (no post ID,
+  arbitrary provider, HTML, generic Theme placeholder copy or unverified proof).
+  WordPress resolves the real published homepage and the Theme's own contract.
+  Links must be safe, absolute HTTPS destinations inside the current site's
+  actual WordPress path. Content is checked and held in the WordPress plan store.
+- `apply`: must use the unexpired WordPress plan ID and a separate confirmed
+  authorization. The active Theme resolver must verify the full model after
+  Site Manager writes only its private semantic override. The original Gutenberg
+  `post_content` is never overwritten.
+- `rollback`: requires another confirmation and rejects intervening edits;
+  removes only Site Manager's own semantic override and verifies restoration.
+
+GitHub result files contain **slot IDs, model identity, plan ID, statuses and
+verification evidence**, never the model values or WordPress body. Author-supplied
+new public copy in a command's `fields` payload is an explicit editorial request,
+not a fetched/private WordPress content export; do not place secrets, drafts or
+unreviewed text there. A successful *plan* does not publish the homepage or prove
+editorial approval. Do not apply until the user has reviewed the intended text and
+links, and explicitly authorized the cutover of the published homepage renderer.
+
+When a model already exists, `theme.bootstrap` fails closed and ordinary
+`theme.update` handles supported incremental copy edits. On unrelated themes,
+this compatibility provider is optional and normal Site Manager capabilities
+continue to work independently.

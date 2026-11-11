@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Site Manager
  * Description: Discovers the real WordPress installation and exposes a safe capability/governance map.
- * Version: 0.11.10
+ * Version: 0.11.11
  * Requires at least: 6.6
  * Requires PHP: 8.1
  * Author: Emmake
@@ -14,7 +14,7 @@ declare(strict_types=1);
 if (! defined('ABSPATH')) { exit; }
 
 if (! defined('SITE_MANAGER_VERSION')) {
-    define('SITE_MANAGER_VERSION', '0.11.10');
+    define('SITE_MANAGER_VERSION', '0.11.11');
 }
 if (! defined('SITE_MANAGER_PLUGIN_FILE')) {
     define('SITE_MANAGER_PLUGIN_FILE', __FILE__);
@@ -51,6 +51,7 @@ add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteAccess::clas
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteWriteAccess::class, 'boot'], 13);
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\ThemeModelOverride::class, 'boot'], 13);
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteThemeWriteAccess::class, 'boot'], 13);
+add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteThemeBootstrapAccess::class, 'boot'], 13);
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteClientTracker::class, 'boot'], 14);
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteAcceptanceAccess::class, 'boot'], 15);
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\AcceptanceTransportGate::class, 'boot'], 16);

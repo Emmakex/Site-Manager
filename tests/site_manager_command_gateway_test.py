@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.theme_model", "theme.update"}
+expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.theme_model", "theme.update", "theme.bootstrap"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 assert registry["actions"]["site.read"] == {
@@ -44,6 +44,11 @@ assert registry["actions"]["site.theme_model"] == {
 }
 assert registry["actions"]["theme.update"] == {
     "tools": {"plan": "theme_update_plan", "apply": "theme_update_apply", "rollback": "theme_update_rollback"},
+    "required_scope": "content.write",
+    "read_only": False,
+}
+assert registry["actions"]["theme.bootstrap"] == {
+    "tools": {"plan": "theme_bootstrap_plan", "apply": "theme_bootstrap_apply", "rollback": "theme_bootstrap_rollback"},
     "required_scope": "content.write",
     "read_only": False,
 }
@@ -152,7 +157,17 @@ assert theme_stages[0]["properties"]["fields"]["additionalProperties"] is False
 assert theme_stages[0]["properties"]["fields"]["maxProperties"] == 5
 assert all(x["additionalProperties"] is False for x in theme_stages)
 assert {x["properties"]["stage"]["const"] for x in theme_stages} == {"plan","apply","rollback"}
-assert theme_rule["else"]["properties"]["payload"] == {
+bootstrap_rule = theme_rule["else"]
+assert bootstrap_rule["if"]["properties"]["action"]["const"] == "theme.bootstrap"
+bootstrap_stages = bootstrap_rule["then"]["properties"]["payload"]["oneOf"]
+assert len(bootstrap_stages) == 3
+assert {x["properties"]["stage"]["const"] for x in bootstrap_stages} == {"plan", "apply", "rollback"}
+assert all(x["additionalProperties"] is False for x in bootstrap_stages)
+assert bootstrap_stages[0]["properties"]["fields"]["maxProperties"] == 100
+assert bootstrap_stages[0]["properties"]["fields"]["additionalProperties"] is False
+assert set(bootstrap_stages[0]["required"]) == {"stage","fields"}
+assert all(x["properties"]["confirmed"]["const"] is True for x in bootstrap_stages[1:])
+assert bootstrap_rule["else"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False, "maxProperties": 0
 }
 stages = conditional["then"]["properties"]["payload"]["oneOf"]
@@ -184,6 +199,9 @@ assert "summarize_content_targets" in runner
 assert "summarize_theme_model" in runner
 assert "THEME_TOOLS" in runner
 assert "validate_theme_payload" in runner
+assert "validate_bootstrap_payload" in runner
+assert "verify_bootstrap_response" in runner
+assert "sanitize_bootstrap_evidence" in runner
 assert "verify_theme_response" in runner
 assert "ContentTargetsError" in runner
 assert "OverviewError" in runner

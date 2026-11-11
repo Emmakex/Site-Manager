@@ -30,7 +30,7 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.theme_model", "theme.update"}
+SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.theme_model", "theme.update", "theme.bootstrap"}
 SEO_ACCEPTANCE_TOOLS = {"start": "seo_acceptance_start", "status": "seo_acceptance_status"}
 SEO_ACCEPTANCE_PROFILE = "mcp-seo-only"
 SEO_ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "seo_plan", "seo_apply_verify", "seo_rollback", "cleanup")
@@ -39,6 +39,7 @@ NAV_ACCEPTANCE_PROFILE = "mcp-navigation-only"
 NAV_ACCEPTANCE_STEPS = ("precheck", "fixture_navigation_create", "navigation_plan", "navigation_apply_verify", "navigation_rollback", "cleanup")
 SEO_TOOLS = {"plan": "seo_update_plan", "apply": "seo_update_apply", "rollback": "seo_update_rollback"}
 THEME_TOOLS = {"plan": "theme_update_plan", "apply": "theme_update_apply", "rollback": "theme_update_rollback"}
+BOOTSTRAP_TOOLS = {"plan": "theme_bootstrap_plan", "apply": "theme_bootstrap_apply", "rollback": "theme_bootstrap_rollback"}
 SEO_FIELD_LIMITS = {"title": 500, "description": 5000, "canonical": 4096, "indexability": 12}
 SEO_INDEXABILITY = {"default", "index", "noindex"}
 NAVIGATION_TOOLS = {"plan": "navigation_update_plan", "apply": "navigation_update_apply", "rollback": "navigation_update_rollback"}
@@ -124,6 +125,13 @@ def validate_registry(registry: dict[str, Any]) -> None:
             or theme.get("read_only") is not False):
         raise CommandError("theme.update must use only accepted scoped Theme text tools")
 
+    adoption = actions.get("theme.bootstrap")
+    if (not isinstance(adoption, dict) or set(adoption) != {"tools", "required_scope", "read_only"}
+            or adoption.get("tools") != BOOTSTRAP_TOOLS
+            or adoption.get("required_scope") != "content.write"
+            or adoption.get("read_only") is not False):
+        raise CommandError("Theme first-time adoption must be a separate bounded business action")
+
     content = actions.get("content.update")
     if not isinstance(content, dict) or set(content) != {"tools", "required_scope", "read_only"}:
         raise CommandError("content.update registry must be a closed staged business action")
@@ -208,6 +216,8 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
         validate_content_payload(payload)
     elif action == "theme.update":
         validate_theme_payload(payload)
+    elif action == "theme.bootstrap":
+        validate_bootstrap_payload(payload)
     elif action == "content.acceptance":
         if set(payload) != {"confirmed"} or payload.get("confirmed") is not True:
             raise CommandError("content-only acceptance requires exact confirmed=true, with no caller-selected target")
@@ -345,6 +355,131 @@ def validate_theme_payload(payload: dict[str, Any]) -> None:
             raise CommandError("Theme mutations require a valid plan ID and explicit confirmed=true")
     else:
         raise CommandError("Unsupported theme.update stage")
+
+
+
+def validate_bootstrap_payload(payload: dict[str, Any]) -> None:
+    """First-time Theme adoption has no caller-selected site, page or provider."""
+    stage = payload.get("stage")
+    if stage == "plan":
+        if not {"stage", "fields"} <= set(payload) or set(payload) - {"stage", "fields", "reason"}:
+            raise CommandError("Theme bootstrap plan accepts only authored semantic fields and reason")
+        fields = payload.get("fields")
+        if not isinstance(fields, dict) or not 1 <= len(fields) <= 100:
+            raise CommandError("Theme bootstrap requires bounded authored fields")
+        for name, value in fields.items():
+            if not isinstance(name, str) or re.fullmatch(r"[a-z0-9][a-z0-9-]{0,79}", name) is None:
+                raise CommandError("Invalid Theme bootstrap slot identifier")
+            if isinstance(value, str):
+                if (not value.strip() or len(value.encode("utf-8")) > 2000
+                        or "<" in value or ">" in value
+                        or any(ord(ch) < 32 for ch in value)):
+                    raise CommandError("Invalid semantic bootstrap text")
+            elif isinstance(value, dict):
+                if set(value) != {"label", "url"} or not isinstance(value["label"], str):
+                    raise CommandError("Theme bootstrap link must have exact label/url fields")
+                if (not value["label"].strip() or len(value["label"].encode("utf-8")) > 180
+                        or "<" in value["label"] or ">" in value["label"]
+                        or not isinstance(value["url"], str)
+                        or len(value["url"]) > 2048 or not value["url"].startswith("https://")
+                        or any(char in value["url"] for char in ("@", "?", "#", "%", "\\"))):
+                    raise CommandError("Unsafe Theme bootstrap link")
+            else:
+                raise CommandError("Theme bootstrap refuses nested lists and arbitrary data")
+        reason = payload.get("reason")
+        if reason is not None and (not isinstance(reason, str) or len(reason) > 500):
+            raise CommandError("Theme bootstrap reason is not bounded")
+    elif stage in ("apply", "rollback"):
+        if set(payload) != {"stage", "plan_id", "confirmed"}:
+            raise CommandError("Bootstrap mutation requires exact plan_id and confirmed")
+        if (not isinstance(payload.get("plan_id"), str)
+                or re.fullmatch(r"[A-Za-z0-9_-]{1,200}", payload["plan_id"]) is None
+                or payload.get("confirmed") is not True):
+            raise CommandError("Theme bootstrap mutation requires explicit valid confirmation")
+    else:
+        raise CommandError("Unsupported theme.bootstrap stage")
+
+
+def verify_bootstrap_response(stage: str, data: Any, request: dict[str, Any]) -> bool:
+    """Verify real WordPress ownership without copying the authored model into Git history."""
+    if not isinstance(data, dict) or not isinstance(data.get("plan"), dict):
+        raise VerificationError("Theme bootstrap has no WordPress-owned plan")
+    plan = data["plan"]
+    target = plan.get("target")
+    if (plan.get("capability_id") != "content.write" or plan.get("operation") != "theme.bootstrap"
+            or not isinstance(target, dict) or target.get("model_id") != "corporate-home-v1"
+            or type(target.get("post_id")) is not int or target["post_id"] < 1
+            or plan.get("confirmation_required") is not True or plan.get("reversible") is not True
+            or not isinstance(plan.get("plan_id"), str)
+            or not plan["plan_id"].startswith("sm-plan-")):
+        raise VerificationError("Theme bootstrap plan ownership is invalid")
+    if stage == "plan":
+        preview = data.get("preview")
+        expected = set(request["fields"])
+        if (plan.get("status") != "planned"
+                or not isinstance(preview, dict)
+                or set(preview) != {
+                    "source", "target_post_id", "model_id", "slot_ids", "slot_count",
+                    "post_content_unchanged", "proof_claims_included",
+                    "requires_editorial_confirmation", "values_included"
+                }
+                or preview["source"] != "seo-geo-theme-semantic-bootstrap"
+                or preview["target_post_id"] != target["post_id"]
+                or preview["model_id"] != "corporate-home-v1"
+                or not isinstance(preview["slot_ids"], list)
+                or len(preview["slot_ids"]) != len(expected)
+                or len(set(preview["slot_ids"])) != len(preview["slot_ids"])
+                or set(preview["slot_ids"]) != expected
+                or preview["slot_count"] != len(expected)
+                or set(plan.get("fields", [])) != expected
+                or preview["post_content_unchanged"] is not True
+                or preview["proof_claims_included"] is not False
+                or preview["requires_editorial_confirmation"] is not True
+                or preview["values_included"] is not False):
+            raise VerificationError("Theme bootstrap preview is incomplete or leaks content")
+        return False
+    if plan["plan_id"] != request["plan_id"]:
+        raise VerificationError("Theme bootstrap plan identity changed")
+    if stage == "apply":
+        execution = data.get("execution")
+        verification = data.get("verification")
+        if (data.get("status") != "verified" or plan.get("status") != "applied"
+                or not isinstance(execution, dict) or execution.get("success") is not True
+                or not isinstance(verification, dict) or verification.get("verified") is not True):
+            raise VerificationError("Theme bootstrap Apply/Verify did not confirm the live model")
+        return True
+    rollback = data.get("rollback")
+    if (data.get("status") != "rolled-back" or plan.get("status") != "rolled-back"
+            or not isinstance(rollback, dict) or rollback.get("success") is not True):
+        raise VerificationError("Theme bootstrap did not verify exact original state restoration")
+    return True
+
+
+def sanitize_bootstrap_evidence(stage: str, data: dict[str, Any], token: str) -> dict[str, Any]:
+    plan = data["plan"]
+    safe = ("plan_id", "status", "capability_id", "operation", "target", "fields",
+            "reversible", "confirmation_required", "created_at", "expires_at",
+            "rollback_retained_until", "applied_at", "rolled_back_at")
+    output: dict[str, Any] = {"stage": stage, "plan": {k: plan[k] for k in safe if k in plan}}
+    if stage == "plan":
+        output["preview"] = {
+            "slot_ids": data["preview"]["slot_ids"],
+            "slot_count": data["preview"]["slot_count"],
+            "requires_editorial_confirmation": True,
+            "values_retained_in_result": False,
+            "post_content_unchanged": True,
+        }
+    elif stage == "apply":
+        output["status"] = data["status"]
+        output["verification"] = {
+            "verified": data["verification"]["verified"],
+            "status": data["verification"].get("status"),
+        }
+        output["rollback_available"] = data.get("rollback_available") is True
+    else:
+        output["status"] = data["status"]
+        output["restoration_verified"] = data["rollback"]["success"] is True
+    return sanitize_value(output, token)
 
 
 def validate_seo_payload(payload: dict[str, Any]) -> None:
@@ -1108,6 +1243,9 @@ def execute(command_path: Path, result_dir: Path) -> int:
             elif action_name == "theme.update":
                 verified = verify_theme_response(stage, data, command["payload"])
                 sanitized = sanitize_write_evidence(stage, data, token)
+            elif action_name == "theme.bootstrap":
+                verified = verify_bootstrap_response(stage, data, command["payload"])
+                sanitized = sanitize_bootstrap_evidence(stage, data, token)
             elif action_name == "navigation.update":
                 verified = verify_navigation_response(stage, data, command["payload"])
                 sanitized = sanitize_write_evidence(stage, data, token)
@@ -1232,9 +1370,14 @@ def self_test() -> int:
     theme_rule = seo_acceptance_rule.get("else", {})
     if (not isinstance(theme_rule, dict)
             or theme_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "theme.update"
-            or len(theme_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])) != 3
-            or theme_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
-        raise CommandError("theme.update requires exactly three closed stages and preserves empty read payloads")
+            or len(theme_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])) != 3):
+        raise CommandError("theme.update requires exactly three closed stages")
+    bootstrap_rule = theme_rule.get("else", {})
+    if (not isinstance(bootstrap_rule, dict)
+            or bootstrap_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "theme.bootstrap"
+            or len(bootstrap_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])) != 3
+            or bootstrap_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
+        raise CommandError("theme.bootstrap requires three closed stages and preserves empty read payloads")
 
     valid = {
         "version": "1",
@@ -1266,6 +1409,30 @@ def self_test() -> int:
             pass
         else:
             raise CommandError("theme.update accepted unsafe request or unauthorized mutation")
+
+    bootstrap_plan_command = {**valid, "action": "theme.bootstrap", "payload": {
+        "stage": "plan",
+        "fields": {
+            "hero-eyebrow": "Professional digital strategy",
+            "hero-lead": "A genuine author-approved service description",
+            "hero-primary-cta": {"label": "Contact", "url": "https://example.test/staging/contact/"},
+        },
+    }}
+    validate_command(bootstrap_plan_command, registry)
+    for unsafe in (
+        {"stage": "plan", "post_id": 7, "fields": {"hero-lead": "No target selection"}},
+        {"stage": "plan", "fields": {"hero-lead": "<b>Untrusted</b>"}},
+        {"stage": "plan", "fields": {"hero-lead": ["Unapproved nested data"]}},
+        {"stage": "plan", "fields": {"hero-primary-cta": {"label": "External", "url": "javascript:alert(1)"}}},
+        {"stage": "apply", "plan_id": "sm-plan-review", "confirmed": False},
+        {"stage": "rollback", "plan_id": "sm-plan-review", "confirmed": "true"},
+    ):
+        try:
+            validate_command({**bootstrap_plan_command, "payload": unsafe}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("Theme bootstrap accepted an unsafe, unconfirmed or arbitrary request")
 
     theme_command = {**valid, "action": "site.theme_model", "payload": {}}
     validate_command(theme_command, registry)

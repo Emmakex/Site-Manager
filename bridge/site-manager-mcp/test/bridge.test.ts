@@ -373,3 +373,38 @@ test('Theme text governance uses only fixed WordPress plan/apply/rollback routes
       body: { plan_id: 'sm-plan-test', confirmed: true } },
   ]);
 });
+
+
+test('Theme bootstrap is bound to fixed scoped WordPress routes without caller-selected target', async () => {
+  const calls: Array<{path: string; method: string; body: unknown; auth: string | null}> = [];
+  const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const url = input instanceof URL ? input : new URL(String(input));
+    calls.push({
+      path: url.pathname,
+      method: init?.method ?? '',
+      body: init?.body ? JSON.parse(String(init.body)) : null,
+      auth: new Headers(init?.headers).get('authorization'),
+    });
+    return new Response(JSON.stringify({ data: { status: 'accepted-for-test' } }), {
+      status: 200, headers: { 'content-type': 'application/json' },
+    });
+  }) as typeof fetch;
+  const client = new SiteManagerClient(baseConfig(), fakeFetch);
+  const fields = {
+    'hero-eyebrow': 'Consultoría',
+    'hero-primary-cta': { label: 'Contactar', url: 'https://example.test/nuevaweb/contacto/' },
+  };
+  await client.themeBootstrapPlan({ fields, reason: 'Reviewed content for published homepage' });
+  await client.themeBootstrapApply({ plan_id: 'sm-plan-bootstrap', confirmed: true });
+  await client.themeBootstrapRollback({ plan_id: 'sm-plan-bootstrap', confirmed: true });
+  assert.deepEqual(calls.map(x => x.path), [
+    '/wp-json/site-manager/v1/write/theme/bootstrap/plan',
+    '/wp-json/site-manager/v1/write/theme/bootstrap/apply',
+    '/wp-json/site-manager/v1/write/theme/bootstrap/rollback',
+  ]);
+  assert.deepEqual(calls.map(x => x.method), ['POST', 'POST', 'POST']);
+  assert.deepEqual(calls[0]?.body, { fields, reason: 'Reviewed content for published homepage' });
+  assert.deepEqual(calls[1]?.body, { plan_id: 'sm-plan-bootstrap', confirmed: true });
+  assert.deepEqual(calls[2]?.body, { plan_id: 'sm-plan-bootstrap', confirmed: true });
+  assert.ok(calls.every(x => x.auth === `Bearer ${secret}`));
+});

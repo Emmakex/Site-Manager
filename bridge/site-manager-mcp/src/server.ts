@@ -20,6 +20,42 @@ type ThemeTextPlanInput = {
   reason?: string;
 };
 
+type ThemeBootstrapPlanInput = {
+  fields: Record<string, string | { label: string; url: string }>;
+  reason?: string;
+};
+
+const themeBootstrapPlanSchema = fromJsonSchema<ThemeBootstrapPlanInput>({
+  type: 'object',
+  additionalProperties: false,
+  required: ['fields'],
+  properties: {
+    fields: {
+      type: 'object',
+      minProperties: 1,
+      maxProperties: 100,
+      patternProperties: {
+        '^[a-z0-9][a-z0-9-]{0,79}$': {
+          oneOf: [
+            { type: 'string', minLength: 1, maxLength: 2000 },
+            {
+              type: 'object',
+              additionalProperties: false,
+              required: ['label', 'url'],
+              properties: {
+                label: { type: 'string', minLength: 1, maxLength: 180 },
+                url: { type: 'string', minLength: 10, maxLength: 2048, pattern: '^https://' },
+              },
+            },
+          ],
+        },
+      },
+      additionalProperties: false,
+    },
+    reason: { type: 'string', maxLength: 500 },
+  },
+});
+
 type ContentPlanInput = {
   post_id: number;
   fields: Record<string, string>;
@@ -334,6 +370,61 @@ export function createSiteManagerMcpServer(
           return toolResult(await client.themeUpdateRollback({ plan_id, confirmed: true }));
         } catch {
           return toolError('Site Manager refused or failed to roll back the Theme text plan.');
+        }
+      },
+    );
+  }
+
+  if (scopes.has('site.read') && scopes.has('content.write')) {
+    server.registerTool(
+      'theme_bootstrap_plan',
+      {
+        title: 'Plan first-time Corporate homepage semantic adoption',
+        description: 'Use Theme-native required text/internal links on the discovered published homepage only. No external providers, proof claims or arbitrary WordPress content edits.',
+        inputSchema: themeBootstrapPlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ fields, reason }) => {
+        try {
+          return toolResult(await client.themeBootstrapPlan({ fields, ...(reason === undefined ? {} : { reason }) }));
+        } catch {
+          return toolError('Site Manager refused or could not plan first-time Theme adoption.');
+        }
+      },
+    );
+
+    server.registerTool(
+      'theme_bootstrap_apply',
+      {
+        title: 'Apply confirmed first-time Theme adoption',
+        description: 'Apply only an accepted, fresh, WordPress-owned semantic bootstrap plan after explicit confirmation. Preserve the existing Gutenberg source body.',
+        inputSchema: confirmedPlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ plan_id, confirmed }) => {
+        if (confirmed !== true) return toolError('First-time Theme adoption requires explicit confirmation.');
+        try {
+          return toolResult(await client.themeBootstrapApply({ plan_id, confirmed: true }));
+        } catch {
+          return toolError('Site Manager refused or could not apply Theme adoption.');
+        }
+      },
+    );
+
+    server.registerTool(
+      'theme_bootstrap_rollback',
+      {
+        title: 'Rollback confirmed first-time Theme adoption',
+        description: 'Remove only the Site Manager-owned model while the verified after-state is unchanged. Restore original page rendering and Gutenberg body.',
+        inputSchema: confirmedPlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ plan_id, confirmed }) => {
+        if (confirmed !== true) return toolError('Theme adoption rollback requires explicit confirmation.');
+        try {
+          return toolResult(await client.themeBootstrapRollback({ plan_id, confirmed: true }));
+        } catch {
+          return toolError('Site Manager refused or could not roll back Theme adoption.');
         }
       },
     );
