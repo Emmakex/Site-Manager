@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-theme-bootstrap-apply-01111-20261111-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.bootstrap",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-a7b9bc5271b239046a1cc4a8",
+    "confirmed": true
+  }
+}
