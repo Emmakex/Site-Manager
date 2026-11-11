@@ -34,8 +34,8 @@ jobs:
           if command -v msgfmt >/dev/null 2>&1; then
             echo 'Using preinstalled msgfmt'
           else
-            sudo apt-get -o Acquire::Retries=2 update -qq
-            sudo apt-get -o Acquire::Retries=2 install -y gettext
+            # Ubuntu runners already ship package indexes; avoid a slow global apt refresh.
+            sudo apt-get -o Acquire::Retries=2 install -y --no-install-recommends gettext
           fi
 
       - name: Validate Composer metadata
