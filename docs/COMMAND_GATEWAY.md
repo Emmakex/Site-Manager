@@ -827,3 +827,57 @@ and requires no permission to mutate any WordPress page.
 This is the **first cut** in [EMMAKE delivery #73](https://github.com/Emmakex/Site-Manager/issues/73).
 It does not imply finished publication, SEO, navigation, visual UX,
 forms, accessibility or launch readiness.
+
+
+## SM-4M — Governance without another plugin: inspect SEO/GEO Theme slots
+
+A WordPress site needs **Site Manager + SEO/GEO Theme**, not a third
+SEO/GEO Manager plugin. The Theme owns Corporate rendering and exposes
+the canonical `corporate-home-v1` semantic model through its installed
+`CorporateHomeModelResolver` and `seo_geo_theme_preset_document()`
+contract. Site Manager uses those *public Theme interfaces*, not copies
+of its block renderer, private metadata, CSS or HTML structure.
+
+Read-only operator intent:
+
+```json
+{
+  "version": "1",
+  "command_id": "cmd-theme-model-example-0001",
+  "site": "acceptance-site",
+  "action": "site.theme_model",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
+```
+
+The Gateway maps exactly `site.theme_model` → `site_theme_model`
+MCP tool → authenticated `GET /site-manager/v1/theme/model` in
+WordPress, all under the **existing** `site.read` scope. The caller
+cannot supply post IDs, model IDs, arbitrary URLs, WordPress meta keys,
+block markup or edit values. The WordPress route selects only the
+actual **published homepage**, resolves its live active Theme contract,
+and responds with the Corporate semantic model's slot IDs, type,
+required/completion status and source. Text, link labels/targets,
+Gutenberg blocks and private content values are **never included**.
+The Gateway independently rejects malformed, duplicate, unbounded
+or unsafe slot evidence before persisting sanitized public structure.
+
+This inspection alone does not verify or grant any write authority:
+every returned slot has `writable_via_site_manager=false` and the
+model has `editing_ready=false`. It is **not** a full visual design
+review, private content preview, mutation API or field acceptance for
+EMMAKE. The next accepted work must implement strict, server-side
+semantic-slot change plans with a private before/after preview,
+optimistic concurrency, explicit confirmation, exact rendered Verify
+and stale-safe rollback, preserving the Theme as renderer.
+
+Release integration requires WordPress Site Manager **0.11.8**
+and the matching MCP image before a real `site.theme_model` command
+can pass on `emmake.com/nuevaweb/`. WordPress 0.11.7 remains
+operational for the existing content/SEO/navigation tools until then.
+
+EMMAKE remains the only active implementation. The full web must be
+finished and tested at `/nuevaweb` before migration to the primary
+domain; preserve prior successful content migration and do not repeat
+Reset/Hydration.
