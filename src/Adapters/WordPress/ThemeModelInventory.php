@@ -51,7 +51,7 @@ final class ThemeModelInventory
         }
 
         $source = $model['source'] ?? null;
-        $source = in_array($source, ['hydrated-semantic-blocks', 'external'], true) ? $source : 'unknown';
+        $source = in_array($source, ['hydrated-semantic-blocks', 'site-manager-native-override', 'external'], true) ? $source : 'unknown';
         $slots = [];
         $seen = [];
         foreach ($definitions as $definition) {
