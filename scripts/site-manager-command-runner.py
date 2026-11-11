@@ -1370,9 +1370,14 @@ def self_test() -> int:
     theme_rule = seo_acceptance_rule.get("else", {})
     if (not isinstance(theme_rule, dict)
             or theme_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "theme.update"
-            or len(theme_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])) != 3
-            or theme_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
-        raise CommandError("theme.update requires exactly three closed stages and preserves empty read payloads")
+            or len(theme_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])) != 3):
+        raise CommandError("theme.update requires exactly three closed stages")
+    bootstrap_rule = theme_rule.get("else", {})
+    if (not isinstance(bootstrap_rule, dict)
+            or bootstrap_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "theme.bootstrap"
+            or len(bootstrap_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])) != 3
+            or bootstrap_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
+        raise CommandError("theme.bootstrap requires three closed stages and preserves empty read payloads")
 
     valid = {
         "version": "1",
@@ -1404,6 +1409,30 @@ def self_test() -> int:
             pass
         else:
             raise CommandError("theme.update accepted unsafe request or unauthorized mutation")
+
+    bootstrap_plan_command = {**valid, "action": "theme.bootstrap", "payload": {
+        "stage": "plan",
+        "fields": {
+            "hero-eyebrow": "Professional digital strategy",
+            "hero-lead": "A genuine author-approved service description",
+            "hero-primary-cta": {"label": "Contact", "url": "https://example.test/staging/contact/"},
+        },
+    }}
+    validate_command(bootstrap_plan_command, registry)
+    for unsafe in (
+        {"stage": "plan", "post_id": 7, "fields": {"hero-lead": "No target selection"}},
+        {"stage": "plan", "fields": {"hero-lead": "<b>Untrusted</b>"}},
+        {"stage": "plan", "fields": {"hero-lead": ["Unapproved nested data"]}},
+        {"stage": "plan", "fields": {"hero-primary-cta": {"label": "External", "url": "javascript:alert(1)"}}},
+        {"stage": "apply", "plan_id": "sm-plan-review", "confirmed": False},
+        {"stage": "rollback", "plan_id": "sm-plan-review", "confirmed": "true"},
+    ):
+        try:
+            validate_command({**bootstrap_plan_command, "payload": unsafe}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("Theme bootstrap accepted an unsafe, unconfirmed or arbitrary request")
 
     theme_command = {**valid, "action": "site.theme_model", "payload": {}}
     validate_command(theme_command, registry)
