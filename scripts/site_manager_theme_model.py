@@ -54,7 +54,7 @@ def summary(raw: Any) -> dict[str, Any]:
             or raw["public_values_included"] is not False
             or raw["write_scope_verified"] is not False
             or raw["editing_ready"] is not False
-            or raw["model_source"] not in ("hydrated-semantic-blocks", "external", "unknown")):
+            or raw["model_source"] not in ("hydrated-semantic-blocks", "site-manager-native-override", "external", "unknown")):
         raise ThemeModelError("Theme model source/permission contract changed")
 
     if type(raw["post_id"]) is not int or raw["post_id"] < 1:
