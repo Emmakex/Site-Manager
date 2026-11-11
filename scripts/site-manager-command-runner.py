@@ -30,7 +30,7 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.theme_model"}
+SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.theme_model", "theme.update"}
 SEO_ACCEPTANCE_TOOLS = {"start": "seo_acceptance_start", "status": "seo_acceptance_status"}
 SEO_ACCEPTANCE_PROFILE = "mcp-seo-only"
 SEO_ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "seo_plan", "seo_apply_verify", "seo_rollback", "cleanup")
@@ -38,6 +38,7 @@ NAV_ACCEPTANCE_TOOLS = {"start": "navigation_acceptance_start", "status": "navig
 NAV_ACCEPTANCE_PROFILE = "mcp-navigation-only"
 NAV_ACCEPTANCE_STEPS = ("precheck", "fixture_navigation_create", "navigation_plan", "navigation_apply_verify", "navigation_rollback", "cleanup")
 SEO_TOOLS = {"plan": "seo_update_plan", "apply": "seo_update_apply", "rollback": "seo_update_rollback"}
+THEME_TOOLS = {"plan": "theme_update_plan", "apply": "theme_update_apply", "rollback": "theme_update_rollback"}
 SEO_FIELD_LIMITS = {"title": 500, "description": 5000, "canonical": 4096, "indexability": 12}
 SEO_INDEXABILITY = {"default", "index", "noindex"}
 NAVIGATION_TOOLS = {"plan": "navigation_update_plan", "apply": "navigation_update_apply", "rollback": "navigation_update_rollback"}
@@ -115,6 +116,13 @@ def validate_registry(registry: dict[str, Any]) -> None:
             raise CommandError(f"registry mapping for {action_name} changed unexpectedly")
         if action.get("read_only") is not True:
             raise CommandError(f"{action_name} must remain read-only in SM-4F slice 1")
+
+    theme = actions.get("theme.update")
+    if (not isinstance(theme, dict) or set(theme) != {"tools", "required_scope", "read_only"}
+            or theme.get("tools") != THEME_TOOLS
+            or theme.get("required_scope") != "content.write"
+            or theme.get("read_only") is not False):
+        raise CommandError("theme.update must use only accepted scoped Theme text tools")
 
     content = actions.get("content.update")
     if not isinstance(content, dict) or set(content) != {"tools", "required_scope", "read_only"}:
@@ -198,6 +206,8 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
             raise CommandError("read-only Site Manager commands require an empty payload object")
     elif action == "content.update":
         validate_content_payload(payload)
+    elif action == "theme.update":
+        validate_theme_payload(payload)
     elif action == "content.acceptance":
         if set(payload) != {"confirmed"} or payload.get("confirmed") is not True:
             raise CommandError("content-only acceptance requires exact confirmed=true, with no caller-selected target")
@@ -305,6 +315,36 @@ def validate_navigation_payload(payload: dict[str, Any]) -> None:
             raise CommandError("navigation mutations require explicit confirmed=true")
     else:
         raise CommandError("unsupported navigation.update stage")
+
+
+def validate_theme_payload(payload: dict[str, Any]) -> None:
+    """No caller-selected post, HTML, CSS, provider, meta key, or arbitrary REST."""
+    stage = payload.get("stage")
+    if stage == "plan":
+        if not {"stage", "fields"} <= set(payload) or set(payload) - {"stage", "fields", "reason"}:
+            raise CommandError("Theme plan accepts only stage, fields and optional reason")
+        fields = payload["fields"]
+        if not isinstance(fields, dict) or not 1 <= len(fields) <= 5:
+            raise CommandError("Theme text update requires one to five semantic slot fields")
+        for name, value in fields.items():
+            if (not isinstance(name, str) or re.fullmatch(r"[a-z0-9][a-z0-9-]{0,79}", name) is None
+                    or not isinstance(value, str) or not value.strip()
+                    or len(value.encode("utf-8")) > 2000
+                    or "<" in value or ">" in value
+                    or any(ord(ch) < 32 and ch not in "\\n\\t" for ch in value)):
+                raise CommandError("Unsupported Theme slot name or unsafe text value")
+        reason = payload.get("reason")
+        if reason is not None and (not isinstance(reason, str) or len(reason) > 500):
+            raise CommandError("Theme reason is not bounded")
+    elif stage in ("apply", "rollback"):
+        if set(payload) != {"stage", "plan_id", "confirmed"}:
+            raise CommandError("Theme apply and rollback require only exact plan id and confirmation")
+        if (not isinstance(payload["plan_id"], str)
+                or re.fullmatch(r"[A-Za-z0-9_-]{1,200}", payload["plan_id"]) is None
+                or payload["confirmed"] is not True):
+            raise CommandError("Theme mutations require a valid plan ID and explicit confirmed=true")
+    else:
+        raise CommandError("Unsupported theme.update stage")
 
 
 def validate_seo_payload(payload: dict[str, Any]) -> None:
@@ -648,6 +688,49 @@ def sanitize_seo_evidence(stage: str, data: dict[str, Any], token: str) -> dict[
             "values_retained_in_github": False,
         },
     }, token)
+
+
+def verify_theme_response(stage: str, data: Any, request: dict[str, Any]) -> bool:
+    if not isinstance(data, dict) or not isinstance(data.get("plan"), dict):
+        raise VerificationError("Theme tool did not return its WordPress-owned plan")
+    plan = data["plan"]
+    target = plan.get("target")
+    if (plan.get("capability_id") != "content.write" or plan.get("operation") != "theme.update"
+            or not isinstance(target, dict) or target.get("model_id") != "corporate-home-v1"
+            or type(target.get("post_id")) is not int or target["post_id"] < 1
+            or plan.get("confirmation_required") is not True or plan.get("reversible") is not True):
+        raise VerificationError("Theme plan ownership or reversible confirmation is invalid")
+    plan_id = plan.get("plan_id")
+    if not isinstance(plan_id, str) or not plan_id.startswith("sm-plan-"):
+        raise VerificationError("Theme plan identifier missing")
+    if stage == "plan":
+        preview = data.get("changes")
+        if (plan.get("status") != "planned"
+                or not isinstance(preview, dict)
+                or preview.get("source") != "seo-geo-theme-semantic"
+                or not isinstance(preview.get("before"), dict)
+                or not isinstance(preview.get("after"), dict)
+                or set(preview["after"]) != set(request["fields"])
+                or preview["after"] != request["fields"]
+                or set(preview["before"]) != set(request["fields"])
+                or set(plan.get("fields", [])) != set(request["fields"])):
+            raise VerificationError("Theme private before/after preview is missing or ambiguous")
+        return False
+    if plan_id != request["plan_id"]:
+        raise VerificationError("Theme plan changed between plan and mutation")
+    if stage == "apply":
+        execution = data.get("execution")
+        verification = data.get("verification")
+        if (data.get("status") != "verified" or plan.get("status") != "applied"
+                or not isinstance(execution, dict) or execution.get("success") is not True
+                or not isinstance(verification, dict) or verification.get("verified") is not True):
+            raise VerificationError("Theme apply did not verify exact WordPress semantic values")
+        return True
+    rollback = data.get("rollback")
+    if (data.get("status") != "rolled-back" or plan.get("status") != "rolled-back"
+            or not isinstance(rollback, dict) or rollback.get("success") is not True):
+        raise VerificationError("Theme rollback did not prove restoration")
+    return True
 
 
 def sanitize_write_evidence(stage: str, data: dict[str, Any], token: str) -> dict[str, Any]:
@@ -1022,6 +1105,9 @@ def execute(command_path: Path, result_dir: Path) -> int:
             elif action_name == "content.update":
                 verified = verify_content_response(stage, data, command["payload"])
                 sanitized = sanitize_write_evidence(stage, data, token)
+            elif action_name == "theme.update":
+                verified = verify_theme_response(stage, data, command["payload"])
+                sanitized = sanitize_write_evidence(stage, data, token)
             elif action_name == "navigation.update":
                 verified = verify_navigation_response(stage, data, command["payload"])
                 sanitized = sanitize_write_evidence(stage, data, token)
@@ -1157,6 +1243,24 @@ def self_test() -> int:
     validate_command(overview_command, registry)
     targets_command = {**valid, "action": "site.content_targets", "payload": {}}
     validate_command(targets_command, registry)
+    theme_plan_command = {**valid, "action": "theme.update", "payload": {
+        "stage": "plan", "fields": {"hero-lead": "Better strategy for modern businesses"}
+    }}
+    validate_command(theme_plan_command, registry)
+    for invalid_theme in (
+        {"stage": "plan", "post_id": 7, "fields": {"hero-lead": "Changed"}},
+        {"stage": "plan", "fields": {"hero-lead": "<b>Unsafe</b>"}},
+        {"stage": "plan", "fields": {"hero-lead": ""}},
+        {"stage": "apply", "plan_id": "sm-plan-a", "confirmed": False},
+        {"stage": "rollback", "plan_id": "sm-plan-a", "confirmed": False},
+    ):
+        try:
+            validate_command({**theme_plan_command, "payload": invalid_theme}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("theme.update accepted unsafe request or unauthorized mutation")
+
     theme_command = {**valid, "action": "site.theme_model", "payload": {}}
     validate_command(theme_command, registry)
     for unsafe in ({"post_id": 7}, {"slot_id": "hero-lead"}, {"meta_key": "_seo_geo_model"}, {"url": "https://another.site/"}):
