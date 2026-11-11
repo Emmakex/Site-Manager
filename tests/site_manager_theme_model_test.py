@@ -40,7 +40,7 @@ assert "connection_id" not in good
 assert good["slots"][0]["id"] == "hero-lead"
 
 for mutation in (
-    lambda x: x.update(site_url="https://attacker.invalid/"),
+    lambda x: x.update(site_url="https://attacker.invalid/?token=exfiltration"),
     lambda x: x.update(site_url="http://emmake.com/nuevaweb/"),
     lambda x: x.update(connection_id=""),
     lambda x: x.update(scope="content.write"),
