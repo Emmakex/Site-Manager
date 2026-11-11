@@ -36,7 +36,8 @@
         "seo.acceptance",
         "site.overview",
         "site.content_targets",
-        "site.theme_model"
+        "site.theme_model",
+        "theme.update"
       ]
     },
     "requested_by": {
@@ -554,11 +555,107 @@
                   }
                 },
                 "else": {
-                  "properties": {
-                    "payload": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "maxProperties": 0
+                  "if": {
+                    "properties": {
+                      "action": {
+                        "const": "theme.update"
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "payload": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "stage",
+                              "fields"
+                            ],
+                            "properties": {
+                              "stage": {
+                                "const": "plan"
+                              },
+                              "fields": {
+                                "type": "object",
+                                "minProperties": 1,
+                                "maxProperties": 5,
+                                "patternProperties": {
+                                  "^[a-z0-9][a-z0-9-]{0,79}$": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 2000
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "reason": {
+                                "type": "string",
+                                "maxLength": 500
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "stage",
+                              "plan_id",
+                              "confirmed"
+                            ],
+                            "properties": {
+                              "stage": {
+                                "const": "apply"
+                              },
+                              "plan_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "pattern": "^[A-Za-z0-9_-]+$"
+                              },
+                              "confirmed": {
+                                "const": true
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "stage",
+                              "plan_id",
+                              "confirmed"
+                            ],
+                            "properties": {
+                              "stage": {
+                                "const": "rollback"
+                              },
+                              "plan_id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "pattern": "^[A-Za-z0-9_-]+$"
+                              },
+                              "confirmed": {
+                                "const": true
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "payload": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "maxProperties": 0
+                      }
                     }
                   }
                 }
