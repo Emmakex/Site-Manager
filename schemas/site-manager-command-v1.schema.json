@@ -35,7 +35,8 @@
         "navigation.acceptance",
         "seo.acceptance",
         "site.overview",
-        "site.content_targets"
+        "site.content_targets",
+        "site.theme_model"
       ]
     },
     "requested_by": {
