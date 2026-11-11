@@ -84,7 +84,7 @@ def unresolved_permalink_link(href: str) -> bool:
     # Decode twice for detection only. Never fetch or persist user-authored link URLs.
     candidate = unquote(unquote(href))
     return bool(re.search(
-        r"%category%|%postname%|\\{[a-f0-9]{30,}\\}(?:category|postname)",
+        r"%category%|%postname%|\{[a-f0-9]{30,}\}(?:category|postname)",
         candidate, re.IGNORECASE
     ))
 
