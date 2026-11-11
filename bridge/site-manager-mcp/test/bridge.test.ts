@@ -346,3 +346,30 @@ test('Theme semantic model read uses fixed site.read endpoint and bound connecti
     redirect: 'error',
   }]);
 });
+
+test('Theme text governance uses only fixed WordPress plan/apply/rollback routes', async () => {
+  const requests: Array<{ path: string; method: string; body: unknown }> = [];
+  const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const target = input instanceof URL ? input : new URL(String(input));
+    requests.push({
+      path: target.pathname,
+      method: init?.method ?? '',
+      body: init?.body ? JSON.parse(String(init.body)) : null,
+    });
+    return new Response(JSON.stringify({ data: {
+      status: 'accepted-for-test',
+    }}), { status: 200, headers: { 'content-type': 'application/json' } });
+  }) as typeof fetch;
+  const client = new SiteManagerClient(baseConfig(), fakeFetch);
+  await client.themeUpdatePlan({ fields: { 'hero-lead': 'Approved editorial copy' }, reason: 'Improve EMMAKE' });
+  await client.themeUpdateApply({ plan_id: 'sm-plan-test', confirmed: true });
+  await client.themeUpdateRollback({ plan_id: 'sm-plan-test', confirmed: true });
+  assert.deepEqual(requests, [
+    { path: '/wp-json/site-manager/v1/write/theme/plan', method: 'POST',
+      body: { fields: { 'hero-lead': 'Approved editorial copy' }, reason: 'Improve EMMAKE' } },
+    { path: '/wp-json/site-manager/v1/write/theme/apply', method: 'POST',
+      body: { plan_id: 'sm-plan-test', confirmed: true } },
+    { path: '/wp-json/site-manager/v1/write/theme/rollback', method: 'POST',
+      body: { plan_id: 'sm-plan-test', confirmed: true } },
+  ]);
+});

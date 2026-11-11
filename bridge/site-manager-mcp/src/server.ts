@@ -15,6 +15,11 @@ function toolError(message = 'Site Manager MCP could not complete the requested 
   };
 }
 
+type ThemeTextPlanInput = {
+  fields: Record<string, string>;
+  reason?: string;
+};
+
 type ContentPlanInput = {
   post_id: number;
   fields: Record<string, string>;
@@ -38,6 +43,24 @@ type ConfirmedPlanInput = {
   plan_id: string;
   confirmed: boolean;
 };
+
+const themeTextPlanSchema = fromJsonSchema<ThemeTextPlanInput>({
+  type: 'object',
+  additionalProperties: false,
+  required: ['fields'],
+  properties: {
+    fields: {
+      type: 'object',
+      minProperties: 1,
+      maxProperties: 5,
+      patternProperties: {
+        '^[a-z0-9][a-z0-9-]{0,79}$': { type: 'string', minLength: 1, maxLength: 2000 },
+      },
+      additionalProperties: false,
+    },
+    reason: { type: 'string', maxLength: 500 },
+  },
+});
 
 const contentPlanSchema = fromJsonSchema<ContentPlanInput>({
   type: 'object',
@@ -256,6 +279,61 @@ export function createSiteManagerMcpServer(
           return toolResult(await client.remoteAcceptanceJob());
         } catch {
           return toolError('Site Manager could not read content acceptance status.');
+        }
+      },
+    );
+  }
+
+  if (scopes.has('site.read') && scopes.has('content.write')) {
+    server.registerTool(
+      'theme_update_plan',
+      {
+        title: 'Plan an SEO/GEO Theme Corporate homepage text change',
+        description: 'Creates a short-lived WordPress-side semantic text-slot plan. Never edits Gutenberg layout, CSS or raw HTML. Only accepted Theme contract text slots, no caller-selected page.',
+        inputSchema: themeTextPlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ fields, reason }) => {
+        try {
+          return toolResult(await client.themeUpdatePlan({ fields, ...(reason === undefined ? {} : { reason }) }));
+        } catch {
+          return toolError('Site Manager could not plan a Theme semantic text change.');
+        }
+      },
+    );
+
+    server.registerTool(
+      'theme_update_apply',
+      {
+        title: 'Apply an explicitly confirmed Theme text plan',
+        description: 'Applies one previously prepared, unexpired, connected Theme text plan with exact WordPress readback verification and rollback evidence.',
+        inputSchema: confirmedPlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ plan_id, confirmed }) => {
+        if (confirmed !== true) return toolError('Theme plan apply requires explicit confirmation.');
+        try {
+          return toolResult(await client.themeUpdateApply({ plan_id, confirmed: true }));
+        } catch {
+          return toolError('Site Manager refused or failed to apply the Theme text plan.');
+        }
+      },
+    );
+
+    server.registerTool(
+      'theme_update_rollback',
+      {
+        title: 'Rollback a confirmed Theme semantic text change',
+        description: 'Restores the exact prior Theme-owned semantic state if no stale changes occurred, preserving WordPress source blocks.',
+        inputSchema: confirmedPlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ plan_id, confirmed }) => {
+        if (confirmed !== true) return toolError('Theme plan rollback requires explicit confirmation.');
+        try {
+          return toolResult(await client.themeUpdateRollback({ plan_id, confirmed: true }));
+        } catch {
+          return toolError('Site Manager refused or failed to roll back the Theme text plan.');
         }
       },
     );
