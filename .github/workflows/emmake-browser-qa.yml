@@ -31,7 +31,7 @@ jobs:
     permissions:
       contents: write
     concurrency:
-      group: emmake-public-chromium-acceptance-${{ github.event_name }}
+      group: emmake-public-chromium-acceptance-${{ github.sha }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +44,7 @@ jobs:
         run: |
           mkdir -p .qa-deps
           npm install --prefix .qa-deps --ignore-scripts --no-save --no-audit --no-fund playwright@1.65.0
-          .qa-deps/node_modules/.bin/playwright install --with-deps chromium
+          .qa-deps/node_modules/.bin/playwright install chromium
       - name: Audit fixed staging routes in desktop and mobile browser
         env:
           NODE_PATH: ${{ github.workspace }}/.qa-deps/node_modules
