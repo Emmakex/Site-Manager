@@ -1,0 +1,7 @@
+{
+  "version": "1",
+  "audit_id": "audit-emmake-public-home-01111-20261111-01",
+  "site": "emmake-nuevaweb",
+  "check": "public-home",
+  "requested_by": "chatgpt"
+}
