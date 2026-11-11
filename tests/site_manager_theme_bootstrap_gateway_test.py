@@ -63,6 +63,25 @@ preview = {
 }
 response = {"plan":plan, "preview":preview}
 assert mod.verify_bootstrap_response("plan",response,command["payload"]) is False
+# Live WP Site Manager 0.11.11 emits a field => true marker map, not a string list.
+wp_preview = {**preview, "slot_ids":{name:True for name in fields}}
+wp_response = {"plan":plan, "preview":wp_preview}
+assert mod.verify_bootstrap_response("plan",wp_response,command["payload"]) is False
+wp_safe = mod.sanitize_bootstrap_evidence("plan",wp_response,"secret-token")
+assert wp_safe["preview"]["slot_ids"] == list(fields)
+assert all(isinstance(id, str) for id in wp_safe["preview"]["slot_ids"])
+for poisoned_markers in (
+    {"hero-eyebrow":"Private WP content", **{k:True for k in fields if k!="hero-eyebrow"}},
+    {"hero-eyebrow":1, **{k:True for k in fields if k!="hero-eyebrow"}},
+    {**{k:True for k in fields}, "unapproved":True},
+    {**{k:True for k in fields}, "hero-lead":False},
+):
+    try:
+        mod.verify_bootstrap_response("plan",{"plan":plan,"preview":{**preview,"slot_ids":poisoned_markers}},command["payload"])
+    except mod.VerificationError:
+        pass
+    else:
+        raise AssertionError("Unreviewed, leaky or nonboolean WordPress field map accepted")
 safe = mod.sanitize_bootstrap_evidence("plan",response,"secret-token")
 assert safe["preview"]["values_retained_in_result"] is False
 assert all(x not in str(safe) for x in ["Digital consultancy","Responsible services","contact/","secret-token"])
