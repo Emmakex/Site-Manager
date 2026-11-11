@@ -49,8 +49,14 @@ if (!interface_exists("SiteManager\\Core\\Contracts\\PlatformAdapter")) { fwrite
 if (!class_exists("SiteManager\\Adapters\\WordPress\\WordPressAdapter")) { fwrite(STDERR, "WordPress adapter autoload failed\n"); exit(1); }
 ' "$TMP/site-manager/vendor/autoload.php"
 
-if command -v msgunfmt >/dev/null 2>&1; then
-  msgunfmt "$TMP/site-manager/languages/site-manager-es_ES.mo" | grep -q 'msgstr "Plataforma"' || { echo "Spanish MO catalog is invalid" >&2; exit 1; }
-fi
+# WordPress locale integrity must be checked even on minimal CI images without gettext.
+python3 - "$TMP/site-manager/languages/site-manager-es_ES.mo" <<'PY'
+import gettext
+import sys
+with open(sys.argv[1], "rb") as stream:
+    catalog = gettext.GNUTranslations(stream)
+if catalog.gettext("Platform") != "Plataforma":
+    raise SystemExit("Spanish MO catalog is invalid or not UTF-8 compatible")
+PY
 
 echo "PASS: installable localized Site Manager WordPress package $(basename "$ZIP")"
