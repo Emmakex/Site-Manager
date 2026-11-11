@@ -1,0 +1,96 @@
+name: Emmake Browser Responsive QA
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/site_manager_emmake_browser_audit.cjs'
+      - '.github/workflows/emmake-browser-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'audits/emmake/browser/pending/*.json'
+
+permissions:
+  contents: read
+
+jobs:
+  safety-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test fixed public-only browser scope
+        run: node scripts/site_manager_emmake_browser_audit.cjs --self-test
+
+  browser-staging:
+    if: github.event_name == 'push'
+    needs: safety-contract
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency:
+      group: emmake-public-chromium-acceptance
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned Chromium and Playwright in ephemeral QA directory
+        run: |
+          mkdir -p .qa-deps
+          npm install --prefix .qa-deps --ignore-scripts --no-save --no-audit --no-fund playwright@1.65.0
+          .qa-deps/node_modules/.bin/playwright install --with-deps chromium
+      - name: Audit fixed staging routes in desktop and mobile browser
+        env:
+          NODE_PATH: ${{ github.workspace }}/.qa-deps/node_modules
+        run: node scripts/site_manager_emmake_browser_audit.cjs --run-pending
+      - name: Upload short-lived real-browser screenshots and bounded report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-browser-responsive-qa
+          path: artifacts/emmake-browser/
+          retention-days: 2
+          if-no-files-found: warn
+      - name: Commit JSON findings only, no HTML or screenshots
+        run: |
+          set -euo pipefail
+          if ! compgen -G 'audits/emmake/browser/results/*.json' >/dev/null; then
+            echo "Browser result was not produced" >&2
+            exit 1
+          fi
+          git config user.name "site-manager-public-audit[bot]"
+          git config user.email "site-manager-public-audit[bot]@users.noreply.github.com"
+          git add audits/emmake/browser/results/*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "audit(emmake): record public Chromium responsive and URL findings"
+            for attempt in 1 2 3; do
+              git fetch origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then
+                break
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                echo "Failed to safely persist public browser evidence" >&2
+                exit 1
+              fi
+              sleep 2
+            done
+          fi
+      - name: Gate responsive and link audit
+        run: |
+          python3 - <<'PY'
+          import glob
+          import json
+          import sys
+          for path in glob.glob('audits/emmake/browser/results/*.json'):
+              report = json.load(open(path))
+              print(path, report['status'], len(report['checks']))
+              if report['status'] != 'passed':
+                  sys.exit(1)
+          PY
