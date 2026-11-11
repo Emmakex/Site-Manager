@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 concurrency:
@@ -69,3 +69,46 @@ jobs:
           name: site-manager-mcp-image-${{ github.sha }}
           path: site-manager-mcp-image.json
           retention-days: 90
+
+      - name: Persist immutable image reference for governed deployment
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          path="deployments/site-manager-mcp/images/${GITHUB_SHA}.json"
+          python3 - "$GITHUB_SHA" site-manager-mcp-image.json <<'PY'
+          import json, re, sys
+          sha, filename = sys.argv[1:]
+          with open(filename, encoding='utf-8') as fh:
+              obj = json.load(fh)
+          if not re.fullmatch(r'[0-9a-f]{40}', sha):
+              raise SystemExit('Invalid build commit identity.')
+          if obj.get('commit') != sha:
+              raise SystemExit('Image manifest does not match workflow commit.')
+          image = obj.get('image', '')
+          digest = obj.get('digest', '')
+          if image != 'ghcr.io/emmakex/site-manager-mcp' or not re.fullmatch(r'sha256:[0-9a-f]{64}', digest):
+              raise SystemExit('Invalid image identity or digest.')
+          if obj.get('image_ref') != f'{image}@{digest}':
+              raise SystemExit('Unbound immutable image reference.')
+          PY
+          if gh api "repos/${GITHUB_REPOSITORY}/contents/${path}" > existing.json 2>/dev/null; then
+            python3 - site-manager-mcp-image.json existing.json <<'PY'
+          import base64, json, sys
+          desired = json.load(open(sys.argv[1], encoding='utf-8'))
+          existing = json.load(open(sys.argv[2], encoding='utf-8'))
+          raw = base64.b64decode(existing.get('content', '').replace('\n', ''), validate=True)
+          if json.loads(raw.decode('utf-8')) != desired:
+              raise SystemExit('Immutable image manifest already exists with different evidence.')
+          PY
+            echo 'Identical immutable image manifest already recorded; no new commit.'
+          else
+            payload="$(base64 -w0 < site-manager-mcp-image.json)"
+            gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${path}" \
+              -f message="ops(mcp): record verified immutable image ${GITHUB_SHA}" \
+              -f branch=main \
+              -f content="$payload" \
+              --jq '.commit.sha'
+          fi
