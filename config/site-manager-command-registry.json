@@ -71,6 +71,11 @@
       "tool": "site_content_targets",
       "required_scope": "site.read",
       "read_only": true
+    },
+    "site.theme_model": {
+      "tool": "site_theme_model",
+      "required_scope": "site.read",
+      "read_only": true
     }
   }
 }
