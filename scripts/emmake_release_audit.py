@@ -116,6 +116,7 @@ def assess(
 
     seen: set[int] = set()
     slugs: set[str] = set()
+    unresolved_posts: list[int] = []
     home_found = False
     for kind in ("pages", "posts"):
         for record in posts[kind]:
@@ -133,7 +134,13 @@ def assess(
                 if record.get("homepage") is True and post_id == 7 and url == STAGING:
                     home_found = True
             if kind == "posts" and _unresolved(url):
-                block("POST_PERMALINK_UNRESOLVED", "Published post %d has an unresolved WordPress rewrite marker" % post_id)
+                unresolved_posts.append(post_id)
+
+    if unresolved_posts:
+        block("POST_PERMALINK_UNRESOLVED",
+              "Unresolved rewrite markers in %d sampled post URLs; first IDs: %s" % (
+                  len(unresolved_posts), ", ".join(str(i) for i in unresolved_posts[:5])
+              ))
 
     if not home_found or posts.get("homepage_post_id") != 7:
         block("HOMEPAGE_NOT_VERIFIED", "Canonical staging homepage ID 7 is missing")
