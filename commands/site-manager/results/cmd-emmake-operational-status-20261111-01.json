@@ -1,0 +1,151 @@
+{
+  "action": "site.overview",
+  "command_id": "cmd-emmake-operational-status-20261111-01",
+  "command_sha256": "2136e8d3ce5e945db5ea00062e580079177fb534c6a0e940c7d9c1e02112a16b",
+  "data": {
+    "capabilities": [
+      {
+        "blocker_count": 0,
+        "id": "content.read",
+        "provider": "wordpress-core",
+        "required_scopes": [
+          "site.read"
+        ],
+        "scope_grant_verified": false,
+        "state": "governable"
+      },
+      {
+        "blocker_count": 0,
+        "id": "content.write",
+        "provider": "wordpress-core",
+        "required_scopes": [
+          "content.write"
+        ],
+        "scope_grant_verified": false,
+        "state": "governable"
+      },
+      {
+        "blocker_count": 0,
+        "id": "navigation.write",
+        "provider": "wordpress-core",
+        "required_scopes": [
+          "navigation.write"
+        ],
+        "scope_grant_verified": false,
+        "state": "governable"
+      },
+      {
+        "blocker_count": 0,
+        "id": "seo.write",
+        "provider": "seo-geo-theme",
+        "required_scopes": [
+          "seo.write"
+        ],
+        "scope_grant_verified": false,
+        "state": "governable"
+      },
+      {
+        "blocker_count": 0,
+        "id": "site.diagnostics",
+        "provider": "wordpress-core",
+        "required_scopes": [
+          "site.diagnostics"
+        ],
+        "scope_grant_verified": false,
+        "state": "governable"
+      },
+      {
+        "blocker_count": 0,
+        "id": "site.read",
+        "provider": "wordpress-core",
+        "required_scopes": [
+          "site.read"
+        ],
+        "scope_grant_verified": false,
+        "state": "governable"
+      }
+    ],
+    "connection_id": "smc_5a89543449a7df60d579b2d44a02db56",
+    "discovery_fingerprint": "908cd8cb1ba9ba3bfa202732469b594f9f4d00ff27f09a13f1037aba1bde26d9",
+    "generated_at": "2026-11-11T11:22:19+00:00",
+    "governed_actions": [
+      {
+        "action": "content.update",
+        "apply_requires_separate_user_confirmation": true,
+        "capability_governable": true,
+        "capability_id": "content.write",
+        "planning_mutates_wordpress": false,
+        "requires_target": "existing WordPress post/page ID",
+        "rollback_requires_separate_user_confirmation": true,
+        "scope_grant_verified": false
+      },
+      {
+        "action": "navigation.update",
+        "apply_requires_separate_user_confirmation": true,
+        "capability_governable": true,
+        "capability_id": "navigation.write",
+        "planning_mutates_wordpress": false,
+        "requires_target": "existing provider-owned navigation item/post ID",
+        "rollback_requires_separate_user_confirmation": true,
+        "scope_grant_verified": false
+      },
+      {
+        "action": "seo.update",
+        "apply_requires_separate_user_confirmation": true,
+        "capability_governable": true,
+        "capability_id": "seo.write",
+        "planning_mutates_wordpress": false,
+        "requires_target": "existing WordPress post/page ID",
+        "rollback_requires_separate_user_confirmation": true,
+        "scope_grant_verified": false
+      }
+    ],
+    "navigation_providers": [
+      {
+        "actionable_by_provider": false,
+        "detected": true,
+        "id": "wordpress-block-navigation",
+        "target_count": 0
+      },
+      {
+        "actionable_by_provider": true,
+        "detected": true,
+        "id": "wordpress-classic-menu",
+        "target_count": 5
+      }
+    ],
+    "permission_notice": "Capability governable is not a grant of permission. site.read does not establish write-scope authorization; plan/apply recheck WordPress scopes and the bound administrator. No mutation has been performed.",
+    "platform": {
+      "locale": "es_ES",
+      "name": "wordpress",
+      "version": "7.1.4"
+    },
+    "search_visibility": "discourage",
+    "seo": {
+      "provider": "seo-geo-theme",
+      "provider_conflict": false,
+      "provider_resolved": true,
+      "writable_semantic_fields": [
+        "description",
+        "title"
+      ]
+    },
+    "site_url": "https://emmake.com/nuevaweb/",
+    "source": "live-site-read",
+    "warnings": [
+      "wordpress_discourages_search_engine_indexing"
+    ],
+    "wordpress": {
+      "site_manager_version": "0.11.6",
+      "theme": "SEO GEO Starter",
+      "theme_stylesheet": "seo-geo-theme"
+    }
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "site.read",
+  "site": "emmake-nuevaweb",
+  "stage": "read",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
