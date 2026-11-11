@@ -91,7 +91,14 @@ final class ThemeModelInventory
             throw new RuntimeException('Model contains unknown semantic slots.');
         }
 
+        $siteUrl = function_exists('home_url') ? home_url('/') : null;
+        if (! is_string($siteUrl) || ! str_starts_with($siteUrl, 'https://')
+            || str_contains($siteUrl, '?') || str_contains($siteUrl, '#')) {
+            throw new RuntimeException('Theme model site identity must be HTTPS.');
+        }
+
         return [
+            'site_url'=>$siteUrl,
             'source'=>'seo-geo-theme-corporate-model',
             'scope'=>'site.read',
             'observed_at'=>gmdate(DATE_W3C),
