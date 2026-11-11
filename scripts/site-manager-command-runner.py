@@ -1227,8 +1227,14 @@ def self_test() -> int:
     if (not isinstance(seo_acceptance_rule, dict)
             or seo_acceptance_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "seo.acceptance"
             or seo_acceptance_rule.get("then", {}).get("properties", {}).get("payload", {}).get("properties", {}).get("confirmed", {}).get("const") is not True
-            or seo_acceptance_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
+    ):
         raise CommandError("seo.acceptance requires exact confirmation and blocks unsupported payloads")
+    theme_rule = seo_acceptance_rule.get("else", {})
+    if (not isinstance(theme_rule, dict)
+            or theme_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "theme.update"
+            or len(theme_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])) != 3
+            or theme_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
+        raise CommandError("theme.update requires exactly three closed stages and preserves empty read payloads")
 
     valid = {
         "version": "1",
