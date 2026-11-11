@@ -90,8 +90,14 @@ namespace {
     }
 
     assert_readiness('ready', 'ready');
+    $originalModel = $GLOBALS['readiness_model'];
     $GLOBALS['readiness_post']->post_content = 'Private editorial content without native markers';
+    $GLOBALS['readiness_model'] = null;
     assert_readiness('homepage_marker_missing');
+
+    // A provider-supplied semantic model does not require legacy Gutenberg markup.
+    $GLOBALS['readiness_model'] = array_replace($originalModel, ['source'=>'site-manager-native-override']);
+    assert_readiness('ready', 'ready');
     $GLOBALS['readiness_post']->post_content = '<div class="seo-geo-corporate-native-hero seo-geo-content-slot--hero-lead">Sensitive</div>';
     $GLOBALS['readiness_model'] = null;
     assert_readiness('resolver_rejected_model');
