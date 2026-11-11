@@ -10,6 +10,9 @@ export type SiteManagerReadResource =
   | 'acceptance/remote/job';
 
 export type SiteManagerWriteResource =
+  | 'write/theme/plan'
+  | 'write/theme/apply'
+  | 'write/theme/rollback'
   | 'write/content/plan'
   | 'write/content/apply'
   | 'write/content/rollback'
@@ -103,6 +106,18 @@ export class SiteManagerClient {
       connection_id: this.config.connectionId,
       diagnostics,
     };
+  }
+
+  public async themeUpdatePlan(input: { fields: Record<string, string>; reason?: string }): Promise<unknown> {
+    return this.request('write/theme/plan', 'POST', input);
+  }
+
+  public async themeUpdateApply(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
+    return this.request('write/theme/apply', 'POST', input);
+  }
+
+  public async themeUpdateRollback(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
+    return this.request('write/theme/rollback', 'POST', input);
   }
 
   public async contentUpdatePlan(input: { post_id: number; fields: JsonRecord; reason?: string }): Promise<unknown> {
