@@ -29,10 +29,14 @@ jobs:
           tools: composer:v2
           coverage: none
 
-      - name: Install gettext
+      - name: Ensure gettext compiler
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y gettext
+          if command -v msgfmt >/dev/null 2>&1; then
+            echo 'Using preinstalled msgfmt'
+          else
+            sudo apt-get -o Acquire::Retries=2 update -qq
+            sudo apt-get -o Acquire::Retries=2 install -y gettext
+          fi
 
       - name: Validate Composer metadata
         run: composer validate --strict
