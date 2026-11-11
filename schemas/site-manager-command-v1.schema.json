@@ -37,7 +37,8 @@
         "site.overview",
         "site.content_targets",
         "site.theme_model",
-        "theme.update"
+        "theme.update",
+        "theme.bootstrap"
       ]
     },
     "requested_by": {
@@ -661,6 +662,127 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "theme.bootstrap"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "stage",
+                  "fields"
+                ],
+                "properties": {
+                  "stage": {
+                    "const": "plan"
+                  },
+                  "fields": {
+                    "type": "object",
+                    "minProperties": 1,
+                    "maxProperties": 100,
+                    "patternProperties": {
+                      "^[a-z0-9][a-z0-9-]{0,79}$": {
+                        "oneOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 2000
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "label",
+                              "url"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "label": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 180
+                              },
+                              "url": {
+                                "type": "string",
+                                "minLength": 10,
+                                "maxLength": 2048,
+                                "pattern": "^https://"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "stage",
+                  "plan_id",
+                  "confirmed"
+                ],
+                "properties": {
+                  "stage": {
+                    "const": "apply"
+                  },
+                  "plan_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  },
+                  "confirmed": {
+                    "const": true
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "stage",
+                  "plan_id",
+                  "confirmed"
+                ],
+                "properties": {
+                  "stage": {
+                    "const": "rollback"
+                  },
+                  "plan_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  },
+                  "confirmed": {
+                    "const": true
+                  }
+                }
+              }
+            ]
           }
         }
       }
