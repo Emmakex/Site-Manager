@@ -6,6 +6,7 @@ export type SiteManagerReadResource =
   | 'capabilities'
   | 'diagnostics'
   | 'content/targets'
+  | 'theme/model'
   | 'acceptance/remote/job';
 
 export type SiteManagerWriteResource =
@@ -81,6 +82,17 @@ export class SiteManagerClient {
     }
     return {
       ...targets,
+      connection_id: this.config.connectionId,
+    };
+  }
+
+  public async themeModel(): Promise<JsonRecord> {
+    const model = await this.request('theme/model', 'GET');
+    if (!isRecord(model)) {
+      throw new SiteManagerClientError('Site Manager returned invalid Theme model structure.');
+    }
+    return {
+      ...model,
       connection_id: this.config.connectionId,
     };
   }
