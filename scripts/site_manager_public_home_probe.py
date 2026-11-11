@@ -77,7 +77,7 @@ class SemanticHTMLParser(HTMLParser):
 def unresolved_permalink_link(href: str) -> bool:
     """Detect WordPress permalink substitution markers, not private URL data."""
     return bool(re.search(
-        r"%category%|%postname%|%25category%25|%25postname%25|\\{[a-f0-9]{30,}\\}(?:category|postname)",
+        r"%category%|%postname%|%25category%25|%25postname%25|\{[a-f0-9]{30,}\}(?:category|postname)",
         href, re.IGNORECASE
     ))
 
