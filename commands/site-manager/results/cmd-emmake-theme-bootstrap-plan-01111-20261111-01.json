@@ -1,0 +1,14 @@
+{
+  "action": "theme.bootstrap",
+  "command_id": "cmd-emmake-theme-bootstrap-plan-01111-20261111-01",
+  "command_sha256": "24a630a1da80b64e6cbd3ac1f2549227a9e876be08290a3e2b2def6db7b738d5",
+  "error": {
+    "code": "verification_failed",
+    "detail": "Theme bootstrap preview is incomplete or leaks content",
+    "message": "Site Manager did not provide the required lifecycle verification evidence."
+  },
+  "site": "emmake-nuevaweb",
+  "status": "failed",
+  "verified": false,
+  "version": "1"
+}
