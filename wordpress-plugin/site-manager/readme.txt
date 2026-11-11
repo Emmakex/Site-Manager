@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.11.10
+Stable tag: 0.11.11
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -55,7 +55,7 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 
 == Installation ==
 
-1. Upload the official `site-manager-0.11.10.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.11.11.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review Site Manager > Dashboard and Site Manager > Diagnostics.
@@ -65,6 +65,16 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 8. When remote access is required, generate a scoped token and copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.11.11 =
+* Adds a separate, optional Theme semantic first-adoption workflow to Site Manager, governed by the active Theme's own Corporate contract.
+* Requires explicit complete authored text and same-site HTTPS links for all Theme-required fields; rejects unverified proof/case-study slots, arbitrary target pages, legacy pattern placeholders and foreign SEO/Theme providers.
+* Preserves the exact original Gutenberg page body while installing only a validated Site Manager-owned Theme semantic model through a private WordPress override.
+* Reuses connection-scoped Plan/Apply/Verify/Rollback with idempotent plan identity, expiry, stale-state refusal, verified Theme resolver readback and guarded exact restoration.
+* Adds fixed MCP/Gateway business action theme.bootstrap; GitHub result records only slot IDs and bounded plan evidence, never WordPress post bodies or private model snapshots.
+* First-time adoption remains a distinct operation from ordinary theme.update editing. Installing this release does not initialize or modify any site automatically.
+
+
 
 = 0.11.10 =
 * Adds an optional SEO/GEO Theme semantic-homepage readiness probe to the existing scoped `site.diagnostics` response.
