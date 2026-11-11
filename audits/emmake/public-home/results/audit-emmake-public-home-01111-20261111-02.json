@@ -1,0 +1,32 @@
+{
+  "audit_id": "audit-emmake-public-home-01111-20261111-02",
+  "browser_visual_review_completed": false,
+  "checked_at": "2026-11-11T15:36:04.874069+00:00",
+  "checked_url": "https://emmake.com/nuevaweb/",
+  "checks": {
+    "capabilities": true,
+    "corporate_main": true,
+    "exactly_one_approved_h1": true,
+    "final_cta": true,
+    "has_html_lang": true,
+    "hero": true,
+    "http_200": true,
+    "https_same_staging_url": true,
+    "insights": true,
+    "internal_cta_present": true,
+    "no_unresolved_blog_permalink_tokens": true,
+    "process": true,
+    "staging_noindex": true
+  },
+  "error_code": null,
+  "html_sha256": "5c39f0de55b889da1e6a69b80141cd112b114fd655e8204712208b034523e850",
+  "http_status": 200,
+  "public_links_scanned": 24,
+  "rendered_html_in_results": false,
+  "response_bytes": 41707,
+  "site": "emmake-nuevaweb",
+  "status": "passed",
+  "unresolved_permalink_count": 0,
+  "values_in_results": false,
+  "version": "1"
+}
