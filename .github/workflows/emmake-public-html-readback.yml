@@ -1,0 +1,60 @@
+name: Emmake Public HTML Readback
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/site_manager_public_home_probe.py'
+      - '.github/workflows/emmake-public-html-readback.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'audits/emmake/public-home/pending/*.json'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify read-only public HTTP contract offline
+        run: python3 scripts/site_manager_public_home_probe.py --self-test
+
+  live-public:
+    if: github.event_name == 'push'
+    needs: contract
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: emmake-public-home-fixed-origin-audit
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Perform one fixed-origin public HTML acceptance
+        run: python3 scripts/site_manager_public_home_probe.py --run-pending
+      - name: Persist bounded technical evidence, never HTML
+        run: |
+          set -euo pipefail
+          git config user.name "site-manager-public-audit[bot]"
+          git config user.email "site-manager-public-audit[bot]@users.noreply.github.com"
+          git add audits/emmake/public-home/results/*.json
+          if git diff --cached --quiet; then
+            echo "No new audit result to persist"
+            exit 0
+          fi
+          git commit -m "audit(emmake): record read-only public homepage HTML acceptance"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              echo "Published bounded read-only homepage acceptance result"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Could not safely publish public HTML evidence" >&2
+          exit 1
