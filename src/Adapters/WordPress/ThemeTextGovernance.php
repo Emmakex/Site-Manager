@@ -40,7 +40,7 @@ final class ThemeTextGovernance
                 || ($contract['type'] ?? '') !== 'text'
                 || ! empty($contract['requires_verification'])
                 || ! is_string($value) || '' === trim($value)
-                || mb_strlen($value, 'UTF-8') > self::MAX_TEXT_LENGTH
+                || strlen($value) > self::MAX_TEXT_LENGTH
                 || preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $value)
                 || strip_tags($value) !== $value) {
                 throw new InvalidArgumentException('Theme text slot/value is unsupported or requires verified proof.');
