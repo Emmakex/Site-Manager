@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-/* Read-only browser QA for all 12 fixed EMMAKE published pages. No arbitrary URLs. */
+/* Read-only browser QA for the 10 WordPress-published EMMAKE pages. No arbitrary URLs. */
 const fs = require('node:fs');
 const path = require('node:path');
 const ORIGIN = 'https://emmake.com/nuevaweb/';
@@ -9,7 +9,7 @@ const PAGES = [
   ['home',''], ['blog','blog/'], ['services','servicios/'],
   ['about','sobre-nosotros/'], ['contact','contacto/'],
   ['brands','nuestras-marcas/'], ['blog-digital','blog-transformacion-digital/'],
-  ['privacy','politica-de-privacidad/'], ['calculator','calculadora-de-donativos/'],
+  ['privacy','politica-de-privacidad/'],
   ['careers','trabaja-con-nosotros/'], ['voice','asistentes-virtuales-de-voz/'],
 ];
 const SIZES = [['desktop', 1440, 900, false], ['mobile', 390, 844, true]];
@@ -49,7 +49,7 @@ function selfTest() {
   if (classifyPublicArticleLink('https://emmake.com/nuevaweb/?p=43')!=='query_post_permalink')throw Error('query fallback not classified');
   if (classifyPublicArticleLink('https://outside.example.test/post/')!=='wrong_origin')throw Error('external post not rejected');
   if (!validRequest({...r,audit_id:'visual-emmake-20261112-02'},'visual-emmake-20261112-02'))throw Error('New audit date refused');
-  if(PAGES.length!==11 || new Set(PAGES.map(p=>p[1])).size!==11)throw Error('Published page inventory mismatch');
+  if(PAGES.length!==10 || new Set(PAGES.map(p=>p[1])).size!==10)throw Error('Published page inventory mismatch');
   if(PAGES.some(p=>p[1].includes('..')||p[1].startsWith('/')||p[1].includes('?')))throw Error('Unsafe fixed path');
   process.stdout.write('PASS: fixed-domain responsive browser QA contract\n');
 }
@@ -102,8 +102,11 @@ async function audit(id) {
               headingCount:h1.length,
               contentH1Count:document.querySelectorAll('main .wp-block-post-content h1').length,
               templateH1Count:document.querySelectorAll('main h1.seo-geo-page-title,main h1.wp-block-post-title').length,
-              navLinksToUnpublishedCases:[...document.querySelectorAll('header a[href],nav a[href]')].filter(a=>{
-                try{const p=new URL(a.href).pathname;return p==='/nuevaweb/casos-de-exito' || p==='/nuevaweb/casos-de-exito/';}catch{return false;}
+              navLinksToUnavailablePages:[...document.querySelectorAll('header a[href],nav a[href]')].filter(a=>{
+                try{
+                  const p=new URL(a.href).pathname.replace(/\/$/,'');
+                  return p==='/nuevaweb/casos-de-exito'||p==='/nuevaweb/calculadora-de-donativos';
+                }catch{return false;}
               }).length,
               editorialWords:(()=>{
                 const main=document.querySelector('main');
@@ -168,8 +171,8 @@ async function audit(id) {
             total:data.headingCount,content_h1:data.contentH1Count,template_h1:data.templateH1Count
           });
           add('staging_noindex_global',data.noindex);
-          add('no_header_links_to_draft_cases',data.navLinksToUnpublishedCases===0,
-            {links:data.navLinksToUnpublishedCases});
+          add('no_header_links_to_unpublished_legacy',data.navLinksToUnavailablePages===0,
+            {links:data.navLinksToUnavailablePages});
           const minWords={services:60,about:35,brands:35,careers:30};
           if(Object.prototype.hasOwnProperty.call(minWords,name)) {
             add('editorial_body_review',data.editorialWords>=minWords[name],
