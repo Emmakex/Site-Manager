@@ -49,6 +49,29 @@ async function audit(){
    result.push({route:route||'home',http_status:r.status,...auditHtml(html,url)});
   }finally{clearTimeout(timer);}
  }
+ let calculator_post_identity=null;
+ if(result.some(row=>row.route==='calculadora-de-donativos/'&&row.http_status!==200)){
+  const endpoint=ROOT+'wp-json/wp/v2/pages/50464?_fields=id%2Cstatus%2Cslug%2Clink';
+  const ctrl=new AbortController(),stop=setTimeout(()=>ctrl.abort(),12000);
+  try{
+   const r=await fetch(endpoint,{redirect:'manual',signal:ctrl.signal,headers:{accept:'application/json'}});
+   let isPublished=false,linkMatches=false;
+   if(r.status===200){
+    const obj=await r.json();
+    isPublished=obj.id===50464&&obj.status==='publish'&&obj.slug==='calculadora-de-donativos';
+    try{
+      const link=new URL(obj.link);
+      linkMatches=link.origin==='https://emmake.com'&&
+        link.pathname==='/nuevaweb/calculadora-de-donativos/';
+    }catch{}
+   }
+   calculator_post_identity={rest_http_status:r.status,published:isPublished,
+      permalink_matches_expected:linkMatches,content_or_url_exported:false};
+  }catch{
+   calculator_post_identity={rest_http_status:0,published:false,
+      permalink_matches_expected:false,content_or_url_exported:false};
+  }finally{clearTimeout(stop)}
+ }
  const failures=result.flatMap(row=>row.http_status!==200
    ? [{route:row.route,code:'http_'+String(row.http_status)}]
    : [
@@ -59,7 +82,7 @@ async function audit(){
  ].map(code=>({route:row.route,code})));
  const payload={site:'emmake-nuevaweb',observed_at:new Date().toISOString(),
    scope:'fixed-public-page-seo-metadata',pages_count:result.length,results:result,
-   findings:failures,private_content_included:false,values_retained:false};
+   findings:failures,calculator_post_identity,private_content_included:false,values_retained:false};
  fs.mkdirSync(path.dirname(OUT),{recursive:true});
  fs.writeFileSync(OUT,JSON.stringify(payload,null,2)+'\n');
  process.stdout.write('Read '+result.length+' live pages; metadata findings '+failures.length+'\n');
