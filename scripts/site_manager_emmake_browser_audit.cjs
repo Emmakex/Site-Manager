@@ -276,8 +276,11 @@ async function main() {
   if(process.argv.length===3&&process.argv[2]==='--self-test'){ selfTest();return; }
   if(process.argv.length!==3||process.argv[2]!=='--run-pending')throw Error('only fixed --run-pending allowed');
   const dir=ROOT+'/pending';
-  const files=fs.existsSync(dir)?fs.readdirSync(dir).filter(x=>x.endsWith('.json')):[];
-  if(files.length>5)throw Error('too many audits');
+  // Old immutable requests remain in Git history. Only incomplete audits count
+  // against the concurrency bound, so validated reruns do not deadlock on history.
+  const files=fs.existsSync(dir)?fs.readdirSync(dir).filter(x=>x.endsWith('.json') &&
+    !fs.existsSync(path.join(ROOT,'results',x))):[];
+  if(files.length>5)throw Error('too many unresolved audits');
   for(const f of files.sort()){
     const id=f.replace(/\.json$/,'');
     const req=JSON.parse(fs.readFileSync(path.join(dir,f),'utf8'));
