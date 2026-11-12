@@ -49,6 +49,15 @@ async function audit(){
    result.push({route:route||'home',http_status:r.status,...auditHtml(html,url)});
   }finally{clearTimeout(timer);}
  }
+ let public_page_api_statuses={};
+ for(const [key,id] of [['servicios',54267],['contacto',50085],['calculadora',50464]]){
+  const endpoint=ROOT+'wp-json/wp/v2/pages/'+id+'?_fields=id%2Cstatus%2Cslug%2Clink';
+  const ctrl=new AbortController(),stop=setTimeout(()=>ctrl.abort(),10000);
+  try{
+   const r=await fetch(endpoint,{redirect:'manual',signal:ctrl.signal,headers:{accept:'application/json'}});
+   public_page_api_statuses[key]=r.status;
+  }catch{public_page_api_statuses[key]=0;}finally{clearTimeout(stop);}
+ }
  let calculator_post_identity=null;
  if(result.some(row=>row.route==='calculadora-de-donativos/'&&row.http_status!==200)){
   const endpoint=ROOT+'wp-json/wp/v2/pages/50464?_fields=id%2Cstatus%2Cslug%2Clink';
@@ -82,7 +91,7 @@ async function audit(){
  ].map(code=>({route:row.route,code})));
  const payload={site:'emmake-nuevaweb',observed_at:new Date().toISOString(),
    scope:'fixed-public-page-seo-metadata',pages_count:result.length,results:result,
-   findings:failures,calculator_post_identity,private_content_included:false,values_retained:false};
+   findings:failures,calculator_post_identity,public_page_api_statuses,private_content_included:false,values_retained:false};
  fs.mkdirSync(path.dirname(OUT),{recursive:true});
  fs.writeFileSync(OUT,JSON.stringify(payload,null,2)+'\n');
  process.stdout.write('Read '+result.length+' live pages; metadata findings '+failures.length+'\n');
