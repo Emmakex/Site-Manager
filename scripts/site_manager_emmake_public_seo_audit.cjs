@@ -40,13 +40,18 @@ async function audit(){
   const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),18000);
   try{
    const r=await fetch(url,{redirect:'manual',signal:ctrl.signal,headers:{accept:'text/html'}});
-   if(r.status!==200) throw Error('public route returned '+r.status+' for '+route);
+   if(r.status!==200){
+    result.push({route:route||'home',http_status:r.status,unavailable:true});
+    continue;
+   }
    const html=await r.text();
    if(html.length>3500000)throw Error('public HTML too large');
    result.push({route:route||'home',http_status:r.status,...auditHtml(html,url)});
   }finally{clearTimeout(timer);}
  }
- const failures=result.flatMap(row=>[
+ const failures=result.flatMap(row=>row.http_status!==200
+   ? [{route:row.route,code:'http_'+String(row.http_status)}]
+   : [
   ...(!row.title_present?['no_title']:[]),...(!row.description_present?['no_description']:[]),
   ...(!row.canonical_exact?['canonical_mismatch']:[]),...(!row.robots_noindex?['staging_noindex_missing']:[]),
   ...(!row.og_title_present?['no_og_title']:[]),...(!row.og_description_present?['no_og_description']:[]),
