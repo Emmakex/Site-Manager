@@ -1,0 +1,44 @@
+{
+  "action": "content.update",
+  "command_id": "cmd-emmake-casos-de-exito-draft-plan-20261112-01",
+  "command_sha256": "3c9725e778500588d2f46d1ecf42d92fdecda82b91ae04631d15254d9c8dc3e4",
+  "data": {
+    "plan": {
+      "applied_at": "",
+      "capability_id": "content.write",
+      "confirmation_required": true,
+      "created_at": "2026-11-12T11:26:00+00:00",
+      "expires_at": "2026-11-12T11:41:00+00:00",
+      "fields": [
+        "post_status"
+      ],
+      "operation": "content.update",
+      "plan_id": "sm-plan-ecf72e330a056ea68f72e376",
+      "reversible": true,
+      "rollback_retained_until": "2026-11-13T11:26:00+00:00",
+      "rolled_back_at": "",
+      "status": "planned",
+      "target": {
+        "post_id": 54268,
+        "post_type": "page"
+      }
+    },
+    "preview": {
+      "before_present": [
+        "post_status"
+      ],
+      "changed_fields": [
+        "post_status"
+      ],
+      "values_retained_in_github": false
+    },
+    "stage": "plan"
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "content.write",
+  "site": "emmake-nuevaweb",
+  "stage": "plan",
+  "status": "success",
+  "verified": false,
+  "version": "1"
+}
