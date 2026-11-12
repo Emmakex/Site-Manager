@@ -124,8 +124,8 @@ def summarize_content_targets(raw: Any) -> dict[str, Any]:
             })
         if totals["published_" + type_name + "_total"] < len(safe):
             raise ContentTargetsError("Published total is smaller than returned public targets")
-        if totals["published_" + type_name + "_total"] > POST_LIMITS[type_name] and not raw[key + "_truncated"]:
-            raise ContentTargetsError("WordPress hid a truncated public inventory")
+        if (totals["published_" + type_name + "_total"] > len(safe)) != raw[key + "_truncated"]:
+            raise ContentTargetsError("WordPress published total disagrees with bounded inventory truncation")
         output[key] = safe
         output[key + "_truncated"] = raw[key + "_truncated"]
     return {
