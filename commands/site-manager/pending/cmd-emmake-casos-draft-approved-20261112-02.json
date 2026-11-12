@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-casos-draft-approved-20261112-02",
+  "site": "emmake-nuevaweb",
+  "action": "content.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_id": 54268,
+    "fields": {
+      "status": "draft"
+    },
+    "reason": "Autorizado expresamente por propietario 2026-11-12: conservar Casos de éxito sin publicar hasta disponer de casos verificables. Plan protegido; aplicar tras verificar."
+  }
+}
