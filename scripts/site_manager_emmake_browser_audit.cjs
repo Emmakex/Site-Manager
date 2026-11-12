@@ -10,10 +10,23 @@ const SIZES = [['desktop', 1440, 900, false], ['mobile', 390, 844, true]];
 const OUT = 'artifacts/emmake-browser';
 const ROOT = 'audits/emmake/browser';
 const H1 = 'Conectamos estrategia, datos y tecnología para impulsar lo que viene.';
-const ID_PATTERN = /^visual-emmake-20261111-[0-9]{2}$/;
+const ID_PATTERN = /^visual-emmake-202611(?:11|12)-[0-9]{2}$/;
 
 function broken(href) {
   return /%category%|%postname%|%25category%25|%25postname%25|\{[a-f0-9]{30,}\}(?:category|postname)/i.test(href);
+}
+function classifyPublicArticleLink(href) {
+  // Classification only; never return or log the user-facing URL.
+  try {
+    const u=new URL(href);
+    if(u.protocol!=='https:'||u.hostname!=='emmake.com'||u.port||u.username||u.password)
+      return 'wrong_origin';
+    if(!u.pathname.startsWith('/nuevaweb/'))return 'outside_staging';
+    if(broken(href))return 'unresolved_permalink_marker';
+    if(u.hash)return 'fragment';
+    if(u.search)return u.searchParams.has('p')?'query_post_permalink':'other_query';
+    return 'eligible';
+  }catch{return 'malformed_url';}
 }
 function validRequest(r, id) {
   return r && typeof r === 'object' && Object.keys(r).sort().join(',') === 'audit_id,check,requested_by,site,version'
@@ -26,6 +39,10 @@ function selfTest() {
   if (!validRequest(r, id) || validRequest({...r,url:'https://attacker.test/'},id)) throw Error('request contract failed');
   if (!broken('https://emmake.com/nuevaweb/{d276abfeceab40cca0e158fc6217176554b8e54a1f85b6eb004941797db52171}category{d276abfeceab40cca0e158fc6217176554b8e54a1f85b6eb004941797db52171}/')) throw Error('permalink pattern missed');
   if (broken('https://emmake.com/nuevaweb/blog/')) throw Error('valid link rejected');
+  if (classifyPublicArticleLink('https://emmake.com/nuevaweb/post/')!=='eligible')throw Error('valid post rejected');
+  if (classifyPublicArticleLink('https://emmake.com/nuevaweb/?p=43')!=='query_post_permalink')throw Error('query fallback not classified');
+  if (classifyPublicArticleLink('https://outside.example.test/post/')!=='wrong_origin')throw Error('external post not rejected');
+  if (!validRequest({...r,audit_id:'visual-emmake-20261112-02'},'visual-emmake-20261112-02'))throw Error('New audit date refused');
   process.stdout.write('PASS: fixed-domain responsive browser QA contract\n');
 }
 
@@ -79,6 +96,26 @@ async function audit(id) {
               navReady:navLinks||menuButton,
               images:imgs.length,
               brokenImages:imgs.filter(x=>x.complete&&x.naturalWidth===0&&x.currentSrc).length,
+              hero_bounds: (() => {
+                const r=document.querySelector('.seo-geo-corporate-native-hero')?.getBoundingClientRect();
+                return r ? {left:r.left,right:r.right} : null;
+              })(),
+              method_cards: (() => {
+                const cards=[...document.querySelectorAll('.seo-geo-corporate-native-process .seo-geo-corporate-process-grid > .seo-geo-corporate-process-step')];
+                return cards.map(card=>{
+                  const bounds=card.getBoundingClientRect();
+                  const elements=[card.querySelector('.seo-geo-corporate-process-step__number'),card.querySelector('h3'),card.querySelector('p:last-child')];
+                  return {
+                    inset:Number.parseFloat(getComputedStyle(card).paddingLeft)||0,
+                    content_ok:elements.every(el=>{
+                      if(!el)return false;
+                      const r=el.getBoundingClientRect();
+                      return r.left-bounds.left>=24 && bounds.right-r.right>=20;
+                    })
+                  };
+                });
+              })(),
+              insight_links:[...document.querySelectorAll('.seo-geo-corporate-native-insights .wp-block-post-title a[href]')].slice(0,3).map(a=>a.href),
             };
           }, H1);
           const prefix=device+'_'+name;
@@ -98,6 +135,68 @@ async function audit(id) {
             add('contact_link',data.internalContact);
             add('navigation_available',data.navReady);
             add('staging_noindex',data.noindex);
+            add('hero_background_full_bleed',!!data.hero_bounds&&Math.abs(data.hero_bounds.left)<=2&&Math.abs(data.hero_bounds.right-data.viewport)<=2);
+            add('method_three_cards',data.method_cards.length===3,data.method_cards.length);
+            add('method_inner_padding',data.method_cards.length===3&&data.method_cards.every(x=>x.inset>=24&&x.content_ok),
+              {cards_checked:data.method_cards.length, minimum_inset:Math.round(Math.min(...data.method_cards.map(x=>x.inset)))});
+            // Follow only up to three public article links, restricted to the bound
+            // staging origin and path. Never persist their raw URLs in Git results.
+            const articles=data.insight_links;
+            const outcomes=[];
+            for(const href of articles){
+              const category=classifyPublicArticleLink(href);
+              if(category!=='eligible'){
+                outcomes.push({ok:false,reason:category});
+                continue;
+              }
+              try{
+                const resp=await context.request.get(href,{timeout:12000,maxRedirects:0});
+                const status=resp.status();
+                outcomes.push({ok:status===200,reason:status===200?'http_200':('http_'+String(status))});
+                await resp.dispose();
+              }catch{outcomes.push({ok:false,reason:'network_error'});}
+            }
+            const reasons={};
+            for(const outcome of outcomes)reasons[outcome.reason]=(reasons[outcome.reason]||0)+1;
+            add('insight_links_http_200',articles.length>0&&articles.length<=3&&outcomes.length===articles.length&&outcomes.every(x=>x.ok),
+              {links_checked:articles.length,live_200:outcomes.filter(x=>x.ok).length,reasons});
+            // Read-only published WordPress REST inventory, restricted to one
+            // fixed provider URL. For numeric public post IDs, compare the safe
+            // ?p=<id> fallback without writing content or exporting post URLs.
+            let wpRestStatus=0;
+            let publicIds=[];
+            const restUrl='https://emmake.com/nuevaweb/wp-json/wp/v2/posts?per_page=3&_fields=id,status';
+            try {
+              const rest=await context.request.get(restUrl,{timeout:12000,maxRedirects:0});
+              wpRestStatus=rest.status();
+              if(wpRestStatus===200){
+                const json=await rest.json();
+                if(Array.isArray(json))publicIds=json.slice(0,3)
+                  .filter(p=>p&&p.status==='publish'&&Number.isSafeInteger(p.id)&&p.id>0&&p.id<100000000)
+                  .map(p=>p.id);
+              }
+              await rest.dispose();
+            }catch{}
+            add('published_posts_rest_probe',wpRestStatus===200&&publicIds.length>0,
+              {rest_http_status:wpRestStatus,public_posts_found:publicIds.length});
+            const fallbackStatuses={};
+            for(const id of publicIds){
+              const candidate='https://emmake.com/nuevaweb/?p='+String(id);
+              try{
+                const resp=await context.request.get(candidate,{timeout:12000,maxRedirects:0});
+                const status=resp.status();
+                const key='http_'+String(status);
+                fallbackStatuses[key]=(fallbackStatuses[key]||0)+1;
+                await resp.dispose();
+              }catch{fallbackStatuses.network_error=(fallbackStatuses.network_error||0)+1;}
+            }
+            // Standard ?p=ID may legitimately redirect (301/302) to its
+            // canonical permalink; report its status, but only gate on the
+            // featured canonical links resolving HTTP 200 above.
+            add('post_id_fallback_probe_completed',publicIds.length>0&&
+              Object.values(fallbackStatuses).reduce((a,b)=>a+b,0)===publicIds.length,
+              {posts_checked:publicIds.length,status_counts:fallbackStatuses});
+
           }
           const png=prefix+'.png';
           try {
