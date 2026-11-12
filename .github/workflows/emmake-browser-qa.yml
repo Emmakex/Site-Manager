@@ -83,16 +83,6 @@ jobs:
               sleep 2
             done
           fi
-      - name: Gate responsive and link audit
+      - name: Gate latest requested browser acceptance only
         if: github.event_name == 'push'
-        run: |
-          python3 - <<'PY'
-          import glob
-          import json
-          import sys
-          for path in glob.glob('audits/emmake/browser/results/*.json'):
-              report = json.load(open(path))
-              print(path, report['status'], len(report['checks']))
-              if report['status'] != 'passed':
-                  sys.exit(1)
-          PY
+        run: python3 scripts/ci/verify_emmake_latest_browser_result.py
