@@ -109,7 +109,19 @@ async function audit(id) {
                 return (full.replace(primary,'').match(/\S+/g)||[]).length;
               })(),
               formCount:document.querySelectorAll('main form').length,
-              postCards:document.querySelectorAll('main .wp-block-post-template > li').length,
+              postCards:document.querySelectorAll('main .wp-block-post-template > li, main .wp-block-latest-posts > li').length,
+              blogPostLinks:(()=>{
+                const known=new Set(['','blog/','servicios/','sobre-nosotros/','contacto/','nuestras-marcas/',
+                  'blog-transformacion-digital/','politica-de-privacidad/','calculadora-de-donativos/',
+                  'trabaja-con-nosotros/','asistentes-virtuales-de-voz/','casos-de-exito/']);
+                return [...document.querySelectorAll('main a[href]')].filter(a=>{
+                  try{
+                    const u=new URL(a.href);
+                    return u.protocol==='https:'&&u.hostname==='emmake.com'&&
+                      u.pathname.startsWith('/nuevaweb/')&&!known.has(u.pathname.slice('/nuevaweb/'.length));
+                  }catch{return false;}
+                }).length;
+              })(),
               internalContact:hrefs.some(h=>h.includes('/nuevaweb/contacto/')),
               linkCount:hrefs.length, hrefs,
               navReady:navLinks||menuButton,
@@ -156,7 +168,8 @@ async function audit(id) {
               {word_count:data.editorialWords,minimum_for_initial_review:minWords[name]});
           }
           if(name==='contact')add('contact_form_present',data.formCount>=1,{forms:data.formCount});
-          if(name==='blog')add('posts_listed',data.postCards>0,{cards:data.postCards});
+          if(name==='blog')add('posts_listed',data.postCards>0||data.blogPostLinks>=3,
+            {native_or_latest_post_cards:data.postCards,public_post_links:data.blogPostLinks});
           if(name==='home') {
             add('theme_rendered',data.theme);
             add('approved_h1',data.h1Okay);
