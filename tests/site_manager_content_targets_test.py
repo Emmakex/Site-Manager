@@ -66,7 +66,7 @@ for mutate in (
     lambda x: x.update(published_post_total=-1),
     lambda x: x.update(published_page_total=0),
     lambda x: x.update(published_post_total=0),
-    lambda x: x.update(published_post_total=10, posts_truncated=False),
+    lambda x: x.update(published_post_total=1726, posts_truncated=False),
 
     lambda x: x.update(connection_id="wrong_connection"),
     lambda x: x.update(site_url="https://emmake.com@attacker.example/"),
