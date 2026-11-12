@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-targets-a34-20261112-01",
+  "site": "emmake-nuevaweb",
+  "action": "site.content_targets",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
