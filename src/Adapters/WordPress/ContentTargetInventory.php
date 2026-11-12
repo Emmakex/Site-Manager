@@ -32,6 +32,11 @@ final class ContentTargetInventory
         $homepageId = (int) get_option('page_on_front', 0);
         $pages = $this->listPublished('page', self::MAX_PAGES, $siteUrl, $homepageId);
         $posts = $this->listPublished('post', self::MAX_POSTS, $siteUrl, $homepageId);
+        $pageTotal = $this->countPublished('page');
+        $postTotal = $this->countPublished('post');
+        if ($pageTotal < count($pages['items']) || $postTotal < count($posts['items'])) {
+            throw new RuntimeException('Published count is inconsistent with bounded target list.');
+        }
 
         return [
             'source'=>'wordpress-native-published-content',
@@ -42,12 +47,30 @@ final class ContentTargetInventory
             'published_only'=>true,
             'page_limit'=>self::MAX_PAGES,
             'post_limit'=>self::MAX_POSTS,
+            // Complete published counts, NOT the size of the bounded first page.
+            // This never includes draft/private/pending/trash counts or bodies.
+            'published_page_total'=>$pageTotal,
+            'published_post_total'=>$postTotal,
             'pages'=>$pages['items'],
             'posts'=>$posts['items'],
-            'pages_truncated'=>$pages['truncated'],
-            'posts_truncated'=>$posts['truncated'],
+            'pages_truncated'=>$pageTotal > self::MAX_PAGES || $pages['truncated'],
+            'posts_truncated'=>$postTotal > self::MAX_POSTS || $posts['truncated'],
             'private_values_included'=>false,
         ];
+    }
+
+    private function countPublished(string $type): int
+    {
+        if (! function_exists('wp_count_posts')) {
+            throw new RuntimeException('WordPress published count API unavailable.');
+        }
+        $counts = wp_count_posts($type);
+        $value = is_object($counts) ? ($counts->publish ?? null) : null;
+        if (! is_numeric($value) || (string) (int) $value !== (string) $value
+            || (int) $value < 0 || (int) $value > 10000000) {
+            throw new RuntimeException('WordPress returned invalid published count.');
+        }
+        return (int) $value;
     }
 
     /**

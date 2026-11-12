@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.11.11
+Stable tag: 0.11.12
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -15,6 +15,8 @@ Site Manager is a platform-neutral control plane. WordPress is its first adapter
 On activation Site Manager performs a bounded local discovery of the installation, including runtime, routing, active theme, public content types, taxonomies, navigation providers, active plugins and known providers. Detection never grants write access.
 
 The WordPress admin surface follows the configured WordPress/user locale. English is the source language and Spanish (`es_ES`) is bundled.
+
+Version 0.11.12 corrects the first-page inventory/count distinction: the first target response still returns no more than 40 public posts and 80 pages, but now also reports verified complete published post/page totals from native WordPress counts. Private, draft, pending, and trashed post details are not included. The Command Gateway projects `published_post_total`, `published_page_total` and `inventory_is_sample` explicitly so an operator never treats 40 sample records as the full blog. No write capability is added. Full selective traversal of large public catalogs is a separate paginated operation; this version does not claim to enumerate all post records.
 
 Version 0.11.7 adds a strictly published-only, bounded content target inventory to Site Manager's site.read API. It lists native public WordPress posts and pages with IDs, titles, slugs, permalinks, homepage marker and last modified time, but never private drafts, excerpts, bodies or arbitrary meta. This read-only entry point supports selecting real content for independently authorized plan/verify/rollback governance through ChatGPT. No write grants or new publishing operations are introduced.
 
@@ -55,7 +57,7 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 
 == Installation ==
 
-1. Upload the official `site-manager-0.11.11.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.11.12.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review Site Manager > Dashboard and Site Manager > Diagnostics.
@@ -66,7 +68,7 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 
 == Changelog ==
 
-= 0.11.11 =
+= 0.11.12 =
 * Adds a separate, optional Theme semantic first-adoption workflow to Site Manager, governed by the active Theme's own Corporate contract.
 * Requires explicit complete authored text and same-site HTTPS links for all Theme-required fields; rejects unverified proof/case-study slots, arbitrary target pages, legacy pattern placeholders and foreign SEO/Theme providers.
 * Preserves the exact original Gutenberg page body while installing only a validated Site Manager-owned Theme semantic model through a private WordPress override.
