@@ -1,0 +1,14 @@
+{
+  "action": "site.content_page",
+  "command_id": "cmd-emmake-posts-page1-20261112-01",
+  "command_sha256": "fc33aa2454572cd18e6c6720d14f095ede4b0d8ea3d0ee3523d48029e0eb294a",
+  "error": {
+    "code": "execution_failed",
+    "detail": "'stage'",
+    "message": "The bounded Site Manager command failed unexpectedly."
+  },
+  "site": "emmake-nuevaweb",
+  "status": "failed",
+  "verified": false,
+  "version": "1"
+}
