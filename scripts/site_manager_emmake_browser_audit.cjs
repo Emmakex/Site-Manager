@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-/* Read-only browser QA for all 12 fixed EMMAKE published pages. No arbitrary URLs. */
+/* Post-Theme-install acceptance: the 10 WordPress-published EMMAKE pages. No arbitrary URLs. */
 const fs = require('node:fs');
 const path = require('node:path');
 const ORIGIN = 'https://emmake.com/nuevaweb/';
@@ -9,9 +9,8 @@ const PAGES = [
   ['home',''], ['blog','blog/'], ['services','servicios/'],
   ['about','sobre-nosotros/'], ['contact','contacto/'],
   ['brands','nuestras-marcas/'], ['blog-digital','blog-transformacion-digital/'],
-  ['privacy','politica-de-privacidad/'], ['calculator','calculadora-de-donativos/'],
+  ['privacy','politica-de-privacidad/'],
   ['careers','trabaja-con-nosotros/'], ['voice','asistentes-virtuales-de-voz/'],
-  ['cases','casos-de-exito/'],
 ];
 const SIZES = [['desktop', 1440, 900, false], ['mobile', 390, 844, true]];
 const OUT = 'artifacts/emmake-browser';
@@ -50,7 +49,7 @@ function selfTest() {
   if (classifyPublicArticleLink('https://emmake.com/nuevaweb/?p=43')!=='query_post_permalink')throw Error('query fallback not classified');
   if (classifyPublicArticleLink('https://outside.example.test/post/')!=='wrong_origin')throw Error('external post not rejected');
   if (!validRequest({...r,audit_id:'visual-emmake-20261112-02'},'visual-emmake-20261112-02'))throw Error('New audit date refused');
-  if(PAGES.length!==12 || new Set(PAGES.map(p=>p[1])).size!==12)throw Error('Published page inventory mismatch');
+  if(PAGES.length!==10 || new Set(PAGES.map(p=>p[1])).size!==10)throw Error('Published page inventory mismatch');
   if(PAGES.some(p=>p[1].includes('..')||p[1].startsWith('/')||p[1].includes('?')))throw Error('Unsafe fixed path');
   process.stdout.write('PASS: fixed-domain responsive browser QA contract\n');
 }
@@ -101,6 +100,14 @@ async function audit(id) {
               theme:!!document.querySelector('.seo-geo-corporate-v5-home'),
               noindex:!!document.querySelector('meta[name="robots"][content*="noindex"]'),
               headingCount:h1.length,
+              contentH1Count:document.querySelectorAll('main .wp-block-post-content h1').length,
+              templateH1Count:document.querySelectorAll('main h1.seo-geo-page-title,main h1.wp-block-post-title').length,
+              navLinksToUnavailablePages:[...document.querySelectorAll('header a[href],nav a[href]')].filter(a=>{
+                try{
+                  const p=new URL(a.href).pathname.replace(/\/$/,'');
+                  return p==='/nuevaweb/casos-de-exito'||p==='/nuevaweb/calculadora-de-donativos';
+                }catch{return false;}
+              }).length,
               editorialWords:(()=>{
                 const main=document.querySelector('main');
                 if(!main)return 0;
@@ -160,9 +167,13 @@ async function audit(id) {
           const bad=data.hrefs.filter(broken).length;
           add('no_malformed_links',bad===0,{total:data.linkCount,malformed:bad});
           add('no_javascript_exceptions',jsErrors===0,jsErrors);
-          add('one_h1',data.headingCount===1,data.headingCount);
+          add('one_h1',data.headingCount===1,{
+            total:data.headingCount,content_h1:data.contentH1Count,template_h1:data.templateH1Count
+          });
           add('staging_noindex_global',data.noindex);
-          const minWords={services:60,about:35,brands:35,careers:30,cases:35};
+          add('no_header_links_to_unpublished_legacy',data.navLinksToUnavailablePages===0,
+            {links:data.navLinksToUnavailablePages});
+          const minWords={services:60,about:35,brands:35,careers:30};
           if(Object.prototype.hasOwnProperty.call(minWords,name)) {
             add('editorial_body_review',data.editorialWords>=minWords[name],
               {word_count:data.editorialWords,minimum_for_initial_review:minWords[name]});
@@ -268,8 +279,11 @@ async function main() {
   if(process.argv.length===3&&process.argv[2]==='--self-test'){ selfTest();return; }
   if(process.argv.length!==3||process.argv[2]!=='--run-pending')throw Error('only fixed --run-pending allowed');
   const dir=ROOT+'/pending';
-  const files=fs.existsSync(dir)?fs.readdirSync(dir).filter(x=>x.endsWith('.json')):[];
-  if(files.length>5)throw Error('too many audits');
+  // Old immutable requests remain in Git history. Only incomplete audits count
+  // against the concurrency bound, so validated reruns do not deadlock on history.
+  const files=fs.existsSync(dir)?fs.readdirSync(dir).filter(x=>x.endsWith('.json') &&
+    !fs.existsSync(path.join(ROOT,'results',x))):[];
+  if(files.length>5)throw Error('too many unresolved audits');
   for(const f of files.sort()){
     const id=f.replace(/\.json$/,'');
     const req=JSON.parse(fs.readFileSync(path.join(dir,f),'utf8'));
