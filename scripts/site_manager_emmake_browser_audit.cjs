@@ -103,7 +103,7 @@ async function audit(id) {
               contentH1Count:document.querySelectorAll('main .wp-block-post-content h1').length,
               templateH1Count:document.querySelectorAll('main h1.seo-geo-page-title,main h1.wp-block-post-title').length,
               navLinksToUnpublishedCases:[...document.querySelectorAll('header a[href],nav a[href]')].filter(a=>{
-                try{return new URL(a.href).pathname.replace(/\\/$/,'')==='/nuevaweb/casos-de-exito';}catch{return false;}
+                try{const p=new URL(a.href).pathname;return p==='/nuevaweb/casos-de-exito' || p==='/nuevaweb/casos-de-exito/';}catch{return false;}
               }).length,
               editorialWords:(()=>{
                 const main=document.querySelector('main');
