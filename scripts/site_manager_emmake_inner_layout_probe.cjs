@@ -46,7 +46,21 @@ async function main(){
             after:i,gap:Math.round(x.top-(direct[i].top+direct[i].height)),
             before_tag:direct[i].tag,after_tag:x.tag
           })).filter(x=>x.gap>60).sort((a,b)=>b.gap-a.gap).slice(0,35);
-          return {found:true,documentHeight:document.documentElement.scrollHeight,
+          const blurbNodes=[...root.children].filter(n=>n.classList.contains('sgmb-divi-blurb'));
+          const images=blurbNodes.flatMap(n=>[...n.querySelectorAll('.wp-block-image img')]);
+          const imgHeights=images.map(n=>Math.round(n.getBoundingClientRect().height));
+          const rootStyle=getComputedStyle(root);
+          const columns=rootStyle.gridTemplateColumns.trim().split(/\s+/).filter(Boolean);
+          const latestPosts=[...root.querySelectorAll('.wp-block-latest-posts')].map(n=>({
+            itemCount:n.querySelectorAll(':scope > li').length,
+            columns:getComputedStyle(n).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length,
+            width:Math.round(n.getBoundingClientRect().width)
+          })).slice(0,25);
+          const overflow=document.documentElement.scrollWidth>innerWidth+4;
+          return {blurbCount:blurbNodes.length, blurbImageCount:images.length,
+            blurbImageMaxHeight:imgHeights.length?Math.max(...imgHeights):0,
+            parentDisplay:rootStyle.display, parentGridColumnCount:columns.length,
+            latestPosts,overflow,found:true,documentHeight:document.documentElement.scrollHeight,
             mainHeight:Math.round(root.getBoundingClientRect().height),
             directChildCount:root.children.length,direct,
             largestStructuralNodes:sorted,largestGaps:gaps,
@@ -61,11 +75,25 @@ async function main(){
       }
     }finally{await context.close()}
   }finally{await browser.close()}
+  const brands=results.find(x=>x.page==='brands');
+  const blog=results.find(x=>x.page==='blog-digital');
+  const checks=[
+    {id:'brands_has_migrated_blurbs',ok:brands.blurbCount>=3,count:brands.blurbCount},
+    {id:'brands_three_column_card_grid',ok:brands.parentDisplay==='grid'&&brands.parentGridColumnCount===3,
+      observed:brands.parentGridColumnCount},
+    {id:'brands_logos_contained',ok:brands.blurbImageCount>0&&brands.blurbImageMaxHeight<=190,
+      max_image_height:brands.blurbImageMaxHeight},
+    {id:'brands_page_height_reduced',ok:brands.documentHeight<9000,height:brands.documentHeight},
+    {id:'blog_no_horizontal_overflow',ok:!blog.overflow},
+    {id:'blog_latest_posts_present',ok:blog.latestPosts.length>=1,count:blog.latestPosts.length},
+    {id:'blog_orphan_cards_reflow',ok:blog.latestPosts.filter(x=>x.itemCount===1).every(x=>x.columns===1)
+      &&blog.latestPosts.filter(x=>x.itemCount===2).every(x=>x.columns===2)}
+  ];
   const report={site:'emmake-nuevaweb',scope:'public-layout-metrics-no-content',
-    observed_at:new Date().toISOString(),viewport_width:1440,results,
-    page_text_saved:false,html_saved:false,urls_saved:false};
+    observed_at:new Date().toISOString(),viewport_width:1440,status:checks.every(x=>x.ok)?'passed':'failed',
+    checks,results,page_text_saved:false,html_saved:false,urls_saved:false};
   fs.mkdirSync(path.dirname(OUT),{recursive:true});
   fs.writeFileSync(OUT,JSON.stringify(report,null,2)+'\n');
-  process.stdout.write('Measured '+results.length+' published public page layout structures\n');
+  process.stdout.write('Measured '+results.length+' published public page layout structures; '+report.status+'\n');
 }
 main().catch(e=>{process.stderr.write('Layout probe failed: '+e.message+'\n');process.exitCode=1});
