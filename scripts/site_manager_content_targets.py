@@ -19,6 +19,7 @@ BASE_KEYS = {
     "pages_truncated", "posts_truncated", "private_values_included",
     "published_page_total", "published_post_total",
 }
+LEGACY_BASE_KEYS = BASE_KEYS - {"published_page_total", "published_post_total"}
 ENTRY_KEYS = {
     "post_id", "post_type", "status", "title", "slug", "permalink",
     "parent_id", "homepage", "modified_gmt",
@@ -45,8 +46,9 @@ def https_url(value: Any) -> str:
 
 
 def summarize_content_targets(raw: Any) -> dict[str, Any]:
-    if not isinstance(raw, dict) or set(raw) != BASE_KEYS:
+    if not isinstance(raw, dict) or set(raw) not in (BASE_KEYS, LEGACY_BASE_KEYS):
         raise ContentTargetsError("WordPress content targets returned unknown or missing fields")
+    has_totals = set(raw) == BASE_KEYS
     connection = raw["connection_id"]
     if (not isinstance(connection, str) or len(connection) > 128
             or re.fullmatch(r"smc_[a-zA-Z0-9_-]{12,124}", connection) is None):
@@ -59,10 +61,9 @@ def summarize_content_targets(raw: Any) -> dict[str, Any]:
     if raw["page_limit"] != 80 or raw["post_limit"] != 40:
         raise ContentTargetsError("WordPress content query exceeded approved limits")
     totals = {}
-    for key, item_key, limit in (("published_page_total", "pages", 80),
-                                  ("published_post_total", "posts", 40)):
-        total = raw[key]
-        if type(total) is not int or not 0 <= total <= 10_000_000:
+    for key in ("published_page_total", "published_post_total"):
+        total = raw[key] if has_totals else None
+        if has_totals and (type(total) is not int or not 0 <= total <= 10_000_000):
             raise ContentTargetsError("WordPress published totals are invalid")
         totals[key] = total
     homepage = raw["homepage_post_id"]
@@ -122,10 +123,12 @@ def summarize_content_targets(raw: Any) -> dict[str, Any]:
                 "homepage": is_home,
                 "modified_gmt": item["modified_gmt"],
             })
-        if totals["published_" + type_name + "_total"] < len(safe):
-            raise ContentTargetsError("Published total is smaller than returned public targets")
-        if (totals["published_" + type_name + "_total"] > len(safe)) != raw[key + "_truncated"]:
-            raise ContentTargetsError("WordPress published total disagrees with bounded inventory truncation")
+        total = totals["published_" + type_name + "_total"]
+        if total is not None:
+            if total < len(safe):
+                raise ContentTargetsError("Published total is smaller than returned public targets")
+            if (total > len(safe)) != raw[key + "_truncated"]:
+                raise ContentTargetsError("WordPress published total disagrees with bounded inventory truncation")
         output[key] = safe
         output[key + "_truncated"] = raw[key + "_truncated"]
     return {
@@ -140,6 +143,7 @@ def summarize_content_targets(raw: Any) -> dict[str, Any]:
         "published_page_total": totals["published_page_total"],
         "published_post_total": totals["published_post_total"],
         "inventory_is_sample": output["pages_truncated"] or output["posts_truncated"],
+        "published_totals_source": "wordpress-native-count" if has_totals else "unavailable-legacy-plugin",
         "pages_truncated": output["pages_truncated"],
         "posts_truncated": output["posts_truncated"],
         "pages": output["pages"],
