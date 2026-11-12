@@ -52,7 +52,7 @@ ACCEPTANCE_TOOLS = {"start": "content_acceptance_start", "status": "content_acce
 ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "content_plan", "content_apply_verify", "content_rollback", "cleanup")
 ACCEPTANCE_PROFILE = "mcp-content-only"
 ACCEPTANCE_TIMEOUT_SECONDS = 420
-READ_ACTIONS = {"site.read", "site.diagnostics", "site.overview", "site.content_targets", "site.theme_model"}
+READ_ACTIONS = {"site.read", "site.diagnostics", "site.overview", "site.content_targets", "site.content_page", "site.theme_model"}
 CONTENT_STAGES = {"plan", "apply", "rollback"}
 CONTENT_TOOLS = {
     "plan": "content_update_plan",
@@ -107,6 +107,13 @@ def validate_registry(registry: dict[str, Any]) -> None:
     actions = registry.get("actions")
     if not isinstance(actions, dict) or set(actions) != SUPPORTED_ACTIONS:
         raise CommandError("registry action set does not match the bounded Site Manager surface")
+
+    # Every declared read-only action must be dispatched as a read. A missing
+    # entry makes the runner incorrectly expect a write "stage" key.
+    declared_reads = {name for name, config in actions.items()
+                      if isinstance(config, dict) and config.get("read_only") is True}
+    if declared_reads != READ_ACTIONS:
+        raise CommandError("Gateway declared read actions and dispatcher are out of sync")
 
     for action_name, (tool, scope) in EXPECTED_TOOLS.items():
         action = actions.get(action_name)

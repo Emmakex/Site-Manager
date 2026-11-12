@@ -17,6 +17,14 @@ workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_te
 expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "theme.update", "theme.bootstrap"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
+# Regression for the real live failure: paginated read must not enter the
+# write-stage dispatcher (which otherwise fails trying to read payload["stage"]).
+read_actions = {name for name, config in registry["actions"].items()
+                if config.get("read_only") is True}
+assert '"site.content_page"' in runner
+assert "declared_reads != READ_ACTIONS" in runner
+assert read_actions == { "site.read", "site.diagnostics", "site.overview",
+                         "site.content_targets", "site.content_page", "site.theme_model" }
 assert registry["actions"]["site.read"] == {
     "tool": "site_read",
     "required_scope": "site.read",
