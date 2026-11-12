@@ -160,6 +160,39 @@ async function audit(id) {
             for(const outcome of outcomes)reasons[outcome.reason]=(reasons[outcome.reason]||0)+1;
             add('insight_links_http_200',articles.length>0&&articles.length<=3&&outcomes.length===articles.length&&outcomes.every(x=>x.ok),
               {links_checked:articles.length,live_200:outcomes.filter(x=>x.ok).length,reasons});
+            // Read-only published WordPress REST inventory, restricted to one
+            // fixed provider URL. For numeric public post IDs, compare the safe
+            // ?p=<id> fallback without writing content or exporting post URLs.
+            let wpRestStatus=0;
+            let publicIds=[];
+            const restUrl='https://emmake.com/nuevaweb/wp-json/wp/v2/posts?per_page=3&_fields=id,status';
+            try {
+              const rest=await context.request.get(restUrl,{timeout:12000,maxRedirects:0});
+              wpRestStatus=rest.status();
+              if(wpRestStatus===200){
+                const json=await rest.json();
+                if(Array.isArray(json))publicIds=json.slice(0,3)
+                  .filter(p=>p&&p.status==='publish'&&Number.isSafeInteger(p.id)&&p.id>0&&p.id<100000000)
+                  .map(p=>p.id);
+              }
+              await rest.dispose();
+            }catch{}
+            add('published_posts_rest_probe',wpRestStatus===200&&publicIds.length>0,
+              {rest_http_status:wpRestStatus,public_posts_found:publicIds.length});
+            const fallbackStatuses={};
+            for(const id of publicIds){
+              const candidate='https://emmake.com/nuevaweb/?p='+String(id);
+              try{
+                const resp=await context.request.get(candidate,{timeout:12000,maxRedirects:0});
+                const status=resp.status();
+                const key='http_'+String(status);
+                fallbackStatuses[key]=(fallbackStatuses[key]||0)+1;
+                await resp.dispose();
+              }catch{fallbackStatuses.network_error=(fallbackStatuses.network_error||0)+1;}
+            }
+            add('post_id_fallback_http_200',publicIds.length>0&&fallbackStatuses.http_200===publicIds.length,
+              {posts_checked:publicIds.length,status_counts:fallbackStatuses});
+
           }
           const png=prefix+'.png';
           try {
