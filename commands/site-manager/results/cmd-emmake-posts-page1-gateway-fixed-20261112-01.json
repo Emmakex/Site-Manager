@@ -1,0 +1,14 @@
+{
+  "action": "site.content_page",
+  "command_id": "cmd-emmake-posts-page1-gateway-fixed-20261112-01",
+  "command_sha256": "2a5f22b21c03c43db634742db78040fee07ebf31deae5aa1aa208bc36e8ae3b4",
+  "error": {
+    "code": "transport_failed",
+    "detail": "MCP inspector failed (5): {\"error\":{\"code\":\"tool_is_error\",\"message\":\"Tool 'site_content_page' returned isError:true.\"}}\n",
+    "message": "The production MCP transport did not complete successfully."
+  },
+  "site": "emmake-nuevaweb",
+  "status": "failed",
+  "verified": false,
+  "version": "1"
+}
