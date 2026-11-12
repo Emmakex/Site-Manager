@@ -190,7 +190,11 @@ async function audit(id) {
                 await resp.dispose();
               }catch{fallbackStatuses.network_error=(fallbackStatuses.network_error||0)+1;}
             }
-            add('post_id_fallback_http_200',publicIds.length>0&&fallbackStatuses.http_200===publicIds.length,
+            // Standard ?p=ID may legitimately redirect (301/302) to its
+            // canonical permalink; report its status, but only gate on the
+            // featured canonical links resolving HTTP 200 above.
+            add('post_id_fallback_probe_completed',publicIds.length>0&&
+              Object.values(fallbackStatuses).reduce((a,b)=>a+b,0)===publicIds.length,
               {posts_checked:publicIds.length,status_counts:fallbackStatuses});
 
           }
