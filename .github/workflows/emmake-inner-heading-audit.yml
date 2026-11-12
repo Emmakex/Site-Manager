@@ -1,0 +1,30 @@
+name: Emmake Inner Pages Heading Source Audit
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/site_manager_emmake_inner_heading_audit.cjs'
+      - '.github/workflows/emmake-inner-heading-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  public-outline:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify fixed public-only 3-page H1 probe
+        run: node scripts/site_manager_emmake_inner_heading_audit.cjs --self-test
+      - name: Inspect actual rendered WordPress page content headings
+        run: node scripts/site_manager_emmake_inner_heading_audit.cjs --run
+      - name: Preserve counts only; never export page source
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-inner-headings-evidence
+          path: artifacts/emmake-inner-headings/report.json
+          retention-days: 7
+          if-no-files-found: error
