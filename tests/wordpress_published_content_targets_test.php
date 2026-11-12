@@ -32,6 +32,15 @@ function get_posts(array $args): array {
     sort($ids);
     return array_slice($ids, 0, (int) $args['posts_per_page']);
 }
+function wp_count_posts(string $type): object {
+    $counts = ['publish'=>0];
+    foreach ($GLOBALS['site_manager_target_posts'] as $post) {
+        if ($post->post_type === $type && $post->post_status === 'publish') {
+            $counts['publish']++;
+        }
+    }
+    return (object) $counts;
+}
 function get_post(int $id): ?object {
     return $GLOBALS['site_manager_target_posts'][$id] ?? null;
 }
@@ -65,6 +74,9 @@ $expect($inventory['pages'][0]['post_id'] === 7, 'correct page identity');
 $expect($inventory['pages'][0]['title'] === 'Inicio EMMAKE', 'public title should be normalized');
 $expect($inventory['pages'][0]['homepage'] === true, 'home role must be grounded');
 $expect(count($inventory['posts']) === 1 && $inventory['posts'][0]['post_id'] === 9, 'published posts only');
+$expect($inventory['published_page_total'] === 1, 'true published page count');
+$expect($inventory['published_post_total'] === 1, 'true published post count');
+
 $expect(!str_contains(json_encode($inventory), 'DO NOT LEAK'), 'draft content cannot leave WordPress');
 
 $GLOBALS['site_manager_target_link_override'][7] = 'https://attacker.example.com/preview';
@@ -92,5 +104,22 @@ for ($id = 100; $id < 190; $id++) {
 $inventory = (new ContentTargetInventory())->publishedTargets();
 $expect(count($inventory['pages']) === 80, 'published page list must be capped at 80');
 $expect($inventory['pages_truncated'] === true, 'truncation must be explicitly reported');
+$expect($inventory['published_page_total'] === 91, 'published total must not be confused with first 80');
+$expect($inventory['published_post_total'] === 1, 'posts total remains exact');
+
+// A catalog larger than the original 40-item safety cap remains bounded,
+// while the aggregate published total still reports the whole WordPress site.
+for ($id = 300; $id < 410; $id++) {
+    $GLOBALS['site_manager_target_posts'][$id] = (object) [
+        'ID'=>$id, 'post_type'=>'post', 'post_status'=>'publish',
+        'post_title'=>'Public post ' . $id, 'post_name'=>'post-' . $id,
+        'post_parent'=>0, 'post_modified_gmt'=>'2026-11-12 08:00:00',
+    ];
+}
+$inventory = (new ContentTargetInventory())->publishedTargets();
+$expect(count($inventory['posts']) === 40, 'first published sample is bounded');
+$expect($inventory['published_post_total'] === 111, 'full published post total is correct');
+$expect($inventory['posts_truncated'] === true, 'sample is explicitly truncated');
+
 
 echo "PASS: bounded WordPress published target inventory with public-only scope\n";
