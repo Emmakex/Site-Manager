@@ -172,7 +172,17 @@ assert bootstrap_stages[0]["properties"]["fields"]["maxProperties"] == 100
 assert bootstrap_stages[0]["properties"]["fields"]["additionalProperties"] is False
 assert set(bootstrap_stages[0]["required"]) == {"stage","fields"}
 assert all(x["properties"]["confirmed"]["const"] is True for x in bootstrap_stages[1:])
-assert bootstrap_rule["else"]["properties"]["payload"] == {
+page_rule = bootstrap_rule["else"]
+assert page_rule["if"]["properties"]["action"]["const"] == "site.content_page"
+assert page_rule["then"]["properties"]["payload"] == {
+    "type": "object", "additionalProperties": False,
+    "required": ["post_type", "page"],
+    "properties": {
+        "post_type": {"type": "string", "enum": ["post", "page"]},
+        "page": {"type": "integer", "minimum": 1, "maximum": 10000},
+    },
+}
+assert page_rule["else"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False, "maxProperties": 0
 }
 stages = conditional["then"]["properties"]["payload"]["oneOf"]
