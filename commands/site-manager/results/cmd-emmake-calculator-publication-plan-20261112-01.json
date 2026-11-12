@@ -1,0 +1,14 @@
+{
+  "action": "content.update",
+  "command_id": "cmd-emmake-calculator-publication-plan-20261112-01",
+  "command_sha256": "17b0c3c0e6512a1fcf51facba1d8bdda50f9cef6b2534e890e2a88544b249e65",
+  "error": {
+    "code": "transport_failed",
+    "detail": "MCP inspector failed (5): {\"error\":{\"code\":\"tool_is_error\",\"message\":\"Tool 'content_update_plan' returned isError:true.\"}}\n",
+    "message": "The production MCP transport did not complete successfully."
+  },
+  "site": "emmake-nuevaweb",
+  "status": "failed",
+  "verified": false,
+  "version": "1"
+}
