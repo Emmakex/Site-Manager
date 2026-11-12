@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-/* Read-only browser QA for the 10 WordPress-published EMMAKE pages. No arbitrary URLs. */
+/* Post-Theme-install acceptance: the 10 WordPress-published EMMAKE pages. No arbitrary URLs. */
 const fs = require('node:fs');
 const path = require('node:path');
 const ORIGIN = 'https://emmake.com/nuevaweb/';
