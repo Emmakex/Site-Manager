@@ -1,0 +1,41 @@
+{
+  "action": "content.update",
+  "command_id": "cmd-emmake-casos-draft-apply-approved-20261112-01",
+  "command_sha256": "efebc7af8860c11675e64f0e29307649bb779ea33e8cc795e243c7b2672aa7cf",
+  "data": {
+    "plan": {
+      "applied_at": "2026-11-12T13:46:51+00:00",
+      "capability_id": "content.write",
+      "confirmation_required": true,
+      "created_at": "2026-11-12T13:45:37+00:00",
+      "expires_at": "2026-11-12T14:00:37+00:00",
+      "fields": [
+        "post_status"
+      ],
+      "operation": "content.update",
+      "plan_id": "sm-plan-1027d49a66e377dd5ce96ae9",
+      "reversible": true,
+      "rollback_retained_until": "2026-11-13T13:45:37+00:00",
+      "rolled_back_at": "",
+      "status": "applied",
+      "target": {
+        "post_id": 54268,
+        "post_type": "page"
+      }
+    },
+    "rollback_available": true,
+    "stage": "apply",
+    "status": "verified",
+    "verification": {
+      "status": "verified",
+      "verified": true
+    }
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "content.write",
+  "site": "emmake-nuevaweb",
+  "stage": "apply",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
