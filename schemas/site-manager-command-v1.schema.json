@@ -38,7 +38,8 @@
         "site.content_targets",
         "site.theme_model",
         "theme.update",
-        "theme.bootstrap"
+        "theme.bootstrap",
+        "site.content_page"
       ]
     },
     "requested_by": {
@@ -771,11 +772,49 @@
                       }
                     },
                     "else": {
-                      "properties": {
-                        "payload": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "maxProperties": 0
+                      "if": {
+                        "properties": {
+                          "action": {
+                            "const": "site.content_page"
+                          }
+                        },
+                        "required": [
+                          "action"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "post_type",
+                              "page"
+                            ],
+                            "properties": {
+                              "post_type": {
+                                "type": "string",
+                                "enum": [
+                                  "post",
+                                  "page"
+                                ]
+                              },
+                              "page": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 10000
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "else": {
+                        "properties": {
+                          "payload": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "maxProperties": 0
+                          }
                         }
                       }
                     }

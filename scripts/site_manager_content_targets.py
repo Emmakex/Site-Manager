@@ -147,3 +147,73 @@ def summarize_content_targets(raw: Any) -> dict[str, Any]:
         "private_content_included": False,
         "permission_note": "Published metadata only. No drafts, bodies, excerpts or private post meta. Any later change needs a separate governed plan and explicit user confirmation.",
     }
+
+
+PAGE_KEYS = {
+    "connection_id", "source", "observed_at", "site_url", "homepage_post_id",
+    "scope", "published_only", "post_type", "page", "page_size",
+    "published_total", "total_pages", "has_more", "items",
+    "private_values_included",
+}
+
+
+def summarize_content_page(raw: Any) -> dict[str, Any]:
+    """Project exactly one site.read public batch, never an unrestricted result."""
+    if not isinstance(raw, dict) or set(raw) != PAGE_KEYS:
+        raise ContentTargetsError("Paginated WordPress content returned unexpected keys")
+    kind = raw["post_type"]
+    if kind not in ("post", "page") or type(kind) is not str:
+        raise ContentTargetsError("Unsupported WordPress paginated content type")
+    page_size = POST_LIMITS[kind]
+    total = raw["published_total"]
+    number = raw["page"]
+    pages = raw["total_pages"]
+    has_more = raw["has_more"]
+    if (type(total) is not int or total < 0 or total > 10_000_000
+            or type(number) is not int or not 1 <= number <= 10_000
+            or type(pages) is not int or pages != max(1, (total + page_size - 1) // page_size)
+            or number > pages or raw["page_size"] != page_size
+            or type(raw["page_size"]) is not int
+            or type(has_more) is not bool or has_more != (number < pages)
+            or not isinstance(raw["items"], list)):
+        raise ContentTargetsError("Published content pagination contradicts catalog totals")
+    expected = min(page_size, max(0, total - (number - 1) * page_size))
+    if len(raw["items"]) != expected:
+        raise ContentTargetsError("Published WordPress content page is missing or overflowing records")
+    if raw["source"] != "wordpress-native-published-content-page":
+        raise ContentTargetsError("Unsupported paginated WordPress source")
+    # Reuse the strict per-entry, URL, status, identity and timestamp validation
+    # without weakening the existing site.content_targets projection.
+    synthetic = {
+        "connection_id": raw["connection_id"],
+        "source": SOURCE,
+        "observed_at": raw["observed_at"],
+        "site_url": raw["site_url"],
+        "homepage_post_id": raw["homepage_post_id"],
+        "scope": raw["scope"],
+        "published_only": raw["published_only"],
+        "page_limit": 80,
+        "post_limit": 40,
+        "pages": raw["items"] if kind == "page" else [],
+        "posts": raw["items"] if kind == "post" else [],
+        "pages_truncated": kind == "page" and total > len(raw["items"]),
+        "posts_truncated": kind == "post" and total > len(raw["items"]),
+        "published_page_total": total if kind == "page" else 0,
+        "published_post_total": total if kind == "post" else 0,
+        "private_values_included": raw["private_values_included"],
+    }
+    safe = summarize_content_targets(synthetic)
+    return {
+        "source": raw["source"],
+        "scope": "site.read",
+        "site_url": safe["site_url"],
+        "observed_at": safe["observed_at"],
+        "post_type": kind,
+        "page": number,
+        "page_size": page_size,
+        "published_total": total,
+        "total_pages": pages,
+        "has_more": has_more,
+        "items": safe["pages"] if kind == "page" else safe["posts"],
+        "private_content_included": False,
+    }

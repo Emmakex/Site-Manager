@@ -94,6 +94,11 @@
       },
       "required_scope": "content.write",
       "read_only": false
+    },
+    "site.content_page": {
+      "tool": "site_content_page",
+      "required_scope": "site.read",
+      "read_only": true
     }
   }
 }
