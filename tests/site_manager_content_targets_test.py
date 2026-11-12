@@ -38,6 +38,7 @@ def valid_response() -> dict:
             "modified_gmt": "2026-11-06 09:00:00",
         }],
         "pages_truncated": False, "posts_truncated": False,
+        "published_page_total": 1, "published_post_total": 1,
         "private_values_included": False,
     }
 
@@ -47,6 +48,9 @@ assert one["homepage_post_id"] == 7
 assert one["homepage_in_inventory"] is True
 assert one["page_count_in_inventory"] == 1
 assert one["post_count_in_inventory"] == 1
+assert one["published_page_total"] == 1
+assert one["published_post_total"] == 1
+assert one["inventory_is_sample"] is False
 assert one["private_content_included"] is False
 assert one["pages"][0]["title"] == "Inicio EMMAKE"
 assert one["posts"][0]["post_id"] == 9
@@ -58,6 +62,12 @@ for mutate in (
     lambda x: x.update(private_values_included=True),
     lambda x: x.update(page_limit=10000),
     lambda x: x.update(posts_truncated="false"),
+    lambda x: x.update(published_post_total="1726"),
+    lambda x: x.update(published_post_total=-1),
+    lambda x: x.update(published_page_total=0),
+    lambda x: x.update(published_post_total=0),
+    lambda x: x.update(published_post_total=10, posts_truncated=False),
+
     lambda x: x.update(connection_id="wrong_connection"),
     lambda x: x.update(site_url="https://emmake.com@attacker.example/"),
     lambda x: x.update(observed_at="today"),
@@ -81,6 +91,14 @@ for mutate in (
         pass
     else:
         raise AssertionError("unsafe published-target result was certified")
+
+large = valid_response()
+large["published_post_total"] = 1726
+large["posts_truncated"] = True
+summarized = summarize_content_targets(large)
+assert summarized["published_post_total"] == 1726
+assert summarized["post_count_in_inventory"] == 1
+assert summarized["inventory_is_sample"] is True
 
 overlimit = valid_response()
 overlimit["pages"] = [copy.deepcopy(overlimit["pages"][0]) for _ in range(81)]
