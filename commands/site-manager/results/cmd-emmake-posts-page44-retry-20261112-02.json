@@ -1,0 +1,93 @@
+{
+  "action": "site.content_page",
+  "command_id": "cmd-emmake-posts-page44-retry-20261112-02",
+  "command_sha256": "9638f07746c944c766be33ceac190615302c9ba5faaef4aeafdad838c20804f9",
+  "data": {
+    "has_more": false,
+    "items": [
+      {
+        "homepage": false,
+        "modified_gmt": "2019-02-18 17:44:11",
+        "parent_id": 0,
+        "permalink": "https://emmake.com/nuevaweb/tendencias-en-diseno-web-para-el-2019/",
+        "post_id": 50299,
+        "post_type": "post",
+        "slug": "tendencias-en-diseno-web-para-el-2019",
+        "status": "publish",
+        "title": "Tendencias en diseño web para el 2019"
+      },
+      {
+        "homepage": false,
+        "modified_gmt": "2019-02-18 17:22:33",
+        "parent_id": 0,
+        "permalink": "https://emmake.com/nuevaweb/tendencias-de-marketing-digital-para-el-2019/",
+        "post_id": 50289,
+        "post_type": "post",
+        "slug": "tendencias-de-marketing-digital-para-el-2019",
+        "status": "publish",
+        "title": "Tendencias de Marketing Digital para el 2019"
+      },
+      {
+        "homepage": false,
+        "modified_gmt": "2019-02-18 17:05:20",
+        "parent_id": 0,
+        "permalink": "https://emmake.com/nuevaweb/estrategias-de-marketing-digital-para-empresas-aseguradoras/",
+        "post_id": 50293,
+        "post_type": "post",
+        "slug": "estrategias-de-marketing-digital-para-empresas-aseguradoras",
+        "status": "publish",
+        "title": "Estrategias de marketing digital para empresas aseguradoras"
+      },
+      {
+        "homepage": false,
+        "modified_gmt": "2019-02-18 16:23:19",
+        "parent_id": 0,
+        "permalink": "https://emmake.com/nuevaweb/transformacion-digital-para-el-turismo/",
+        "post_id": 50275,
+        "post_type": "post",
+        "slug": "transformacion-digital-para-el-turismo",
+        "status": "publish",
+        "title": "Transformación digital para el turismo"
+      },
+      {
+        "homepage": false,
+        "modified_gmt": "2019-02-18 15:42:42",
+        "parent_id": 0,
+        "permalink": "https://emmake.com/nuevaweb/cual-es-el-futuro-del-marketing-digital/",
+        "post_id": 50234,
+        "post_type": "post",
+        "slug": "cual-es-el-futuro-del-marketing-digital",
+        "status": "publish",
+        "title": "Cual es el futuro del Marketing Digital"
+      },
+      {
+        "homepage": false,
+        "modified_gmt": "2019-02-18 15:29:22",
+        "parent_id": 0,
+        "permalink": "https://emmake.com/nuevaweb/adios-pestaneos-y-ojos-cerrados-en-tus-fotos-con-la-nueva-investigacion-de-facebook-con-inteligencia-artificial/",
+        "post_id": 50221,
+        "post_type": "post",
+        "slug": "adios-pestaneos-y-ojos-cerrados-en-tus-fotos-con-la-nueva-investigacion-de-facebook-con-inteligencia-artificial",
+        "status": "publish",
+        "title": "Adios pestañeos y ojos cerrados en tus fotos con la nueva investigación de Facebook con Inteligencia Artificial"
+      }
+    ],
+    "observed_at": "2026-11-12T14:44:11+00:00",
+    "page": 44,
+    "page_size": 40,
+    "post_type": "post",
+    "private_content_included": false,
+    "published_total": 1726,
+    "scope": "site.read",
+    "site_url": "https://emmake.com/nuevaweb/",
+    "source": "wordpress-native-published-content-page",
+    "total_pages": 44
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "site.read",
+  "site": "emmake-nuevaweb",
+  "stage": "read",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
