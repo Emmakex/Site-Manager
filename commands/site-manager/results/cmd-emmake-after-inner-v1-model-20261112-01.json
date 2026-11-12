@@ -1,0 +1,324 @@
+{
+  "action": "site.theme_model",
+  "command_id": "cmd-emmake-after-inner-v1-model-20261112-01",
+  "command_sha256": "52a5af542b828e52603efb8c6936927a3e9002edcba01d42b02248fa367bcbc4",
+  "data": {
+    "contains_content_values": false,
+    "editing_ready": false,
+    "homepage": true,
+    "model_id": "corporate-home-v1",
+    "model_source": "site-manager-native-override",
+    "notice": "Theme owns rendering. This is structural inspection only. Editing needs a separately verified semantic plan/apply/verify/rollback contract.",
+    "observed_at": "2026-11-12T11:42:35+00:00",
+    "post_id": 7,
+    "post_type": "page",
+    "scope": "site.read",
+    "site_url": "https://emmake.com/nuevaweb/",
+    "slot_count": 42,
+    "slots": [
+      {
+        "id": "hero-eyebrow",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "hero-lead",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "hero-primary-cta",
+        "present": true,
+        "required": true,
+        "type": "link",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "hero-secondary-cta",
+        "present": true,
+        "required": false,
+        "type": "link",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "hero-proof-heading",
+        "present": false,
+        "required": false,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "hero-proof-list",
+        "present": false,
+        "required": false,
+        "type": "list",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "capabilities-heading",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "capabilities-intro",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "capability-1-title",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "capability-1-body",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "capability-1-link",
+        "present": true,
+        "required": true,
+        "type": "link",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "capability-2-title",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "capability-2-body",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "capability-2-link",
+        "present": true,
+        "required": true,
+        "type": "link",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "capability-3-title",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "capability-3-body",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "capability-3-link",
+        "present": true,
+        "required": true,
+        "type": "link",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "proof-heading",
+        "present": false,
+        "required": false,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "proof-1-title",
+        "present": false,
+        "required": false,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "proof-1-body",
+        "present": false,
+        "required": false,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "proof-2-title",
+        "present": false,
+        "required": false,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "proof-2-body",
+        "present": false,
+        "required": false,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "proof-3-title",
+        "present": false,
+        "required": false,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "proof-3-body",
+        "present": false,
+        "required": false,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "case-heading",
+        "present": false,
+        "required": false,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "case-intro",
+        "present": false,
+        "required": false,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "case-challenge-body",
+        "present": false,
+        "required": false,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "case-approach-body",
+        "present": false,
+        "required": false,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "case-result-body",
+        "present": false,
+        "required": false,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "process-heading",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "process-intro",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "process-1-title",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "process-1-body",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "process-2-title",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "process-2-body",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "process-3-title",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "process-3-body",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "insights-heading",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "insights-intro",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "final-cta-heading",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "final-cta-body",
+        "present": true,
+        "required": true,
+        "type": "text",
+        "writable_via_site_manager": false
+      },
+      {
+        "id": "final-cta-button",
+        "present": true,
+        "required": true,
+        "type": "link",
+        "writable_via_site_manager": false
+      }
+    ],
+    "source": "seo-geo-theme-corporate-model",
+    "write_scope_verified": false
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "site.read",
+  "site": "emmake-nuevaweb",
+  "stage": "read",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
