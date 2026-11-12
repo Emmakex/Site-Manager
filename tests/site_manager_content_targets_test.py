@@ -51,6 +51,27 @@ assert one["post_count_in_inventory"] == 1
 assert one["published_page_total"] == 1
 assert one["published_post_total"] == 1
 assert one["inventory_is_sample"] is False
+assert one["published_totals_source"] == "wordpress-native-count"
+
+legacy = valid_response()
+legacy.pop("published_page_total")
+legacy.pop("published_post_total")
+legacy["posts_truncated"] = True
+legacy_one = summarize_content_targets(legacy)
+assert legacy_one["published_post_total"] is None
+assert legacy_one["post_count_in_inventory"] == 1
+assert legacy_one["inventory_is_sample"] is True
+assert legacy_one["published_totals_source"] == "unavailable-legacy-plugin"
+
+bad_half = valid_response()
+bad_half.pop("published_page_total")
+try:
+    summarize_content_targets(bad_half)
+except ContentTargetsError:
+    pass
+else:
+    raise AssertionError("half-upgraded WordPress schema must be rejected")
+
 assert one["private_content_included"] is False
 assert one["pages"][0]["title"] == "Inicio EMMAKE"
 assert one["posts"][0]["post_id"] == 9
