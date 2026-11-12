@@ -1,0 +1,39 @@
+name: Emmake Inner Pages Layout Structure Probe
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/site_manager_emmake_inner_layout_probe.cjs'
+      - '.github/workflows/emmake-inner-layout-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  structure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate fixed-domain sanitized probe
+        run: |
+          node --check scripts/site_manager_emmake_inner_layout_probe.cjs
+          grep -Fq "const ORIGIN='https://emmake.com/nuevaweb/'" scripts/site_manager_emmake_inner_layout_probe.cjs
+      - name: Install pinned browser only
+        run: |
+          npm install --prefix .qa-deps --ignore-scripts --no-save --no-audit --no-fund playwright@1.65.0
+          .qa-deps/node_modules/.bin/playwright install chromium
+      - name: Inspect public layout metrics only
+        env:
+          NODE_PATH: ${{ github.workspace }}/.qa-deps/node_modules
+        run: node scripts/site_manager_emmake_inner_layout_probe.cjs
+      - name: Upload bounded layout structure (no page contents)
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-inner-layout-metrics
+          path: artifacts/emmake-inner-layout/structure.json
+          retention-days: 2
+          if-no-files-found: error
