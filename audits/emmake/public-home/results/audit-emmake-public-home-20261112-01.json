@@ -1,0 +1,50 @@
+{
+  "audit_id": "audit-emmake-public-home-20261112-01",
+  "browser_visual_review_completed": false,
+  "checked_at": "2026-11-12T10:35:58.830440+00:00",
+  "checked_url": "https://emmake.com/nuevaweb/",
+  "checks": {
+    "blog-transformacion_http_200": true,
+    "blog-transformacion_no_unresolved_permalink_tokens": true,
+    "blog_http_200": true,
+    "blog_no_unresolved_permalink_tokens": true,
+    "capabilities": true,
+    "corporate_main": true,
+    "exactly_one_approved_h1": true,
+    "final_cta": true,
+    "has_html_lang": true,
+    "hero": true,
+    "http_200": true,
+    "https_same_staging_url": true,
+    "insights": true,
+    "internal_cta_present": true,
+    "no_unresolved_blog_permalink_tokens": true,
+    "process": true,
+    "staging_noindex": true
+  },
+  "error_code": null,
+  "html_sha256": "a1da1d116f34a4878b2276e6ec15a7949d4562347cd5b4109a7373a274240039",
+  "http_status": 200,
+  "public_blog_pages": {
+    "blog": {
+      "fixed_url_verified": true,
+      "http_status": 200,
+      "public_links_scanned": 27,
+      "unresolved_permalink_count": 0
+    },
+    "blog-transformacion": {
+      "fixed_url_verified": true,
+      "http_status": 200,
+      "public_links_scanned": 34,
+      "unresolved_permalink_count": 0
+    }
+  },
+  "public_links_scanned": 24,
+  "rendered_html_in_results": false,
+  "response_bytes": 41707,
+  "site": "emmake-nuevaweb",
+  "status": "passed",
+  "unresolved_permalink_count": 0,
+  "values_in_results": false,
+  "version": "1"
+}
