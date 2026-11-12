@@ -1,0 +1,11 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-posts-page2-retry-20261112-02",
+  "site": "emmake-nuevaweb",
+  "action": "site.content_page",
+  "requested_by": "chatgpt",
+  "payload": {
+    "post_type": "post",
+    "page": 2
+  }
+}
