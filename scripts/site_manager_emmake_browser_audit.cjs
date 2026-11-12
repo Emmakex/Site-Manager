@@ -1,11 +1,18 @@
 #!/usr/bin/env node
 'use strict';
 
-/* Read-only browser QA for five fixed public EMMAKE staging pages. No arbitrary URLs. */
+/* Read-only browser QA for all 12 fixed EMMAKE published pages. No arbitrary URLs. */
 const fs = require('node:fs');
 const path = require('node:path');
 const ORIGIN = 'https://emmake.com/nuevaweb/';
-const PAGES = [['home', ''], ['blog', 'blog/'], ['services', 'servicios/'], ['about', 'sobre-nosotros/'], ['contact', 'contacto/']];
+const PAGES = [
+  ['home',''], ['blog','blog/'], ['services','servicios/'],
+  ['about','sobre-nosotros/'], ['contact','contacto/'],
+  ['brands','nuestras-marcas/'], ['blog-digital','blog-transformacion-digital/'],
+  ['privacy','politica-de-privacidad/'], ['calculator','calculadora-de-donativos/'],
+  ['careers','trabaja-con-nosotros/'], ['voice','asistentes-virtuales-de-voz/'],
+  ['cases','casos-de-exito/'],
+];
 const SIZES = [['desktop', 1440, 900, false], ['mobile', 390, 844, true]];
 const OUT = 'artifacts/emmake-browser';
 const ROOT = 'audits/emmake/browser';
@@ -43,6 +50,8 @@ function selfTest() {
   if (classifyPublicArticleLink('https://emmake.com/nuevaweb/?p=43')!=='query_post_permalink')throw Error('query fallback not classified');
   if (classifyPublicArticleLink('https://outside.example.test/post/')!=='wrong_origin')throw Error('external post not rejected');
   if (!validRequest({...r,audit_id:'visual-emmake-20261112-02'},'visual-emmake-20261112-02'))throw Error('New audit date refused');
+  if(PAGES.length!==12 || new Set(PAGES.map(p=>p[1])).size!==12)throw Error('Published page inventory mismatch');
+  if(PAGES.some(p=>p[1].includes('..')||p[1].startsWith('/')||p[1].includes('?')))throw Error('Unsafe fixed path');
   process.stdout.write('PASS: fixed-domain responsive browser QA contract\n');
 }
 
@@ -91,6 +100,16 @@ async function audit(id) {
               h1Okay:h1.length===1 && h1[0]===approvedH1,
               theme:!!document.querySelector('.seo-geo-corporate-v5-home'),
               noindex:!!document.querySelector('meta[name="robots"][content*="noindex"]'),
+              headingCount:h1.length,
+              editorialWords:(()=>{
+                const main=document.querySelector('main');
+                if(!main)return 0;
+                const full=(main.innerText||'').trim();
+                const primary=h1.length>0?h1[0]:'';
+                return (full.replace(primary,'').match(/\S+/g)||[]).length;
+              })(),
+              formCount:document.querySelectorAll('main form').length,
+              postCards:document.querySelectorAll('main .wp-block-post-template > li').length,
               internalContact:hrefs.some(h=>h.includes('/nuevaweb/contacto/')),
               linkCount:hrefs.length, hrefs,
               navReady:navLinks||menuButton,
@@ -129,6 +148,15 @@ async function audit(id) {
           const bad=data.hrefs.filter(broken).length;
           add('no_malformed_links',bad===0,{total:data.linkCount,malformed:bad});
           add('no_javascript_exceptions',jsErrors===0,jsErrors);
+          add('one_h1',data.headingCount===1,data.headingCount);
+          add('staging_noindex_global',data.noindex);
+          const minWords={services:60,about:35,brands:35,careers:30,cases:35};
+          if(Object.prototype.hasOwnProperty.call(minWords,name)) {
+            add('editorial_body_review',data.editorialWords>=minWords[name],
+              {word_count:data.editorialWords,minimum_for_initial_review:minWords[name]});
+          }
+          if(name==='contact')add('contact_form_present',data.formCount>=1,{forms:data.formCount});
+          if(name==='blog')add('posts_listed',data.postCards>0,{cards:data.postCards});
           if(name==='home') {
             add('theme_rendered',data.theme);
             add('approved_h1',data.h1Okay);
