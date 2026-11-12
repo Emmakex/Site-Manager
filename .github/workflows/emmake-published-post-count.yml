@@ -1,0 +1,32 @@
+name: Emmake Complete Published Post Count
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/site_manager_emmake_public_posts_count.cjs'
+      - '.github/workflows/emmake-published-post-count.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-public-inventory:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate strict public-only fixed-site and pagination contract
+        run: node scripts/site_manager_emmake_public_posts_count.cjs --self-test
+      - name: Count published posts through bounded public WordPress REST pages
+        run: node scripts/site_manager_emmake_public_posts_count.cjs --run
+      - name: Store aggregate count without post IDs, titles, bodies or URLs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-public-post-count
+          path: artifacts/emmake-post-inventory/public-post-counts.json
+          retention-days: 7
+          if-no-files-found: warn
