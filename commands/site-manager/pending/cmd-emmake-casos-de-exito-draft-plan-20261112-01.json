@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-casos-de-exito-draft-plan-20261112-01",
+  "site": "emmake-nuevaweb",
+  "action": "content.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_id": 54268,
+    "fields": {
+      "status": "draft"
+    },
+    "reason": "Plan editorial preventivo: retirar temporalmente la página vacía Casos de éxito mientras no existan casos de clientes verificables; sin borrar el contenido ni fabricar testimonios. Solo plan hasta aprobación."
+  }
+}
