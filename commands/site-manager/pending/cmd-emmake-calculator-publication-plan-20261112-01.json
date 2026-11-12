@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-calculator-publication-plan-20261112-01",
+  "site": "emmake-nuevaweb",
+  "action": "content.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_id": 50464,
+    "fields": {
+      "status": "publish"
+    },
+    "reason": "Previsualización de la recuperación de la calculadora antigua: verificar que la página sigue existiendo sin publicarla ni alterar contenido."
+  }
+}
