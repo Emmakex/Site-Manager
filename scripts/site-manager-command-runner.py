@@ -20,7 +20,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from site_manager_site_overview import OverviewError, summarize_site_overview
-from site_manager_content_targets import ContentTargetsError, summarize_content_targets
+from site_manager_content_targets import ContentTargetsError, summarize_content_targets, summarize_content_page
 from site_manager_theme_model import ThemeModelError, summary as summarize_theme_model
 from site_manager_site_catalog import SiteCatalogError, require_registered_site
 
@@ -30,7 +30,7 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.theme_model", "theme.update", "theme.bootstrap"}
+SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "theme.update", "theme.bootstrap"}
 SEO_ACCEPTANCE_TOOLS = {"start": "seo_acceptance_start", "status": "seo_acceptance_status"}
 SEO_ACCEPTANCE_PROFILE = "mcp-seo-only"
 SEO_ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "seo_plan", "seo_apply_verify", "seo_rollback", "cleanup")
@@ -66,6 +66,7 @@ EXPECTED_TOOLS = {
     "site.diagnostics": ("site_diagnostics", "site.diagnostics"),
     "site.overview": ("site_read", "site.read"),
     "site.content_targets": ("site_content_targets", "site.read"),
+    "site.content_page": ("site_content_page", "site.read"),
     "site.theme_model": ("site_theme_model", "site.read"),
 }
 MAX_RESULT_BYTES = 512_000
@@ -209,7 +210,14 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
     payload = command.get("payload")
     if not isinstance(payload, dict):
         raise CommandError("command payload must be an object")
-    if action in READ_ACTIONS:
+    if action == "site.content_page":
+        if (set(payload) != {"post_type", "page"}
+                or payload["post_type"] not in ("post", "page")
+                or type(payload["post_type"]) is not str
+                or type(payload["page"]) is not int
+                or not 1 <= payload["page"] <= 10_000):
+            raise CommandError("content page requires a bounded post/page selector")
+    elif action in READ_ACTIONS:
         if payload:
             raise CommandError("read-only Site Manager commands require an empty payload object")
     elif action == "content.update":
@@ -1229,9 +1237,9 @@ def execute(command_path: Path, result_dir: Path) -> int:
         else:
             stage = "read" if action_name in READ_ACTIONS else command["payload"]["stage"]
             tool = str(action["tool"] if stage == "read" else action["tools"][stage])
-            tool_args = {} if stage == "read" else {
+            tool_args = command["payload"] if action_name == "site.content_page" else ({} if stage == "read" else {
                 k: v for k, v in command["payload"].items() if k != "stage"
-            }
+            })
             data = client.call(tool, tool_args)
             if action_name == "site.overview":
                 try:
@@ -1247,6 +1255,16 @@ def execute(command_path: Path, result_dir: Path) -> int:
                     raise VerificationError(str(exc)) from exc
                 verified = True
                 sanitized = sanitize_value(published, token)
+            elif action_name == "site.content_page":
+                try:
+                    page_result = summarize_content_page(data)
+                    if (page_result["post_type"] != command["payload"]["post_type"]
+                            or page_result["page"] != command["payload"]["page"]):
+                        raise ContentTargetsError("WordPress content page did not match requested selector")
+                except ContentTargetsError as exc:
+                    raise VerificationError(str(exc)) from exc
+                verified = True
+                sanitized = sanitize_value(page_result, token)
             elif action_name == "site.theme_model":
                 try:
                     theme = summarize_theme_model(data)
@@ -1396,8 +1414,10 @@ def self_test() -> int:
     if (not isinstance(bootstrap_rule, dict)
             or bootstrap_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "theme.bootstrap"
             or len(bootstrap_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])) != 3
-            or bootstrap_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
-        raise CommandError("theme.bootstrap requires three closed stages and preserves empty read payloads")
+            or bootstrap_rule.get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "site.content_page"
+            or bootstrap_rule.get("else", {}).get("then", {}).get("properties", {}).get("payload", {}).get("required") != ["post_type", "page"]
+            or bootstrap_rule.get("else", {}).get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
+        raise CommandError("theme.bootstrap and bounded paginated read must keep closed payloads")
 
     valid = {
         "version": "1",
@@ -1412,6 +1432,17 @@ def self_test() -> int:
     validate_command(overview_command, registry)
     targets_command = {**valid, "action": "site.content_targets", "payload": {}}
     validate_command(targets_command, registry)
+    page_command = {**valid, "action": "site.content_page", "payload": {"post_type": "post", "page": 44}}
+    validate_command(page_command, registry)
+    for bad_page in ({"post_type": "draft", "page": 1}, {"post_type": "post", "page": 0},
+                     {"post_type": "post", "page": True}, {"post_type": "post", "page": 10001},
+                     {"post_type": "post", "page": 2, "url": "https://attacker.example"}):
+        try:
+            validate_command({**page_command, "payload": bad_page}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("bounded published content pagination accepted unsafe selectors")
     theme_plan_command = {**valid, "action": "theme.update", "payload": {
         "stage": "plan", "fields": {"hero-lead": "Better strategy for modern businesses"}
     }}

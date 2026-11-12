@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.theme_model", "theme.update", "theme.bootstrap"}
+expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "theme.update", "theme.bootstrap"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 assert registry["actions"]["site.read"] == {
@@ -34,6 +34,11 @@ assert registry["actions"]["site.overview"] == {
 }
 assert registry["actions"]["site.content_targets"] == {
     "tool": "site_content_targets",
+    "required_scope": "site.read",
+    "read_only": True,
+}
+assert registry["actions"]["site.content_page"] == {
+    "tool": "site_content_page",
     "required_scope": "site.read",
     "read_only": True,
 }
@@ -167,7 +172,17 @@ assert bootstrap_stages[0]["properties"]["fields"]["maxProperties"] == 100
 assert bootstrap_stages[0]["properties"]["fields"]["additionalProperties"] is False
 assert set(bootstrap_stages[0]["required"]) == {"stage","fields"}
 assert all(x["properties"]["confirmed"]["const"] is True for x in bootstrap_stages[1:])
-assert bootstrap_rule["else"]["properties"]["payload"] == {
+page_rule = bootstrap_rule["else"]
+assert page_rule["if"]["properties"]["action"]["const"] == "site.content_page"
+assert page_rule["then"]["properties"]["payload"] == {
+    "type": "object", "additionalProperties": False,
+    "required": ["post_type", "page"],
+    "properties": {
+        "post_type": {"type": "string", "enum": ["post", "page"]},
+        "page": {"type": "integer", "minimum": 1, "maximum": 10000},
+    },
+}
+assert page_rule["else"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False, "maxProperties": 0
 }
 stages = conditional["then"]["properties"]["payload"]["oneOf"]

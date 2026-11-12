@@ -119,3 +119,55 @@ assert result["homepage_in_inventory"] is False
 assert result["page_count_in_inventory"] == 0
 
 print("site_manager_content_targets_test: OK")
+
+
+from site_manager_content_targets import summarize_content_page
+
+def public_page(page=1, total=1, ids=(9,), kind="post"):
+    fixture = valid_response()
+    items = []
+    for post_id in ids:
+        item = copy.deepcopy(fixture["posts"][0] if kind == "post" else fixture["pages"][0])
+        item["post_id"] = post_id
+        item["slug"] = f"published-{post_id}"
+        item["permalink"] = f"https://emmake.com/nuevaweb/published-{post_id}/"
+        item["homepage"] = kind == "page" and post_id == 7
+        items.append(item)
+    limit = 40 if kind == "post" else 80
+    return {
+        "connection_id": fixture["connection_id"],
+        "source": "wordpress-native-published-content-page",
+        "observed_at": fixture["observed_at"],
+        "site_url": fixture["site_url"],
+        "homepage_post_id": fixture["homepage_post_id"],
+        "scope": "site.read", "published_only": True,
+        "post_type": kind, "page": page, "page_size": limit,
+        "published_total": total, "total_pages": max(1,(total+limit-1)//limit),
+        "has_more": page < max(1,(total+limit-1)//limit),
+        "items": items, "private_values_included": False,
+    }
+
+single = summarize_content_page(public_page())
+assert single["published_total"] == 1 and single["items"][0]["post_id"] == 9
+large_first = summarize_content_page(public_page(1, 1726, range(100, 140)))
+large_last = summarize_content_page(public_page(44, 1726, range(200, 206)))
+assert len(large_first["items"]) == 40 and large_first["has_more"] is True
+assert len(large_last["items"]) == 6 and large_last["has_more"] is False
+assert summarize_content_page(public_page(1,1,(7,),"page"))["items"][0]["homepage"] is True
+for tamper in (
+    lambda v: v.update(page=0), lambda v: v.update(page=True),
+    lambda v: v.update(page_size=500), lambda v: v.update(total_pages=6),
+    lambda v: v.update(has_more=True), lambda v: v.update(post_type="draft"),
+    lambda v: v.update(private_values_included=True),
+    lambda v: v.update(content="PRIVATE BODY"),
+    lambda v: v["items"][0].update(status="private"),
+    lambda v: v["items"][0].update(permalink="https://outside.example/p/"),
+):
+    wrong = public_page()
+    tamper(wrong)
+    try:
+        summarize_content_page(wrong)
+    except ContentTargetsError:
+        pass
+    else:
+        raise AssertionError("unsafe paginated inventory was certified")
