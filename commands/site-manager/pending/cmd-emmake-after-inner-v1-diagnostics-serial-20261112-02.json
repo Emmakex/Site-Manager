@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-after-inner-v1-diagnostics-serial-20261112-02",
+  "site": "emmake-nuevaweb",
+  "action": "site.diagnostics",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
