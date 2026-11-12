@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-postinstall-read-20261112-01",
+  "site": "emmake-nuevaweb",
+  "action": "site.read",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
