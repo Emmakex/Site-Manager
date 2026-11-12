@@ -17,6 +17,7 @@ BASE_KEYS = {
     "connection_id", "source", "observed_at", "site_url", "homepage_post_id",
     "scope", "published_only", "page_limit", "post_limit", "pages", "posts",
     "pages_truncated", "posts_truncated", "private_values_included",
+    "published_page_total", "published_post_total",
 }
 ENTRY_KEYS = {
     "post_id", "post_type", "status", "title", "slug", "permalink",
@@ -57,6 +58,13 @@ def summarize_content_targets(raw: Any) -> dict[str, Any]:
     base = urlsplit(base_url)
     if raw["page_limit"] != 80 or raw["post_limit"] != 40:
         raise ContentTargetsError("WordPress content query exceeded approved limits")
+    totals = {}
+    for key, item_key, limit in (("published_page_total", "pages", 80),
+                                  ("published_post_total", "posts", 40)):
+        total = raw[key]
+        if type(total) is not int or not 0 <= total <= 10_000_000:
+            raise ContentTargetsError("WordPress published totals are invalid")
+        totals[key] = total
     homepage = raw["homepage_post_id"]
     if homepage is not None and (type(homepage) is not int or homepage <= 0):
         raise ContentTargetsError("WordPress homepage identity is malformed")
@@ -114,6 +122,10 @@ def summarize_content_targets(raw: Any) -> dict[str, Any]:
                 "homepage": is_home,
                 "modified_gmt": item["modified_gmt"],
             })
+        if totals["published_" + type_name + "_total"] < len(safe):
+            raise ContentTargetsError("Published total is smaller than returned public targets")
+        if totals["published_" + type_name + "_total"] > POST_LIMITS[type_name] and not raw[key + "_truncated"]:
+            raise ContentTargetsError("WordPress hid a truncated public inventory")
         output[key] = safe
         output[key + "_truncated"] = raw[key + "_truncated"]
     return {
@@ -125,6 +137,9 @@ def summarize_content_targets(raw: Any) -> dict[str, Any]:
         "homepage_in_inventory": homepage_found,
         "page_count_in_inventory": len(output["pages"]),
         "post_count_in_inventory": len(output["posts"]),
+        "published_page_total": totals["published_page_total"],
+        "published_post_total": totals["published_post_total"],
+        "inventory_is_sample": output["pages_truncated"] or output["posts_truncated"],
         "pages_truncated": output["pages_truncated"],
         "posts_truncated": output["posts_truncated"],
         "pages": output["pages"],
