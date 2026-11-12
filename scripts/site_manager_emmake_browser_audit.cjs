@@ -15,6 +15,19 @@ const ID_PATTERN = /^visual-emmake-202611(?:11|12)-[0-9]{2}$/;
 function broken(href) {
   return /%category%|%postname%|%25category%25|%25postname%25|\{[a-f0-9]{30,}\}(?:category|postname)/i.test(href);
 }
+function classifyPublicArticleLink(href) {
+  // Classification only; never return or log the user-facing URL.
+  try {
+    const u=new URL(href);
+    if(u.protocol!=='https:'||u.hostname!=='emmake.com'||u.port||u.username||u.password)
+      return 'wrong_origin';
+    if(!u.pathname.startsWith('/nuevaweb/'))return 'outside_staging';
+    if(broken(href))return 'unresolved_permalink_marker';
+    if(u.hash)return 'fragment';
+    if(u.search)return u.searchParams.has('p')?'query_post_permalink':'other_query';
+    return 'eligible';
+  }catch{return 'malformed_url';}
+}
 function validRequest(r, id) {
   return r && typeof r === 'object' && Object.keys(r).sort().join(',') === 'audit_id,check,requested_by,site,version'
     && r.version === '1' && r.audit_id === id && ID_PATTERN.test(id)
@@ -26,6 +39,9 @@ function selfTest() {
   if (!validRequest(r, id) || validRequest({...r,url:'https://attacker.test/'},id)) throw Error('request contract failed');
   if (!broken('https://emmake.com/nuevaweb/{d276abfeceab40cca0e158fc6217176554b8e54a1f85b6eb004941797db52171}category{d276abfeceab40cca0e158fc6217176554b8e54a1f85b6eb004941797db52171}/')) throw Error('permalink pattern missed');
   if (broken('https://emmake.com/nuevaweb/blog/')) throw Error('valid link rejected');
+  if (classifyPublicArticleLink('https://emmake.com/nuevaweb/post/')!=='eligible')throw Error('valid post rejected');
+  if (classifyPublicArticleLink('https://emmake.com/nuevaweb/?p=43')!=='query_post_permalink')throw Error('query fallback not classified');
+  if (classifyPublicArticleLink('https://outside.example.test/post/')!=='wrong_origin')throw Error('external post not rejected');
   if (!validRequest({...r,audit_id:'visual-emmake-20261112-02'},'visual-emmake-20261112-02'))throw Error('New audit date refused');
   process.stdout.write('PASS: fixed-domain responsive browser QA contract\n');
 }
@@ -125,26 +141,25 @@ async function audit(id) {
               {cards_checked:data.method_cards.length, minimum_inset:Math.round(Math.min(...data.method_cards.map(x=>x.inset)))});
             // Follow only up to three public article links, restricted to the bound
             // staging origin and path. Never persist their raw URLs in Git results.
-            const validLink = href=>{
-              try{
-                const u=new URL(href);
-                return u.protocol==='https:'&&u.hostname==='emmake.com'&&u.port===''&&
-                  u.username===''&&u.password===''&&u.pathname.startsWith('/nuevaweb/')&&
-                  !u.search&&!u.hash&&!broken(href);
-              }catch{return false;}
-            };
             const articles=data.insight_links;
-            const responses=[];
+            const outcomes=[];
             for(const href of articles){
-              if(!validLink(href)){responses.push(false);continue;}
+              const category=classifyPublicArticleLink(href);
+              if(category!=='eligible'){
+                outcomes.push({ok:false,reason:category});
+                continue;
+              }
               try{
                 const resp=await context.request.get(href,{timeout:12000,maxRedirects:0});
-                responses.push(resp.status()===200);
+                const status=resp.status();
+                outcomes.push({ok:status===200,reason:status===200?'http_200':('http_'+String(status))});
                 await resp.dispose();
-              }catch{responses.push(false);}
+              }catch{outcomes.push({ok:false,reason:'network_error'});}
             }
-            add('insight_links_http_200',articles.length>0&&articles.length<=3&&responses.length===articles.length&&responses.every(Boolean),
-              {links_checked:articles.length,live_200:responses.filter(Boolean).length});
+            const reasons={};
+            for(const outcome of outcomes)reasons[outcome.reason]=(reasons[outcome.reason]||0)+1;
+            add('insight_links_http_200',articles.length>0&&articles.length<=3&&outcomes.length===articles.length&&outcomes.every(x=>x.ok),
+              {links_checked:articles.length,live_200:outcomes.filter(x=>x.ok).length,reasons});
           }
           const png=prefix+'.png';
           try {
