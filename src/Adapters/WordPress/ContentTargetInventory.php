@@ -59,6 +59,55 @@ final class ContentTargetInventory
         ];
     }
 
+    /**
+     * Fetch exactly one bounded published-only page. The original summary read
+     * remains compatible and the caller cannot select status, sort or fields.
+     *
+     * @return array<string,mixed>
+     */
+    public function publishedPage(string $type, int $page): array
+    {
+        if (! in_array($type, ['post', 'page'], true) || $page < 1 || $page > 10000) {
+            throw new RuntimeException('Unsupported published content page request.');
+        }
+        if (! function_exists('get_posts') || ! function_exists('get_post')) {
+            throw new RuntimeException('WordPress native content APIs unavailable.');
+        }
+        $siteUrl = function_exists('home_url') ? (string) home_url('/') : '';
+        if (! str_starts_with($siteUrl, 'https://')) {
+            throw new RuntimeException('Site Manager requires HTTPS site identity.');
+        }
+        $limit = $type === 'post' ? self::MAX_POSTS : self::MAX_PAGES;
+        $total = $this->countPublished($type);
+        $totalPages = max(1, (int) ceil($total / $limit));
+        if ($page > $totalPages) {
+            throw new RuntimeException('Published content page is outside the catalog.');
+        }
+        $offset = ($page - 1) * $limit;
+        $homepageId = (int) get_option('page_on_front', 0);
+        $batch = $this->listPublished($type, $limit, $siteUrl, $homepageId, $offset);
+        $expected = min($limit, max(0, $total - $offset));
+        if (count($batch['items']) !== $expected) {
+            throw new RuntimeException('Published catalog changed during paginated read.');
+        }
+        return [
+            'source'=>'wordpress-native-published-content-page',
+            'observed_at'=>gmdate(DATE_W3C),
+            'site_url'=>$siteUrl,
+            'homepage_post_id'=>$homepageId > 0 ? $homepageId : null,
+            'scope'=>'site.read',
+            'published_only'=>true,
+            'post_type'=>$type,
+            'page'=>$page,
+            'page_size'=>$limit,
+            'published_total'=>$total,
+            'total_pages'=>$totalPages,
+            'has_more'=>$page < $totalPages,
+            'items'=>$batch['items'],
+            'private_values_included'=>false,
+        ];
+    }
+
     private function countPublished(string $type): int
     {
         if (! function_exists('wp_count_posts')) {
@@ -76,12 +125,13 @@ final class ContentTargetInventory
     /**
      * @return array{items:list<array<string,mixed>>,truncated:bool}
      */
-    private function listPublished(string $type, int $limit, string $siteUrl, int $homepageId): array
+    private function listPublished(string $type, int $limit, string $siteUrl, int $homepageId, int $offset = 0): array
     {
         $posts = get_posts([
             'post_type'=>$type,
             'post_status'=>'publish',
             'posts_per_page'=>$limit + 1,
+            'offset'=>$offset,
             'orderby'=>$type === 'page'
                 ? ['menu_order'=>'ASC', 'ID'=>'ASC']
                 : ['modified'=>'DESC', 'ID'=>'DESC'],

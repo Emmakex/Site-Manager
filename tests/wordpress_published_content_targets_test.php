@@ -30,7 +30,7 @@ function get_posts(array $args): array {
         }
     }
     sort($ids);
-    return array_slice($ids, 0, (int) $args['posts_per_page']);
+    return array_slice($ids, (int) ($args['offset'] ?? 0), (int) $args['posts_per_page']);
 }
 function wp_count_posts(string $type): object {
     $counts = ['publish'=>0];
@@ -121,5 +121,28 @@ $expect(count($inventory['posts']) === 40, 'first published sample is bounded');
 $expect($inventory['published_post_total'] === 111, 'full published post total is correct');
 $expect($inventory['posts_truncated'] === true, 'sample is explicitly truncated');
 
+
+// Paginate the same published-only catalog with a fixed 40-post bound.
+$first = (new ContentTargetInventory())->publishedPage('post', 1);
+$second = (new ContentTargetInventory())->publishedPage('post', 2);
+$last = (new ContentTargetInventory())->publishedPage('post', 3);
+$expect($first['published_total'] === 111 && $first['total_pages'] === 3, 'published catalog metadata');
+$expect($first['page_size'] === 40 && count($first['items']) === 40, 'first page strictly bounded');
+$expect($first['has_more'] === true && $second['has_more'] === true, 'continuation available');
+$expect(count($second['items']) === 40 && count($last['items']) === 31, 'all post pages accessible');
+$expect($last['has_more'] === false, 'last page stops');
+$ids = array_merge(array_column($first['items'], 'post_id'),
+    array_column($second['items'], 'post_id'), array_column($last['items'], 'post_id'));
+$expect(count(array_unique($ids)) === 111, 'no duplicate IDs during stable traversal');
+foreach ([['post',0], ['post',4], ['post',10001], ['draft',1], ['private',1]] as [$type,$page]) {
+    try {
+        (new ContentTargetInventory())->publishedPage($type,$page);
+        $expect(false, 'unsafe pagination must be refused');
+    } catch (RuntimeException $e) {
+        $expect(true, 'bounded pagination refusal');
+    }
+}
+$expect((new ContentTargetInventory())->publishedPage('page',2)['page_size'] === 80,
+    'pages use original independent 80-item cap');
 
 echo "PASS: bounded WordPress published target inventory with public-only scope\n";

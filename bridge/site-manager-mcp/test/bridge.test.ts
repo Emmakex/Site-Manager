@@ -316,6 +316,31 @@ test('published WordPress content targets are read-only, scoped and bound to the
   }]);
 });
 
+test('published content pagination uses only fixed scoped selectors and connection identity', async () => {
+  const calls: Array<{ path: string; query: string; method: string }> = [];
+  const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const url = input instanceof URL ? input : new URL(String(input));
+    calls.push({ path: url.pathname, query: url.search, method: init?.method ?? '' });
+    return new Response(JSON.stringify({ data: {
+      source: 'wordpress-native-published-content-page', connection_id: 'spoofed',
+      page: 2, page_size: 40, published_total: 111, items: [],
+    } }), { status: 200 });
+  }) as typeof fetch;
+  const client = new SiteManagerClient(baseConfig(), fakeFetch);
+  for (const bad of [{post_type:'draft',page:1},{post_type:'post',page:0},
+                     {post_type:'post',page:10001},{post_type:'post',page:1.5}]) {
+    await assert.rejects(() => client.contentPage(bad as any));
+  }
+  const result = await client.contentPage({post_type:'post',page:2});
+  assert.equal(result.connection_id, connectionId);
+  assert.equal(result.page, 2);
+  assert.deepEqual(calls, [{
+    path: '/wp-json/site-manager/v1/content/page',
+    query: '?post_type=post&page=2',
+    method: 'GET',
+  }]);
+});
+
 test('Theme semantic model read uses fixed site.read endpoint and bound connection', async () => {
   const requests: Array<{method: string; path: string; auth: string | null; redirect: string | undefined}> = [];
   const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {

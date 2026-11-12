@@ -90,6 +90,38 @@ final class RemoteAccess
             },
         ], true);
 
+        // Independent bounded page route: unchanged summary endpoint remains
+        // compatible with clients that only need the first 40 posts.
+        register_rest_route('site-manager/v1', '/content/page', [
+            'methods'=>\\WP_REST_Server::READABLE,
+            'permission_callback'=>static function (\\WP_REST_Request $request): bool {
+                if (current_user_can('manage_options')) {
+                    return true;
+                }
+                $token = RemoteConnectionStore::bearerFromRequest($request);
+                return (new RemoteConnectionStore())->authorize($token, 'site.read');
+            },
+            'callback'=>static function (\\WP_REST_Request $request): \\WP_REST_Response {
+                $type = $request->get_param('post_type');
+                $pageRaw = $request->get_param('page');
+                if (! is_string($type) || ! in_array($type, ['post', 'page'], true)
+                    || (! is_string($pageRaw) && ! is_int($pageRaw))
+                    || ! preg_match('/^[1-9][0-9]{0,4}$/D', (string) $pageRaw)
+                    || (int) $pageRaw > 10000) {
+                    return new \\WP_REST_Response(['error'=>['code'=>'invalid_content_page']], 400);
+                }
+                try {
+                    return new \\WP_REST_Response([
+                        'data'=>(new ContentTargetInventory())->publishedPage($type, (int) $pageRaw),
+                    ], 200);
+                } catch (\\Throwable) {
+                    return new \\WP_REST_Response([
+                        'error'=>['code'=>'content_page_unavailable'],
+                    ], 503);
+                }
+            },
+        ], true);
+
         register_rest_route('site-manager/v1', '/connection', [
             'methods'=>\WP_REST_Server::READABLE,
             'permission_callback'=>static function (\WP_REST_Request $request): bool {

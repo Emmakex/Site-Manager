@@ -239,6 +239,33 @@ export function createSiteManagerMcpServer(
 
   if (scopes.has('site.read')) {
     server.registerTool(
+      'site_content_page',
+      {
+        title: 'Read one page of published WordPress content',
+        description: 'Read only published metadata in one fixed-size post/page batch, with total and next-page indicator. Never returns drafts or article bodies.',
+        inputSchema: fromJsonSchema<{ post_type: 'post' | 'page'; page: number }>({
+          type: 'object',
+          additionalProperties: false,
+          required: ['post_type', 'page'],
+          properties: {
+            post_type: { type: 'string', enum: ['post', 'page'] },
+            page: { type: 'integer', minimum: 1, maximum: 10000 },
+          },
+        }),
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async ({ post_type, page }) => {
+        try {
+          return toolResult(await client.contentPage({ post_type, page }));
+        } catch {
+          return toolError('Site Manager could not read the bounded public content page.');
+        }
+      },
+    );
+  }
+
+  if (scopes.has('site.read')) {
+    server.registerTool(
       'site_theme_model',
       {
         title: 'Inspect SEO/GEO Theme strategic homepage model',

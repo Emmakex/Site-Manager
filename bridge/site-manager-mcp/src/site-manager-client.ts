@@ -6,6 +6,7 @@ export type SiteManagerReadResource =
   | 'capabilities'
   | 'diagnostics'
   | 'content/targets'
+  | 'content/page'
   | 'theme/model'
   | 'acceptance/remote/job';
 
@@ -90,6 +91,18 @@ export class SiteManagerClient {
       ...targets,
       connection_id: this.config.connectionId,
     };
+  }
+
+  public async contentPage(input: { post_type: 'post' | 'page'; page: number }): Promise<JsonRecord> {
+    if ((input.post_type !== 'post' && input.post_type !== 'page') ||
+        !Number.isInteger(input.page) || input.page < 1 || input.page > 10000) {
+      throw new SiteManagerClientError('Unsafe content page selector.');
+    }
+    const targets = await this.request('content/page', 'GET', undefined, input);
+    if (!isRecord(targets)) {
+      throw new SiteManagerClientError('Site Manager returned invalid paginated content targets.');
+    }
+    return { ...targets, connection_id: this.config.connectionId };
   }
 
   public async themeModel(): Promise<JsonRecord> {
@@ -235,8 +248,12 @@ export class SiteManagerClient {
     return data;
   }
 
-  private async request(resource: SiteManagerReadResource | SiteManagerWriteResource, method: 'GET' | 'POST', body?: unknown): Promise<unknown> {
+  private async request(resource: SiteManagerReadResource | SiteManagerWriteResource, method: 'GET' | 'POST', body?: unknown, query?: { post_type: 'post' | 'page'; page: number }): Promise<unknown> {
     const endpoint = new URL(resource, this.config.restBase);
+    if (query) {
+      endpoint.searchParams.set('post_type', query.post_type);
+      endpoint.searchParams.set('page', String(query.page));
+    }
     if (endpoint.origin !== this.config.restBase.origin) {
       throw new SiteManagerClientError('Site Manager target origin changed unexpectedly.');
     }
