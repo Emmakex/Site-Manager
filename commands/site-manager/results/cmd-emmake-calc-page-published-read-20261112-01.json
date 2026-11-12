@@ -1,0 +1,14 @@
+{
+  "action": "site.content_targets",
+  "command_id": "cmd-emmake-calc-page-published-read-20261112-01",
+  "command_sha256": "3e42162b256aa15a87d2a2822e718a514ec368d80fb114cc3f2b56470487ebbc",
+  "error": {
+    "code": "verification_failed",
+    "detail": "WordPress content targets returned unknown or missing fields",
+    "message": "Site Manager did not provide the required lifecycle verification evidence."
+  },
+  "site": "emmake-nuevaweb",
+  "status": "failed",
+  "verified": false,
+  "version": "1"
+}
