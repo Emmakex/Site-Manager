@@ -112,6 +112,8 @@ else:
 empty = valid_response()
 empty["pages"] = []
 empty["posts"] = []
+empty["published_page_total"] = 0
+empty["published_post_total"] = 0
 result = summarize_content_targets(empty)
 assert result["homepage_in_inventory"] is False
 assert result["page_count_in_inventory"] == 0
