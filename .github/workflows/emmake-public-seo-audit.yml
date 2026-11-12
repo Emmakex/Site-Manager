@@ -1,0 +1,30 @@
+name: Emmake Published Pages SEO Metadata Audit
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/site_manager_emmake_public_seo_audit.cjs'
+      - '.github/workflows/emmake-public-seo-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  public-seo:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check fixed-site read-only HTML parser contract
+        run: node scripts/site_manager_emmake_public_seo_audit.cjs --self-test
+      - name: Inspect 11 published URLs without exporting page text
+        run: node scripts/site_manager_emmake_public_seo_audit.cjs --run
+      - name: Preserve only bounded SEO counts/status
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-public-seo-11-pages
+          path: artifacts/emmake-seo/public-pages-seo.json
+          retention-days: 7
+          if-no-files-found: error
