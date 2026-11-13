@@ -1,0 +1,89 @@
+name: Theme Package Disposable WordPress Acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'src/Adapters/WordPress/ThemePackage*.php'
+      - 'src/Adapters/WordPress/RemoteThemePackageAccess.php'
+      - 'src/Adapters/WordPress/RemotePlanStore.php'
+      - 'src/Adapters/WordPress/WordPressAdapter.php'
+      - 'wordpress-plugin/site-manager/**'
+      - 'tests/wordpress_theme_package_live_acceptance.php'
+      - 'tests/fixtures/theme-package-wordpress.compose.yml'
+      - '.github/workflows/theme-package-disposable-wordpress.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-wordpress-theme-deploy:
+    name: Native WordPress Theme_Upgrader + REST plan/apply/rollback
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP & Composer for official plugin package
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          extensions: zip
+          coverage: none
+
+      - name: Build official installable Site Manager plugin
+        run: |
+          set -euo pipefail
+          composer install --no-interaction --prefer-dist
+          composer test
+          bash scripts/build-wordpress-release.sh
+          bash scripts/verify-wordpress-release.sh dist/site-manager-0.11.13.zip
+
+      - name: Start disposable WordPress + MariaDB in staging
+        run: |
+          set -euo pipefail
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml up -d --wait --wait-timeout 180 database wordpress
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml ps
+
+      - name: Install disposable WordPress and official Site Manager plugin
+        run: |
+          set -euo pipefail
+          test -s dist/site-manager-0.11.13.zip
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli sh -c 'test -r /artifacts/site-manager-0.11.13.zip && test -w /var/www/html/wp-content && test -w /var/www/html/wp-content/plugins'
+          installed=0
+          for attempt in $(seq 1 8); do
+            if docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli wp core install \
+                --url="http://localhost:8088" \
+                --title="Disposable Theme Package Acceptance" \
+                --admin_user=testadmin \
+                --admin_password=ci-fixture-admin-password \
+                --admin_email=acceptance@example.invalid \
+                --skip-email; then
+              installed=1
+              break
+            fi
+            sleep 3
+          done
+          test "$installed" -eq 1
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli wp plugin install /artifacts/site-manager-0.11.13.zip --activate
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli wp option update blog_public 0
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli wp plugin is-active site-manager
+
+      - name: Execute real WordPress scoped Theme plan, install, verification and rollback
+        run: |
+          set -euo pipefail
+          container="$(docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml ps -q wordpress)"
+          test -n "$container"
+          docker cp tests/wordpress_theme_package_live_acceptance.php "$container":/tmp/site-manager-theme-live-acceptance.php
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml exec -T --user www-data wordpress php /tmp/site-manager-theme-live-acceptance.php
+
+      - name: Capture disposable WordPress failures
+        if: failure()
+        run: |
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml logs --tail=130 --no-color || true
+
+      - name: Delete isolated WordPress database and filesystem
+        if: always()
+        run: |
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml down --volumes --remove-orphans || true
