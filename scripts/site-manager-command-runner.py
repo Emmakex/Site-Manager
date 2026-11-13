@@ -30,7 +30,7 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "theme.update", "theme.bootstrap"}
+SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap"}
 SEO_ACCEPTANCE_TOOLS = {"start": "seo_acceptance_start", "status": "seo_acceptance_status"}
 SEO_ACCEPTANCE_PROFILE = "mcp-seo-only"
 SEO_ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "seo_plan", "seo_apply_verify", "seo_rollback", "cleanup")
@@ -52,7 +52,7 @@ ACCEPTANCE_TOOLS = {"start": "content_acceptance_start", "status": "content_acce
 ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "content_plan", "content_apply_verify", "content_rollback", "cleanup")
 ACCEPTANCE_PROFILE = "mcp-content-only"
 ACCEPTANCE_TIMEOUT_SECONDS = 420
-READ_ACTIONS = {"site.read", "site.diagnostics", "site.overview", "site.content_targets", "site.content_page", "site.theme_model"}
+READ_ACTIONS = {"site.read", "site.diagnostics", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state"}
 CONTENT_STAGES = {"plan", "apply", "rollback"}
 CONTENT_TOOLS = {
     "plan": "content_update_plan",
@@ -68,6 +68,7 @@ EXPECTED_TOOLS = {
     "site.content_targets": ("site_content_targets", "site.read"),
     "site.content_page": ("site_content_page", "site.read"),
     "site.theme_model": ("site_theme_model", "site.read"),
+    "site.theme_package_state": ("site_theme_package_state", "site.read"),
 }
 MAX_RESULT_BYTES = 512_000
 SENSITIVE_KEY_PARTS = ("token", "secret", "password", "authorization", "cookie")
@@ -1279,6 +1280,34 @@ def execute(command_path: Path, result_dir: Path) -> int:
                     raise VerificationError(str(exc)) from exc
                 verified = True
                 sanitized = sanitize_value(theme, token)
+            elif action_name == "site.theme_package_state":
+                allowed = {"connection_id", "theme_slug", "theme_version",
+                           "installed_tree_sha256", "file_count", "tree_bytes", "observed_at"}
+                slug = data.get("theme_slug")
+                digest = data.get("installed_tree_sha256")
+                version = data.get("theme_version")
+                files = data.get("file_count")
+                size = data.get("tree_bytes")
+                observed = data.get("observed_at")
+                if (set(data) - allowed
+                        or not isinstance(slug, str)
+                        or re.fullmatch(r"[a-z0-9][a-z0-9-]{1,79}", slug) is None
+                        or not isinstance(digest, str)
+                        or re.fullmatch(r"[a-f0-9]{64}", digest) is None
+                        or not isinstance(version, str) or not (1 <= len(version) <= 80)
+                        or type(files) is not int or not 1 <= files <= 2500
+                        or type(size) is not int or not 1 <= size <= 80_000_000
+                        or not isinstance(observed, str) or not (10 <= len(observed) <= 60)):
+                    raise VerificationError("WordPress Theme package fingerprint is incomplete or unsafe")
+                verified = True
+                sanitized = sanitize_value({
+                    "theme_slug": slug,
+                    "theme_version": version,
+                    "installed_tree_sha256": digest,
+                    "file_count": files,
+                    "tree_bytes": size,
+                    "observed_at": observed,
+                }, token)
             elif stage == "read":
                 verified = True
                 sanitized = sanitize_value(data, token)
