@@ -1521,13 +1521,21 @@ def self_test() -> int:
             or len(theme_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])) != 3):
         raise CommandError("theme.update requires exactly three closed stages")
     bootstrap_rule = theme_rule.get("else", {})
+    package_rule = bootstrap_rule.get("else", {}) if isinstance(bootstrap_rule, dict) else {}
+    page_rule = package_rule.get("else", {}) if isinstance(package_rule, dict) else {}
+    package_variants = package_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])
     if (not isinstance(bootstrap_rule, dict)
             or bootstrap_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "theme.bootstrap"
             or len(bootstrap_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])) != 3
-            or bootstrap_rule.get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "site.content_page"
-            or bootstrap_rule.get("else", {}).get("then", {}).get("properties", {}).get("payload", {}).get("required") != ["post_type", "page"]
-            or bootstrap_rule.get("else", {}).get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
-        raise CommandError("theme.bootstrap and bounded paginated read must keep closed payloads")
+            or package_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "theme.package.deploy"
+            or not isinstance(package_variants, list) or len(package_variants) != 3
+            or not all(isinstance(v, dict) and v.get("additionalProperties") is False for v in package_variants)
+            or set(package_variants[0].get("required", [])) != {"stage", "theme_slug", "source_commit_sha",
+                "source_run_id", "source_artifact_id", "package_sha256"}
+            or page_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "site.content_page"
+            or page_rule.get("then", {}).get("properties", {}).get("payload", {}).get("required") != ["post_type", "page"]
+            or page_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
+        raise CommandError("theme package, bootstrap and bounded reads must preserve independent closed schemas")
 
     valid = {
         "version": "1",
@@ -1538,6 +1546,24 @@ def self_test() -> int:
         "payload": {},
     }
     validate_command(valid, registry)
+    package_valid = {**valid, "action":"theme.package.deploy", "payload":{
+        "stage":"plan", "theme_slug":"seo-geo-theme", "source_commit_sha":"a"*40,
+        "source_run_id":12, "source_artifact_id":43, "package_sha256":"b"*64,
+    }}
+    validate_command(package_valid, registry)
+    for forbidden in (
+        {**package_valid["payload"], "package_url":"https://attacker.test/source.zip"},
+        {**package_valid["payload"], "package_base64":"unsafe-zip"},
+        {**package_valid["payload"], "source_run_id":True},
+        {"stage":"apply","plan_id":"sm-plan-"+"c"*24,"confirmed":False},
+        {"stage":"rollback","plan_id":"sm-plan-"+"c"*24,"confirmed":True,"wp_path":"/tmp/site"},
+    ):
+        try:
+            validate_command({**package_valid, "payload":forbidden}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("theme package command accepted an unsafe operation")
     overview_command = {**valid, "action": "site.overview", "payload": {}}
     validate_command(overview_command, registry)
     targets_command = {**valid, "action": "site.content_targets", "payload": {}}
