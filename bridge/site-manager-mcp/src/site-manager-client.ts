@@ -8,6 +8,7 @@ export type SiteManagerReadResource =
   | 'content/targets'
   | 'content/page'
   | 'theme/model'
+  | 'theme/package/state'
   | 'acceptance/remote/job';
 
 export type SiteManagerWriteResource =
@@ -114,6 +115,14 @@ export class SiteManagerClient {
       ...model,
       connection_id: this.config.connectionId,
     };
+  }
+
+  public async themePackageState(): Promise<JsonRecord> {
+    const state = await this.request('theme/package/state', 'GET');
+    if (!isRecord(state)) {
+      throw new SiteManagerClientError('Site Manager returned invalid Theme package readback.');
+    }
+    return { ...state, connection_id: this.config.connectionId };
   }
 
   public async diagnostics(): Promise<JsonRecord> {

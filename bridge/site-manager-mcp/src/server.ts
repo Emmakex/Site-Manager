@@ -282,6 +282,24 @@ export function createSiteManagerMcpServer(
     );
   }
 
+  if (scopes.has('site.read')) {
+    server.registerTool(
+      'site_theme_package_state',
+      {
+        title: 'Read installed WordPress Theme package fingerprint',
+        description: 'Read only active Theme slug, version, complete installed file-tree SHA-256, size, file count and observation time. No paths, files, arbitrary theme selectors or write permissions.',
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      },
+      async () => {
+        try {
+          return toolResult(await client.themePackageState());
+        } catch {
+          return toolError('Site Manager could not read the installed Theme package fingerprint.');
+        }
+      },
+    );
+  }
+
   if (scopes.has('site.diagnostics')) {
     server.registerTool(
       'site_diagnostics',
