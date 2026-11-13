@@ -109,7 +109,7 @@ final class ThemePackageArchiveGuard
                 $total += $uncompressed;
             }
             $style = $this->boundedFile($zip, $prefix . 'style.css', 131_072);
-            if (false === preg_match('/^\s*Theme Name:\s*\S.+$/mi', $style)
+            if (1 !== preg_match('/^\s*Theme Name:\s*\S.+$/mi', $style)
                 || 1 !== preg_match('/^\s*Version:\s*([^\r\n]+)$/mi', $style, $version)) {
                 throw new DomainException('package_invalid_theme_header');
             }
