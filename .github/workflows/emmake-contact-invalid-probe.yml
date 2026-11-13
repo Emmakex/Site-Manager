@@ -1,0 +1,41 @@
+name: Emmake Contact Safe Invalid Submission
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/site_manager_emmake_contact_invalid_probe.cjs'
+      - '.github/workflows/emmake-contact-invalid-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  safe-invalid-submission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirm fixed public negative-only scope
+        run: |
+          node --check scripts/site_manager_emmake_contact_invalid_probe.cjs
+          grep -Fq "const ACTION=ORIGIN+'/nuevaweb/wp-admin/admin-post.php'" scripts/site_manager_emmake_contact_invalid_probe.cjs
+          grep -Fq "email_or_message_sent:false" scripts/site_manager_emmake_contact_invalid_probe.cjs
+      - name: Install pinned browser
+        run: |
+          npm install --prefix .qa-deps --ignore-scripts --no-save --no-audit --no-fund playwright@1.65.0
+          .qa-deps/node_modules/.bin/playwright install chromium
+      - name: Submit exactly one empty required-fields form
+        env:
+          NODE_PATH: ${{ github.workspace }}/.qa-deps/node_modules
+        run: node scripts/site_manager_emmake_contact_invalid_probe.cjs
+      - name: Retain no-private-data validation receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-contact-safe-negative-validation
+          path: artifacts/emmake-contact-negative/validation.json
+          retention-days: 2
+          if-no-files-found: warn
