@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap"}
+expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 # Regression for the real live failure: paginated read must not enter the
@@ -62,6 +62,11 @@ assert registry["actions"]["site.theme_package_state"] == {
 }
 assert 'site_theme_package_state' in runner
 assert 'WordPress Theme package fingerprint is incomplete or unsafe' in runner
+assert registry["actions"]["theme.package.deploy"] == {
+    "tools": {"plan": "theme_package_plan", "apply": "theme_package_apply", "rollback": "theme_package_rollback"},
+    "required_scope": "theme.package.write",
+    "read_only": False,
+}
 assert registry["actions"]["theme.update"] == {
     "tools": {"plan": "theme_update_plan", "apply": "theme_update_apply", "rollback": "theme_update_rollback"},
     "required_scope": "content.write",
