@@ -40,7 +40,8 @@
         "site.theme_package_state",
         "theme.update",
         "theme.bootstrap",
-        "site.content_page"
+        "site.content_page",
+        "theme.package.deploy"
       ]
     },
     "requested_by": {
@@ -776,7 +777,7 @@
                       "if": {
                         "properties": {
                           "action": {
-                            "const": "site.content_page"
+                            "const": "theme.package.deploy"
                           }
                         },
                         "required": [
@@ -786,35 +787,138 @@
                       "then": {
                         "properties": {
                           "payload": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "post_type",
-                              "page"
-                            ],
-                            "properties": {
-                              "post_type": {
-                                "type": "string",
-                                "enum": [
-                                  "post",
-                                  "page"
-                                ]
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "stage",
+                                  "theme_slug",
+                                  "source_commit_sha",
+                                  "source_run_id",
+                                  "source_artifact_id",
+                                  "package_sha256"
+                                ],
+                                "properties": {
+                                  "stage": {
+                                    "const": "plan"
+                                  },
+                                  "theme_slug": {
+                                    "type": "string",
+                                    "pattern": "^[a-z0-9][a-z0-9-]{1,79}$"
+                                  },
+                                  "source_commit_sha": {
+                                    "type": "string",
+                                    "pattern": "^[a-f0-9]{40}$"
+                                  },
+                                  "source_run_id": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                  },
+                                  "source_artifact_id": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                  },
+                                  "package_sha256": {
+                                    "type": "string",
+                                    "pattern": "^[a-f0-9]{64}$"
+                                  },
+                                  "reason": {
+                                    "type": "string",
+                                    "maxLength": 500
+                                  }
+                                }
                               },
-                              "page": {
-                                "type": "integer",
-                                "minimum": 1,
-                                "maximum": 10000
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "stage",
+                                  "plan_id",
+                                  "confirmed"
+                                ],
+                                "properties": {
+                                  "stage": {
+                                    "const": "apply"
+                                  },
+                                  "plan_id": {
+                                    "type": "string",
+                                    "pattern": "^sm-plan-[a-f0-9]{24}$"
+                                  },
+                                  "confirmed": {
+                                    "const": true
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "stage",
+                                  "plan_id",
+                                  "confirmed"
+                                ],
+                                "properties": {
+                                  "stage": {
+                                    "const": "rollback"
+                                  },
+                                  "plan_id": {
+                                    "type": "string",
+                                    "pattern": "^sm-plan-[a-f0-9]{24}$"
+                                  },
+                                  "confirmed": {
+                                    "const": true
+                                  }
+                                }
                               }
-                            }
+                            ]
                           }
                         }
                       },
                       "else": {
-                        "properties": {
-                          "payload": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "maxProperties": 0
+                        "if": {
+                          "properties": {
+                            "action": {
+                              "const": "site.content_page"
+                            }
+                          },
+                          "required": [
+                            "action"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "payload": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "post_type",
+                                "page"
+                              ],
+                              "properties": {
+                                "post_type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "post",
+                                    "page"
+                                  ]
+                                },
+                                "page": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 10000
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "else": {
+                          "properties": {
+                            "payload": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "maxProperties": 0
+                            }
                           }
                         }
                       }
