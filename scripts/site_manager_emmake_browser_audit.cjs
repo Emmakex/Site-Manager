@@ -186,7 +186,7 @@ async function audit(id) {
                 const cards=[...(root?.querySelectorAll(':scope > .seo-geo-legacy-about-card-grid')||[])];
                 const logos=[...(gallery?.querySelectorAll(':scope > figure.wp-block-image')||[])];
                 const blurbs=cards.flatMap(card=>[...card.querySelectorAll(':scope > .sgmb-divi-blurb')]);
-                const columns=el=>el?getComputedStyle(el).gridTemplateColumns.trim().split(/\\s+/).filter(Boolean).length:0;
+                const columns=el=>el?getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length:0;
                 return {
                   enhanced:!!root?.classList.contains('seo-geo-legacy-about-enhanced'),
                   assetLoaded:[...document.scripts].some(el=>el.src?.includes('corporate-about-v1.js')),
@@ -210,7 +210,7 @@ async function audit(id) {
                   archive:archive?.querySelectorAll(':scope > li').length||0,
                   topics:topic?.children.length||0,categories:categories?.children.length||0,
                   newsletterDisabled:root?.querySelectorAll('.seo-geo-blog-digital-newsletter-unavailable').length||0,
-                  archiveColumns:archive?getComputedStyle(archive).gridTemplateColumns.trim().split(/\\s+/).filter(Boolean).length:0
+                  archiveColumns:archive?getComputedStyle(archive).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length:0
                 };
               })(),
               images:imgs.length,
