@@ -52,6 +52,7 @@ add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteWriteAccess:
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\ThemeModelOverride::class, 'boot'], 13);
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteThemeWriteAccess::class, 'boot'], 13);
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteThemeBootstrapAccess::class, 'boot'], 13);
+add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteThemePackageAccess::class, 'boot'], 13);
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteClientTracker::class, 'boot'], 14);
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\RemoteAcceptanceAccess::class, 'boot'], 15);
 add_action('plugins_loaded', [\SiteManager\Adapters\WordPress\AcceptanceTransportGate::class, 'boot'], 16);
