@@ -160,7 +160,7 @@ async function audit(id) {
                   native:f.classList.contains('seo-geo-contact-form'),
                   post:f.method.toLowerCase()==='post',
                   wpEndpoint:(()=>{try{
-                    const u=new URL(f.action);return u.origin===location.origin&&u.pathname.endsWith('/wp-admin/admin-post.php');
+                    const u=new URL(f.getAttribute('action'),location.href);return u.origin===location.origin&&u.pathname.endsWith('/wp-admin/admin-post.php');
                   }catch{return false;}})(),
                   nonce:!!f.querySelector('input[name="_seo_geo_contact_nonce"][value]'),
                   hiddenAction:!!f.querySelector('input[name="action"][value]'),
