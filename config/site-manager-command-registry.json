@@ -99,6 +99,11 @@
       "tool": "site_content_page",
       "required_scope": "site.read",
       "read_only": true
+    },
+    "site.theme_package_state": {
+      "tool": "site_theme_package_state",
+      "required_scope": "site.read",
+      "read_only": true
     }
   }
 }
