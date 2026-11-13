@@ -25,6 +25,7 @@
       "@php tests/wordpress_theme_portability_test.php",
       "@php tests/wordpress_theme_package_archive_guard_test.php",
       "@php tests/wordpress_theme_package_tree_test.php",
+      "@php tests/wordpress_theme_package_backup_store_test.php",
       "@php tests/wordpress_navigation_governance_test.php",
       "@php tests/wordpress_seo_ownership_test.php",
       "@php tests/wordpress_theme_seo_contract_inspector_test.php",
