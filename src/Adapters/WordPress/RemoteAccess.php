@@ -44,6 +44,43 @@ final class RemoteAccess
             ], true);
         }
 
+        // Byte-level Theme readback for managed release verification.
+        // Never returns the filesystem path, file names, source bytes or URLs.
+        register_rest_route('site-manager/v1', '/theme/package/state', [
+            'methods'=>\WP_REST_Server::READABLE,
+            'permission_callback'=>static function (\WP_REST_Request $request): bool {
+                if (current_user_can('manage_options')) {
+                    return true;
+                }
+                $token = RemoteConnectionStore::bearerFromRequest($request);
+                return (new RemoteConnectionStore())->authorize($token, 'site.read');
+            },
+            'callback'=>static function (): \WP_REST_Response {
+                try {
+                    $theme = wp_get_theme();
+                    $slug = (string) get_stylesheet();
+                    if (! $theme->exists() || $slug === '') {
+                        return new \WP_REST_Response(['error'=>['code'=>'active_theme_unavailable']], 503);
+                    }
+                    $tree = (new ThemePackageTreeFingerprint())->installed(
+                        (string) get_stylesheet_directory(), $slug
+                    );
+                    return new \WP_REST_Response([
+                        'data'=>[
+                            'theme_slug'=>$slug,
+                            'theme_version'=>(string) $theme->get('Version'),
+                            'installed_tree_sha256'=>$tree['tree_sha256'],
+                            'file_count'=>$tree['files'],
+                            'tree_bytes'=>$tree['bytes'],
+                            'observed_at'=>gmdate(DATE_W3C),
+                        ],
+                    ], 200);
+                } catch (\Throwable) {
+                    return new \WP_REST_Response(['error'=>['code'=>'theme_package_readback_unavailable']], 503);
+                }
+            },
+        ], true);
+
         register_rest_route('site-manager/v1', '/theme/model', [
             'methods'=>\WP_REST_Server::READABLE,
             'permission_callback'=>static function (\WP_REST_Request $request): bool {
