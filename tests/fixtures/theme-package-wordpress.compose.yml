@@ -35,6 +35,7 @@ services:
 
   cli:
     image: wordpress:cli-php8.2
+    user: "33:33" # Match Debian Apache www-data to make shared WP volume writable.
     depends_on:
       database:
         condition: service_healthy
