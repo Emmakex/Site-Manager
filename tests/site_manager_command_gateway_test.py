@@ -192,7 +192,17 @@ assert bootstrap_stages[0]["properties"]["fields"]["maxProperties"] == 100
 assert bootstrap_stages[0]["properties"]["fields"]["additionalProperties"] is False
 assert set(bootstrap_stages[0]["required"]) == {"stage","fields"}
 assert all(x["properties"]["confirmed"]["const"] is True for x in bootstrap_stages[1:])
-page_rule = bootstrap_rule["else"]
+package_rule = bootstrap_rule["else"]
+assert package_rule["if"]["properties"]["action"]["const"] == "theme.package.deploy"
+package_stages = package_rule["then"]["properties"]["payload"]["oneOf"]
+assert len(package_stages) == 3
+assert {x["properties"]["stage"]["const"] for x in package_stages} == {"plan", "apply", "rollback"}
+assert all(x["additionalProperties"] is False for x in package_stages)
+assert set(package_stages[0]["required"]) == {
+    "stage", "theme_slug", "source_commit_sha", "source_run_id", "source_artifact_id", "package_sha256"
+}
+assert all(x["properties"]["confirmed"]["const"] is True for x in package_stages[1:])
+page_rule = package_rule["else"]
 assert page_rule["if"]["properties"]["action"]["const"] == "site.content_page"
 assert page_rule["then"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False,
