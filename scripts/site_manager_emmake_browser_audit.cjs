@@ -16,7 +16,7 @@ const SIZES = [['desktop', 1440, 900, false], ['mobile', 390, 844, true]];
 const OUT = 'artifacts/emmake-browser';
 const ROOT = 'audits/emmake/browser';
 const H1 = 'Conectamos estrategia, datos y tecnología para impulsar lo que viene.';
-const ID_PATTERN = /^visual-emmake-202611(?:11|12)-[0-9]{2}$/;
+const ID_PATTERN = /^visual-emmake-202611(?:11|12|13)-[0-9]{2}$/;
 
 function broken(href) {
   return /%category%|%postname%|%25category%25|%25postname%25|\{[a-f0-9]{30,}\}(?:category|postname)/i.test(href);
@@ -49,6 +49,7 @@ function selfTest() {
   if (classifyPublicArticleLink('https://emmake.com/nuevaweb/?p=43')!=='query_post_permalink')throw Error('query fallback not classified');
   if (classifyPublicArticleLink('https://outside.example.test/post/')!=='wrong_origin')throw Error('external post not rejected');
   if (!validRequest({...r,audit_id:'visual-emmake-20261112-02'},'visual-emmake-20261112-02'))throw Error('New audit date refused');
+  if(!validRequest({...r,audit_id:'visual-emmake-20261113-01'},'visual-emmake-20261113-01'))throw Error('Nov 13 QA request refused');
   if(PAGES.length!==10 || new Set(PAGES.map(p=>p[1])).size!==10)throw Error('Published page inventory mismatch');
   if(PAGES.some(p=>p[1].includes('..')||p[1].startsWith('/')||p[1].includes('?')))throw Error('Unsafe fixed path');
   process.stdout.write('PASS: fixed-domain responsive browser QA contract\n');
@@ -132,6 +133,53 @@ async function audit(id) {
               internalContact:hrefs.some(h=>h.includes('/nuevaweb/contacto/')),
               linkCount:hrefs.length, hrefs,
               navReady:navLinks||menuButton,
+
+              brandCtas:(()=>{
+                const anchors=[...new Set(document.querySelectorAll('main .wp-block-post-content .wp-block-button > a,main .wp-block-post-content a.wp-block-button__link'))];
+                const brightness=rgb=>{
+                  const nums=(rgb.match(/[0-9.]+/g)||[]).slice(0,3).map(Number);
+                  if(nums.length!==3||nums.some(n=>!Number.isFinite(n)))return null;
+                  return nums.reduce((sum,n,i)=>{
+                    const v=n/255;
+                    const lin=v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4;
+                    return sum+lin*[0.2126,0.7152,0.0722][i];
+                  },0);
+                };
+                return anchors.map(a=>{
+                  const cs=getComputedStyle(a),bg=brightness(cs.backgroundColor),fg=brightness(cs.color);
+                  const contrast=bg===null||fg===null?0:
+                    (Math.max(bg,fg)+.05)/(Math.min(bg,fg)+.05);
+                  return {contrast:Math.round(contrast*100)/100,
+                    height:Math.round(a.getBoundingClientRect().height),
+                    visible:a.getBoundingClientRect().width>0&&a.getBoundingClientRect().height>0};
+                }).slice(0,15);
+              })(),
+              contactFormState:(()=>{
+                const forms=[...document.querySelectorAll('main form')];
+                return forms.map(f=>({
+                  native:f.classList.contains('seo-geo-contact-form'),
+                  post:f.method.toLowerCase()==='post',
+                  wpEndpoint:(()=>{try{
+                    const u=new URL(f.action);return u.origin===location.origin&&u.pathname.endsWith('/wp-admin/admin-post.php');
+                  }catch{return false;}})(),
+                  nonce:!!f.querySelector('input[name="_seo_geo_contact_nonce"][value]'),
+                  hiddenAction:!!f.querySelector('input[name="action"][value]'),
+                  requiredFields:f.querySelectorAll('input[required],textarea[required],select[required]').length,
+                  submit:!!f.querySelector('button[type="submit"],input[type="submit"]'),
+                })).slice(0,5);
+              })(),
+              blogDigitalLists:(()=>{
+                const lists=[...document.querySelectorAll('main .wp-block-latest-posts')];
+                const posts=lists.flatMap(ul=>[...ul.querySelectorAll(':scope > li')]);
+                const keys=posts.map(li=>{
+                  const a=li.querySelector('.wp-block-latest-posts__post-title[href],a[href]');
+                  if(!a)return null;
+                  try{const u=new URL(a.href);return u.origin===location.origin?u.pathname:null}
+                  catch{return null}
+                }).filter(Boolean);
+                return {lists:lists.length,entries:posts.length,unique:new Set(keys).size,
+                  repeated:keys.length-new Set(keys).size,unlinked:posts.length-keys.length};
+              })(),
               images:imgs.length,
               brokenImages:imgs.filter(x=>x.complete&&x.naturalWidth===0&&x.currentSrc).length,
               hero_bounds: (() => {
@@ -178,7 +226,25 @@ async function audit(id) {
             add('editorial_body_review',data.editorialWords>=minWords[name],
               {word_count:data.editorialWords,minimum_for_initial_review:minWords[name]});
           }
-          if(name==='contact')add('contact_form_present',data.formCount>=1,{forms:data.formCount});
+          if(name==='contact'){
+            add('contact_form_present',data.formCount>=1,{forms:data.formCount});
+            add('contact_native_form_ready',data.contactFormState.some(f=>f.native&&f.post&&
+              f.wpEndpoint&&f.nonce&&f.hiddenAction&&f.requiredFields>=2&&f.submit),
+              {forms_checked:data.contactFormState.length,
+                configured_native:data.contactFormState.filter(f=>f.native&&f.post&&f.wpEndpoint&&f.nonce).length,
+                required_fields:data.contactFormState.map(f=>f.requiredFields)});
+          }
+          if(name==='brands'){
+            add('cta_accessible_contrast',data.brandCtas.length>0&&
+              data.brandCtas.every(c=>c.contrast>=4.5&&c.height>=44&&c.visible),
+              {buttons:data.brandCtas.length,min_contrast:Math.min(...data.brandCtas.map(c=>c.contrast)),
+                min_height:Math.min(...data.brandCtas.map(c=>c.height))});
+          }
+          if(name==='blog-digital'){
+            // Do not gate editorial duplication, but count repeated public post cards
+            // so author-governed cleanup is based on evidence, not a CSS assumption.
+            add('editorial_latest_posts_inventory',true,data.blogDigitalLists);
+          }
           if(name==='blog')add('posts_listed',data.postCards>0||data.blogPostLinks>=3,
             {native_or_latest_post_cards:data.postCards,public_post_links:data.blogPostLinks});
           if(name==='home') {
