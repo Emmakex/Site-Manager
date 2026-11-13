@@ -7,6 +7,7 @@ on:
       - '.github/workflows/site-manager-site-bootstrap.yml'
       - 'commands/site-manager/**'
       - 'config/site-manager-command-registry.json'
+      - 'config/site-manager-theme-release-policies.json'
       - 'config/site-manager-site-catalog.json'
       - 'schemas/site-manager-command-v1.schema.json'
       - 'scripts/site-manager-command-*.py'
@@ -15,6 +16,9 @@ on:
       - 'scripts/site_manager_theme_model.py'
       - 'scripts/site_manager_theme_release_download.py'
       - 'scripts/site_manager_theme_large_mcp.py'
+      - 'scripts/site_manager_theme_package_gateway.py'
+      - 'scripts/site_manager_theme_package_evidence.py'
+      - 'tests/site_manager_theme_package_gateway_test.py'
       - 'tests/site_manager_theme_large_mcp_test.py'
       - 'tests/site_manager_theme_release_downloader_test.py'
       - 'scripts/site_manager_site_catalog.py'
@@ -36,6 +40,7 @@ on:
       - '.github/workflows/site-manager-site-bootstrap.yml'
       - 'commands/site-manager/**'
       - 'config/site-manager-command-registry.json'
+      - 'config/site-manager-theme-release-policies.json'
       - 'config/site-manager-site-catalog.json'
       - 'schemas/site-manager-command-v1.schema.json'
       - 'scripts/site-manager-command-*.py'
@@ -44,6 +49,9 @@ on:
       - 'scripts/site_manager_theme_model.py'
       - 'scripts/site_manager_theme_release_download.py'
       - 'scripts/site_manager_theme_large_mcp.py'
+      - 'scripts/site_manager_theme_package_gateway.py'
+      - 'scripts/site_manager_theme_package_evidence.py'
+      - 'tests/site_manager_theme_package_gateway_test.py'
       - 'tests/site_manager_theme_large_mcp_test.py'
       - 'tests/site_manager_theme_release_downloader_test.py'
       - 'scripts/site_manager_site_catalog.py'
@@ -86,6 +94,9 @@ jobs:
 
       - name: Large Theme MCP request safety
         run: python3 tests/site_manager_theme_large_mcp_test.py
+
+      - name: Governed Theme package business-action and sanitized evidence contract
+        run: python3 tests/site_manager_theme_package_gateway_test.py
 
       - name: Theme first-time adoption Gateway safety
         run: python3 tests/site_manager_theme_bootstrap_gateway_test.py

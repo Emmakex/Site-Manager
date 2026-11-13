@@ -23,6 +23,10 @@ from site_manager_site_overview import OverviewError, summarize_site_overview
 from site_manager_content_targets import ContentTargetsError, summarize_content_targets, summarize_content_page
 from site_manager_theme_model import ThemeModelError, summary as summarize_theme_model
 from site_manager_site_catalog import SiteCatalogError, require_registered_site
+from site_manager_theme_package_gateway import prepare_theme_package_plan, ThemePackageGatewayError
+from site_manager_theme_large_mcp import ThemePackageMcpTransportError
+from site_manager_theme_release_download import ThemeReleaseDownloadError
+from site_manager_theme_package_evidence import verify_theme_package_evidence, ThemePackageEvidenceError
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = ROOT / "config" / "site-manager-command-registry.json"
@@ -30,7 +34,7 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap"}
+SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
 SEO_ACCEPTANCE_TOOLS = {"start": "seo_acceptance_start", "status": "seo_acceptance_status"}
 SEO_ACCEPTANCE_PROFILE = "mcp-seo-only"
 SEO_ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "seo_plan", "seo_apply_verify", "seo_rollback", "cleanup")
@@ -39,6 +43,7 @@ NAV_ACCEPTANCE_PROFILE = "mcp-navigation-only"
 NAV_ACCEPTANCE_STEPS = ("precheck", "fixture_navigation_create", "navigation_plan", "navigation_apply_verify", "navigation_rollback", "cleanup")
 SEO_TOOLS = {"plan": "seo_update_plan", "apply": "seo_update_apply", "rollback": "seo_update_rollback"}
 THEME_TOOLS = {"plan": "theme_update_plan", "apply": "theme_update_apply", "rollback": "theme_update_rollback"}
+PACKAGE_TOOLS = {"plan": "theme_package_plan", "apply": "theme_package_apply", "rollback": "theme_package_rollback"}
 BOOTSTRAP_TOOLS = {"plan": "theme_bootstrap_plan", "apply": "theme_bootstrap_apply", "rollback": "theme_bootstrap_rollback"}
 SEO_FIELD_LIMITS = {"title": 500, "description": 5000, "canonical": 4096, "indexability": 12}
 SEO_INDEXABILITY = {"default", "index", "noindex"}
@@ -133,6 +138,13 @@ def validate_registry(registry: dict[str, Any]) -> None:
             or theme.get("required_scope") != "content.write"
             or theme.get("read_only") is not False):
         raise CommandError("theme.update must use only accepted scoped Theme text tools")
+
+    package = actions.get("theme.package.deploy")
+    if (not isinstance(package, dict) or set(package) != {"tools", "required_scope", "read_only"}
+            or package.get("tools") != PACKAGE_TOOLS
+            or package.get("required_scope") != "theme.package.write"
+            or package.get("read_only") is not False):
+        raise CommandError("Theme code deployment must use only the scoped package lifecycle")
 
     adoption = actions.get("theme.bootstrap")
     if (not isinstance(adoption, dict) or set(adoption) != {"tools", "required_scope", "read_only"}
@@ -234,6 +246,8 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
         validate_theme_payload(payload)
     elif action == "theme.bootstrap":
         validate_bootstrap_payload(payload)
+    elif action == "theme.package.deploy":
+        validate_theme_package_payload(payload)
     elif action == "content.acceptance":
         if set(payload) != {"confirmed"} or payload.get("confirmed") is not True:
             raise CommandError("content-only acceptance requires exact confirmed=true, with no caller-selected target")
@@ -250,6 +264,38 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
     else:
         raise CommandError("unregistered business action")
 
+
+
+def validate_theme_package_payload(payload: dict[str, Any]) -> None:
+    """Bounded official release references only: never URLs, ZIP bytes or filesystem paths."""
+    stage = payload.get("stage")
+    if stage == "plan":
+        required = {"stage", "theme_slug", "source_commit_sha", "source_run_id",
+                    "source_artifact_id", "package_sha256"}
+        if not required <= set(payload) or not set(payload) <= (required | {"reason"}):
+            raise CommandError("Theme package plan accepts only official release IDs and digest")
+        if (type(payload["theme_slug"]) is not str or
+                re.fullmatch(r"[a-z0-9][a-z0-9-]{1,79}", payload["theme_slug"]) is None):
+            raise CommandError("Theme package slug is invalid")
+        if (type(payload["source_commit_sha"]) is not str or
+                re.fullmatch(r"[a-f0-9]{40}", payload["source_commit_sha"]) is None):
+            raise CommandError("Theme source commit identity is invalid")
+        if (type(payload["source_run_id"]) is not int or payload["source_run_id"] < 1
+                or type(payload["source_artifact_id"]) is not int or payload["source_artifact_id"] < 1):
+            raise CommandError("Theme source workflow IDs are invalid")
+        if (type(payload["package_sha256"]) is not str or
+                re.fullmatch(r"[a-f0-9]{64}", payload["package_sha256"]) is None):
+            raise CommandError("Theme package digest is invalid")
+        reason = payload.get("reason", "")
+        if type(reason) is not str or len(reason) > 500:
+            raise CommandError("Theme package reason is invalid")
+    elif stage in {"apply", "rollback"}:
+        if set(payload) != {"stage", "plan_id", "confirmed"} or payload["confirmed"] is not True:
+            raise CommandError("Theme package mutations require approved plan ID and exact confirmed=true")
+        if type(payload["plan_id"]) is not str or re.fullmatch(r"sm-plan-[a-f0-9]{24}", payload["plan_id"]) is None:
+            raise CommandError("Theme package plan ID is invalid")
+    else:
+        raise CommandError("Theme package stage is not authorized")
 
 
 def validate_content_payload(payload: dict[str, Any]) -> None:
@@ -1230,7 +1276,28 @@ def execute(command_path: Path, result_dir: Path) -> int:
         action = registry["actions"][action_name]
         client = McpClient(base_url, token)
         client.initialize()
-        if action_name == "content.acceptance":
+        if action_name == "theme.package.deploy" and command["payload"]["stage"] == "plan":
+            stage = "plan"
+            try:
+                data = prepare_theme_package_plan(
+                    command["payload"],
+                    mcp_url=base_url,
+                    site_token=token,
+                    github_token=os.environ.get("SITE_MANAGER_THEME_RELEASE_TOKEN", ""),
+                )
+            except ThemePackageGatewayError as exc:
+                raise CommandError("Official Theme release policy or credential is unavailable") from exc
+            except ThemeReleaseDownloadError as exc:
+                raise VerificationError("Official Theme release provenance or bytes could not be verified") from exc
+            except ThemePackageMcpTransportError as exc:
+                raise TransportError("Theme package MCP upload failed or was refused") from exc
+            try:
+                verified, sanitized = verify_theme_package_evidence(
+                    stage, data, command["payload"]
+                )
+            except ThemePackageEvidenceError as exc:
+                raise VerificationError("Theme package plan lacked accepted WordPress evidence") from exc
+        elif action_name == "content.acceptance":
             stage = "content-only-roundtrip"
             sanitized = sanitize_value(run_content_acceptance(client), token)
             verified = True
@@ -1320,6 +1387,13 @@ def execute(command_path: Path, result_dir: Path) -> int:
             elif action_name == "theme.bootstrap":
                 verified = verify_bootstrap_response(stage, data, command["payload"])
                 sanitized = sanitize_bootstrap_evidence(stage, data, token)
+            elif action_name == "theme.package.deploy":
+                try:
+                    verified, sanitized = verify_theme_package_evidence(
+                        stage, data, command["payload"]
+                    )
+                except ThemePackageEvidenceError as exc:
+                    raise VerificationError("Theme package mutation lacks verified WordPress evidence") from exc
             elif action_name == "navigation.update":
                 verified = verify_navigation_response(stage, data, command["payload"])
                 sanitized = sanitize_write_evidence(stage, data, token)
@@ -1447,13 +1521,21 @@ def self_test() -> int:
             or len(theme_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])) != 3):
         raise CommandError("theme.update requires exactly three closed stages")
     bootstrap_rule = theme_rule.get("else", {})
+    package_rule = bootstrap_rule.get("else", {}) if isinstance(bootstrap_rule, dict) else {}
+    page_rule = package_rule.get("else", {}) if isinstance(package_rule, dict) else {}
+    package_variants = package_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])
     if (not isinstance(bootstrap_rule, dict)
             or bootstrap_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "theme.bootstrap"
             or len(bootstrap_rule.get("then", {}).get("properties", {}).get("payload", {}).get("oneOf", [])) != 3
-            or bootstrap_rule.get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "site.content_page"
-            or bootstrap_rule.get("else", {}).get("then", {}).get("properties", {}).get("payload", {}).get("required") != ["post_type", "page"]
-            or bootstrap_rule.get("else", {}).get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
-        raise CommandError("theme.bootstrap and bounded paginated read must keep closed payloads")
+            or package_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "theme.package.deploy"
+            or not isinstance(package_variants, list) or len(package_variants) != 3
+            or not all(isinstance(v, dict) and v.get("additionalProperties") is False for v in package_variants)
+            or set(package_variants[0].get("required", [])) != {"stage", "theme_slug", "source_commit_sha",
+                "source_run_id", "source_artifact_id", "package_sha256"}
+            or page_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "site.content_page"
+            or page_rule.get("then", {}).get("properties", {}).get("payload", {}).get("required") != ["post_type", "page"]
+            or page_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
+        raise CommandError("theme package, bootstrap and bounded reads must preserve independent closed schemas")
 
     valid = {
         "version": "1",
@@ -1464,6 +1546,24 @@ def self_test() -> int:
         "payload": {},
     }
     validate_command(valid, registry)
+    package_valid = {**valid, "action":"theme.package.deploy", "payload":{
+        "stage":"plan", "theme_slug":"seo-geo-theme", "source_commit_sha":"a"*40,
+        "source_run_id":12, "source_artifact_id":43, "package_sha256":"b"*64,
+    }}
+    validate_command(package_valid, registry)
+    for forbidden in (
+        {**package_valid["payload"], "package_url":"https://attacker.test/source.zip"},
+        {**package_valid["payload"], "package_base64":"unsafe-zip"},
+        {**package_valid["payload"], "source_run_id":True},
+        {"stage":"apply","plan_id":"sm-plan-"+"c"*24,"confirmed":False},
+        {"stage":"rollback","plan_id":"sm-plan-"+"c"*24,"confirmed":True,"wp_path":"/tmp/site"},
+    ):
+        try:
+            validate_command({**package_valid, "payload":forbidden}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("theme package command accepted an unsafe operation")
     overview_command = {**valid, "action": "site.overview", "payload": {}}
     validate_command(overview_command, registry)
     targets_command = {**valid, "action": "site.content_targets", "payload": {}}

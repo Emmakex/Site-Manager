@@ -135,6 +135,7 @@ jobs:
         shell: bash
         env:
           SITE_MANAGER_MCP_TOKEN: ${{ secrets.SITE_MANAGER_MCP_TOKEN }}
+          SITE_MANAGER_THEME_RELEASE_TOKEN: ${{ secrets.SITE_MANAGER_THEME_RELEASE_TOKEN }}
         run: |
           set +e
           python3 scripts/site-manager-command-runner.py \

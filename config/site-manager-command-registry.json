@@ -104,6 +104,15 @@
       "tool": "site_theme_package_state",
       "required_scope": "site.read",
       "read_only": true
+    },
+    "theme.package.deploy": {
+      "tools": {
+        "plan": "theme_package_plan",
+        "apply": "theme_package_apply",
+        "rollback": "theme_package_rollback"
+      },
+      "required_scope": "theme.package.write",
+      "read_only": false
     }
   }
 }
