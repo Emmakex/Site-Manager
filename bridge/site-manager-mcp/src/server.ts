@@ -56,6 +56,32 @@ const themeBootstrapPlanSchema = fromJsonSchema<ThemeBootstrapPlanInput>({
   },
 });
 
+type ThemePackagePlanInput = {
+  theme_slug: string;
+  package_sha256: string;
+  package_base64: string;
+  source_commit_sha: string;
+  source_run_id: number;
+  source_artifact_id: number;
+  reason?: string;
+};
+
+const themePackagePlanSchema = fromJsonSchema<ThemePackagePlanInput>({
+  type: 'object',
+  additionalProperties: false,
+  required: ['theme_slug', 'package_sha256', 'package_base64',
+    'source_commit_sha', 'source_run_id', 'source_artifact_id'],
+  properties: {
+    theme_slug: { type: 'string', pattern: '^[a-z0-9][a-z0-9-]{1,79}$' },
+    package_sha256: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+    package_base64: { type: 'string', minLength: 128, maxLength: 27000000, pattern: '^[A-Za-z0-9+/]+={0,2}$' },
+    source_commit_sha: { type: 'string', pattern: '^[a-f0-9]{40}$' },
+    source_run_id: { type: 'integer', minimum: 1 },
+    source_artifact_id: { type: 'integer', minimum: 1 },
+    reason: { type: 'string', maxLength: 500 },
+  },
+});
+
 type ContentPlanInput = {
   post_id: number;
   fields: Record<string, string>;
@@ -360,6 +386,61 @@ export function createSiteManagerMcpServer(
           return toolResult(await client.remoteAcceptanceJob());
         } catch {
           return toolError('Site Manager could not read content acceptance status.');
+        }
+      },
+    );
+  }
+
+  // Code packages have a distinct opt-in scope; content.write cannot grant it.
+  if (scopes.has('theme.package.write') && scopes.has('site.read')) {
+    server.registerTool(
+      'theme_package_plan',
+      {
+        title: 'Plan an official CI WordPress Theme package',
+        description: 'Stage an exact-SHA CI-attested Theme ZIP on WordPress and return a connection-bound preview. No URL, arbitrary path, script or direct installation.',
+        inputSchema: themePackagePlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ theme_slug, package_sha256, package_base64, source_commit_sha, source_run_id, source_artifact_id, reason }) => {
+        try {
+          return toolResult(await client.themePackagePlan({
+            theme_slug, package_sha256, package_base64, source_commit_sha, source_run_id, source_artifact_id,
+            ...(reason === undefined ? {} : { reason }),
+          }));
+        } catch {
+          return toolError('WordPress rejected the bounded Theme package plan.');
+        }
+      },
+    );
+    server.registerTool(
+      'theme_package_apply',
+      {
+        title: 'Apply a confirmed Theme package plan',
+        description: 'Install a staged, unexpired Theme release with WordPress-owned backup and exact-byte readback.',
+        inputSchema: confirmedPlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ plan_id, confirmed }) => {
+        try {
+          return toolResult(await client.themePackageApply({ plan_id, confirmed }));
+        } catch {
+          return toolError('WordPress rejected Theme package apply.');
+        }
+      },
+    );
+    server.registerTool(
+      'theme_package_rollback',
+      {
+        title: 'Restore a confirmed pre-upgrade WordPress Theme',
+        description: 'Restore only the previous private snapshot belonging to an approved Theme package plan.',
+        inputSchema: confirmedPlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ plan_id, confirmed }) => {
+        try {
+          return toolResult(await client.themePackageRollback({ plan_id, confirmed }));
+        } catch {
+          return toolError('WordPress rejected Theme package rollback.');
         }
       },
     );
