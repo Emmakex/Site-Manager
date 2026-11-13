@@ -26,5 +26,6 @@ jobs:
       - run: composer install --no-interaction --prefer-dist
       - run: composer lint
       - run: composer test
+      - run: python3 tests/site_manager_theme_release_downloader_test.py
       - run: python3 tests/site_manager_theme_release_provenance_test.py
       - run: bash scripts/check-neutral-core.sh
