@@ -58,7 +58,7 @@ async function main(){
             width:Math.round(n.getBoundingClientRect().width)
           })).slice(0,25);
           const formStructure=[...document.querySelectorAll('main form')].map(f=>{
-            const u=(()=>{try{return new URL(f.action)}catch{return null}})();
+            const u=(()=>{try{return new URL(f.getAttribute('action'),location.href)}catch{return null}})();
             const submit=f.querySelector('button[type="submit"],input[type="submit"]');
             const size=submit?.getBoundingClientRect();
             return {method:f.method.toLowerCase(),action_same_origin:u?.origin===location.origin,
