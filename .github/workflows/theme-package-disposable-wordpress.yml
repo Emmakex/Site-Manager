@@ -51,7 +51,7 @@ jobs:
           set -euo pipefail
           installed=0
           for attempt in $(seq 1 8); do
-            if docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli core install \
+            if docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli wp core install \
                 --url="http://localhost:8088" \
                 --title="Disposable Theme Package Acceptance" \
                 --admin_user=testadmin \
@@ -64,9 +64,9 @@ jobs:
             sleep 3
           done
           test "$installed" -eq 1
-          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli plugin install /artifacts/site-manager-0.11.13.zip --activate
-          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli option update blog_public 0
-          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli plugin is-active site-manager
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli wp plugin install /artifacts/site-manager-0.11.13.zip --activate
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli wp option update blog_public 0
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli wp plugin is-active site-manager
 
       - name: Execute real WordPress scoped Theme plan, install, verification and rollback
         run: |
