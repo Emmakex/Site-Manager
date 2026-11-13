@@ -49,6 +49,8 @@ jobs:
       - name: Install disposable WordPress and official Site Manager plugin
         run: |
           set -euo pipefail
+          test -s dist/site-manager-0.11.13.zip
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli sh -c 'test -r /artifacts/site-manager-0.11.13.zip && test -w /var/www/html/wp-content && test -w /var/www/html/wp-content/plugins'
           installed=0
           for attempt in $(seq 1 8); do
             if docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml run --rm -T cli wp core install \
