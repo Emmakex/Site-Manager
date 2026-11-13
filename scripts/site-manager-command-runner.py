@@ -26,6 +26,7 @@ from site_manager_site_catalog import SiteCatalogError, require_registered_site
 from site_manager_theme_package_gateway import prepare_theme_package_plan, ThemePackageGatewayError
 from site_manager_theme_large_mcp import ThemePackageMcpTransportError
 from site_manager_theme_release_download import ThemeReleaseDownloadError
+from site_manager_theme_package_evidence import verify_theme_package_evidence, ThemePackageEvidenceError
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = ROOT / "config" / "site-manager-command-registry.json"
@@ -1275,7 +1276,28 @@ def execute(command_path: Path, result_dir: Path) -> int:
         action = registry["actions"][action_name]
         client = McpClient(base_url, token)
         client.initialize()
-        if action_name == "content.acceptance":
+        if action_name == "theme.package.deploy" and command["payload"]["stage"] == "plan":
+            stage = "plan"
+            try:
+                data = prepare_theme_package_plan(
+                    command["payload"],
+                    mcp_url=base_url,
+                    site_token=token,
+                    github_token=os.environ.get("SITE_MANAGER_THEME_RELEASE_TOKEN", ""),
+                )
+            except ThemePackageGatewayError as exc:
+                raise CommandError("Official Theme release policy or credential is unavailable") from exc
+            except ThemeReleaseDownloadError as exc:
+                raise VerificationError("Official Theme release provenance or bytes could not be verified") from exc
+            except ThemePackageMcpTransportError as exc:
+                raise TransportError("Theme package MCP upload failed or was refused") from exc
+            try:
+                verified, sanitized = verify_theme_package_evidence(
+                    stage, data, command["payload"]
+                )
+            except ThemePackageEvidenceError as exc:
+                raise VerificationError("Theme package plan lacked accepted WordPress evidence") from exc
+        elif action_name == "content.acceptance":
             stage = "content-only-roundtrip"
             sanitized = sanitize_value(run_content_acceptance(client), token)
             verified = True
@@ -1365,6 +1387,13 @@ def execute(command_path: Path, result_dir: Path) -> int:
             elif action_name == "theme.bootstrap":
                 verified = verify_bootstrap_response(stage, data, command["payload"])
                 sanitized = sanitize_bootstrap_evidence(stage, data, token)
+            elif action_name == "theme.package.deploy":
+                try:
+                    verified, sanitized = verify_theme_package_evidence(
+                        stage, data, command["payload"]
+                    )
+                except ThemePackageEvidenceError as exc:
+                    raise VerificationError("Theme package mutation lacks verified WordPress evidence") from exc
             elif action_name == "navigation.update":
                 verified = verify_navigation_response(stage, data, command["payload"])
                 sanitized = sanitize_write_evidence(stage, data, token)
