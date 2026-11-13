@@ -156,6 +156,41 @@ final class WordPressAdapter implements PlatformAdapter
             ),
         ];
 
+        // Code deployment is separate from semantic Theme text updates and
+        // never inherits the content.write scope. The same package adapter
+        // applies to any compatible discovered active WordPress theme.
+        $activeTheme = is_array($snapshot->inventory['theme'] ?? null)
+            ? $snapshot->inventory['theme'] : [];
+        $packageThemeSlug = (string) ($activeTheme['stylesheet'] ?? '');
+        $packageDetected = $packageThemeSlug !== ''
+            && $packageThemeSlug === (string) ($activeTheme['template'] ?? '')
+            && empty($activeTheme['child_theme']);
+        $stagingEnvironment = function_exists('wp_get_environment_type')
+            && in_array(wp_get_environment_type(), ['local','development','staging'], true);
+        $packageGovernable = $packageDetected && $stagingEnvironment
+            && class_exists(\ZipArchive::class)
+            && (! function_exists('is_multisite') || ! is_multisite())
+            && function_exists('wp_is_file_mod_allowed')
+            && wp_is_file_mod_allowed('theme_package_deploy');
+        $caps[] = new Capability(
+            'theme.package.write',
+            $this->id(),
+            $packageDetected,
+            $packageDetected,
+            $packageGovernable,
+            ['theme.package.deploy'],
+            ['theme.package.write'],
+            $packageGovernable ? [] : ['A standalone active theme, staging WordPress, writable filesystem and ZIP support are required.'],
+            [
+                'theme_slug'=>$packageThemeSlug,
+                'staging_only'=>true,
+                'confirmation'=>'explicit',
+                'reversible'=>true,
+                'write_type'=>'immutable-package-only',
+                'separate_from_content_write'=>true,
+            ],
+        );
+
         foreach ((array) ($snapshot->inventory['providers'] ?? []) as $provider) {
             $id = (string) ($provider['id'] ?? 'unknown');
             $caps[] = new Capability(
