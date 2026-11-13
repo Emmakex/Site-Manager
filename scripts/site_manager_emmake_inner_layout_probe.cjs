@@ -6,12 +6,13 @@ const path=require('node:path');
 const ROUTES=Object.freeze([
   Object.freeze({name:'brands',route:'nuestras-marcas/'}),
   Object.freeze({name:'blog-digital',route:'blog-transformacion-digital/'}),
+  Object.freeze({name:'contact',route:'contacto/'}),
 ]);
 const ORIGIN='https://emmake.com/nuevaweb/';
 const OUT='artifacts/emmake-inner-layout/structure.json';
 function assert(b,msg){if(!b)throw Error(msg)}
 async function main(){
-  assert(ROUTES.length===2&&ROUTES[0].route==='nuestras-marcas/'&&ROUTES[1].route==='blog-transformacion-digital/','unsafe scope');
+  assert(ROUTES.length===3&&ROUTES[0].route==='nuestras-marcas/'&&ROUTES[1].route==='blog-transformacion-digital/'&&ROUTES[2].route==='contacto/','unsafe scope');
   const {chromium}=require('playwright');
   const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
   const results=[];
@@ -56,8 +57,24 @@ async function main(){
             columns:getComputedStyle(n).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length,
             width:Math.round(n.getBoundingClientRect().width)
           })).slice(0,25);
+          const formStructure=[...document.querySelectorAll('main form')].map(f=>{
+            const u=(()=>{try{return new URL(f.action)}catch{return null}})();
+            const submit=f.querySelector('button[type="submit"],input[type="submit"]');
+            const size=submit?.getBoundingClientRect();
+            return {method:f.method.toLowerCase(),action_same_origin:u?.origin===location.origin,
+              action_path:u?.pathname?.slice(0,160)||'',
+              classes:[...f.classList].filter(x=>/^[a-zA-Z0-9_-]{1,72}$/.test(x)).slice(0,12),
+              names:[...f.querySelectorAll('input[type="hidden"]')].map(x=>x.name).filter(x=>/^[a-zA-Z0-9_-]{1,72}$/.test(x)).slice(0,25),
+              required_count:f.querySelectorAll('input[required],textarea[required],select[required]').length,
+              submit_height:size?Math.round(size.height):0,
+              submit_present:!!submit,
+              honeypot:!!f.querySelector('input[name*="website"],input[name*="honeypot"],input[name*="_wpcf7"]'),
+              has_recaptcha:!!f.querySelector('[class*="recaptcha"]'),
+              js_wpcf7:!!window.wpcf7
+            };
+          }).slice(0,6);
           const overflow=document.documentElement.scrollWidth>innerWidth+4;
-          return {blurbCount:blurbNodes.length, blurbImageCount:images.length,
+          return {formStructure,blurbCount:blurbNodes.length, blurbImageCount:images.length,
             blurbImageMaxHeight:imgHeights.length?Math.max(...imgHeights):0,
             parentDisplay:rootStyle.display, parentGridColumnCount:columns.length,
             latestPosts,overflow,found:true,documentHeight:document.documentElement.scrollHeight,
