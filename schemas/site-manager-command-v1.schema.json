@@ -37,6 +37,7 @@
         "site.overview",
         "site.content_targets",
         "site.theme_model",
+        "site.theme_package_state",
         "theme.update",
         "theme.bootstrap",
         "site.content_page"
