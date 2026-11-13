@@ -2,6 +2,12 @@ services:
   mcp:
     image: ${SITE_MANAGER_MCP_IMAGE_REF:?Set SITE_MANAGER_MCP_IMAGE_REF to an immutable image digest}
     restart: unless-stopped
+    # Preserve bounded Docker logs on every site-specific MCP deployment.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
       SITE_MANAGER_REST_BASE: ${SITE_MANAGER_REST_BASE:?Set SITE_MANAGER_REST_BASE}
       SITE_MANAGER_CONNECTION_ID: ${SITE_MANAGER_CONNECTION_ID:?Set SITE_MANAGER_CONNECTION_ID}

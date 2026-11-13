@@ -96,6 +96,21 @@ jobs:
           grep -Fq 'SITE_MANAGER_TOKEN: contract-only-placeholder' <<<"$rendered"
           grep -Fq 'HOST: 0.0.0.0' <<<"$rendered"
           grep -Fq 'PORT: "8787"' <<<"$rendered"
+          # No running containers or credentials are needed for this contract.
+          docker compose --project-name site-manager-mcp-contract-site -f compose.edge.yaml config --format json |
+            node -e '
+              const assert = require("node:assert/strict");
+              let raw="";
+              process.stdin.on("data", part => raw+=part);
+              process.stdin.on("end", () => {
+                const svc=JSON.parse(raw).services.mcp;
+                assert.equal(svc.logging?.driver,"json-file");
+                assert.equal(svc.logging?.options?.["max-size"],"10m");
+                assert.equal(String(svc.logging?.options?.["max-file"]),"3");
+                assert.equal((svc.ports??[]).length,0);
+                console.log("Bounded MCP logging and private-only port contract: OK");
+              });
+            '
           if grep -Fq 'SITE_MANAGER_BEARER:' <<<"$rendered"; then
             echo 'Legacy SITE_MANAGER_BEARER must not appear in production Compose' >&2
             exit 1
