@@ -88,6 +88,8 @@ reject(lambda: ThemePackageMcpPlanClient(URL,TOKEN,wire=FakeWire(bad_tool=True))
        "theme_package_mcp_not_planned")
 reject(lambda: ThemePackageMcpPlanClient(URL,TOKEN,wire=FakeWire(protocol="unknown")).stage_official_release(PACKAGE),
        "theme_package_mcp_unsupported_protocol")
+assert ThemePackageMcpPlanClient("http://127.0.0.1:8787/mcp", TOKEN)
+assert ThemePackageMcpPlanClient("http://localhost:8787/mcp", TOKEN)
 reject(lambda: ThemePackageMcpPlanClient("http://169.254.169.254/latest", TOKEN),
        "theme_package_mcp_invalid_trusted_url")
 reject(lambda: ThemePackageMcpPlanClient("https://user:pass@example.test/mcp", TOKEN),
