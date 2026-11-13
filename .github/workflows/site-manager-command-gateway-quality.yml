@@ -13,8 +13,10 @@ on:
       - 'scripts/site_manager_site_overview.py'
       - 'scripts/site_manager_content_targets.py'
       - 'scripts/site_manager_theme_model.py'
+      - 'scripts/site_manager_theme_release_download.py'
       - 'scripts/site_manager_theme_large_mcp.py'
       - 'tests/site_manager_theme_large_mcp_test.py'
+      - 'tests/site_manager_theme_release_downloader_test.py'
       - 'scripts/site_manager_site_catalog.py'
       - 'scripts/site_manager_site_bootstrap.py'
       - 'tests/site_manager_command_gateway_test.py'
@@ -40,8 +42,10 @@ on:
       - 'scripts/site_manager_site_overview.py'
       - 'scripts/site_manager_content_targets.py'
       - 'scripts/site_manager_theme_model.py'
+      - 'scripts/site_manager_theme_release_download.py'
       - 'scripts/site_manager_theme_large_mcp.py'
       - 'tests/site_manager_theme_large_mcp_test.py'
+      - 'tests/site_manager_theme_release_downloader_test.py'
       - 'scripts/site_manager_site_catalog.py'
       - 'scripts/site_manager_site_bootstrap.py'
       - 'tests/site_manager_command_gateway_test.py'
@@ -76,6 +80,9 @@ jobs:
 
       - name: Gateway static contract
         run: python3 tests/site_manager_command_gateway_test.py
+
+      - name: Official Theme release fetch safety
+        run: python3 tests/site_manager_theme_release_downloader_test.py
 
       - name: Large Theme MCP request safety
         run: python3 tests/site_manager_theme_large_mcp_test.py
