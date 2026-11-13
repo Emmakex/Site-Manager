@@ -79,6 +79,9 @@ final class RemoteThemePackageAccess
             $previous = (new ThemePackageTreeFingerprint())->installed(
                 (string) get_stylesheet_directory(), $slug
             );
+            if (hash_equals((string) $previous['tree_sha256'], (string) $stored['tree_sha256'])) {
+                throw new DomainException('theme_package_already_installed');
+            }
             $connection = (new RemoteConnectionStore())->publicState();
             $connectionId = (string) ($connection['connection_id'] ?? '');
             $generation = (int) ($connection['generation'] ?? 0);
