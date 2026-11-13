@@ -51,7 +51,7 @@ def verify_release_reference(
         raise ThemePackageProvenanceError("invalid_trusted_repository")
     if not re.fullmatch(r"\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml", policy.workflow_path):
         raise ThemePackageProvenanceError("invalid_trusted_workflow")
-    if not _hex_digest(expected_commit_sha):
+    if not isinstance(expected_commit_sha, str) or re.fullmatch(r"[a-f0-9]{40}", expected_commit_sha) is None:
         raise ThemePackageProvenanceError("invalid_expected_commit")
     if not isinstance(expected_run_id, int) or isinstance(expected_run_id, bool) or expected_run_id <= 0:
         raise ThemePackageProvenanceError("invalid_run_id")
