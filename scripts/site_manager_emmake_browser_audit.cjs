@@ -180,6 +180,39 @@ async function audit(id) {
                 return {lists:lists.length,entries:posts.length,unique:new Set(keys).size,
                   repeated:keys.length-new Set(keys).size,unlinked:posts.length-keys.length};
               })(),
+              aboutInner:(()=>{
+                const root=document.querySelector('main .wp-block-post-content');
+                const gallery=root?.querySelector(':scope > .seo-geo-legacy-about-brand-grid');
+                const cards=[...(root?.querySelectorAll(':scope > .seo-geo-legacy-about-card-grid')||[])];
+                const logos=[...(gallery?.querySelectorAll(':scope > figure.wp-block-image')||[])];
+                const blurbs=cards.flatMap(card=>[...card.querySelectorAll(':scope > .sgmb-divi-blurb')]);
+                const columns=el=>el?getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length:0;
+                return {
+                  enhanced:!!root?.classList.contains('seo-geo-legacy-about-enhanced'),
+                  assetLoaded:[...document.scripts].some(el=>el.src?.includes('corporate-about-v1.js')),
+                  brandGroups:gallery?1:0,cardGroups:cards.length,
+                  logos:logos.length,blurbs:blurbs.length,
+                  maxLogoHeight:Math.round(Math.max(0,...logos.map(el=>el.getBoundingClientRect().height))),
+                  maxLogoImageHeight:Math.round(Math.max(0,...logos.map(el=>el.querySelector('img')?.getBoundingClientRect().height||0))),
+                  brandColumns:columns(gallery),cardColumns:cards.map(columns)
+                };
+              })(),
+              blogDigitalInner:(()=>{
+                const root=document.querySelector('main .wp-block-post-content');
+                const feature=root?.querySelector('.seo-geo-blog-digital-feature');
+                const archive=root?.querySelector(':scope > .seo-geo-blog-digital-archive');
+                const topic=root?.querySelector('.seo-geo-blog-digital-topic-grid');
+                const categories=root?.querySelector('.seo-geo-blog-digital-category-grid');
+                return {
+                  enhanced:!!root?.classList.contains('seo-geo-blog-digital-enhanced'),
+                  assetLoaded:[...document.scripts].some(el=>el.src?.includes('corporate-blog-digital-v1.js')),
+                  featured:feature?.querySelectorAll('ul.wp-block-latest-posts > li').length||0,
+                  archive:archive?.querySelectorAll(':scope > li').length||0,
+                  topics:topic?.children.length||0,categories:categories?.children.length||0,
+                  newsletterDisabled:root?.querySelectorAll('.seo-geo-blog-digital-newsletter-unavailable').length||0,
+                  archiveColumns:archive?getComputedStyle(archive).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length:0
+                };
+              })(),
               images:imgs.length,
               brokenImages:imgs.filter(x=>x.complete&&x.naturalWidth===0&&x.currentSrc).length,
               hero_bounds: (() => {
@@ -240,10 +273,34 @@ async function audit(id) {
               {buttons:data.brandCtas.length,min_contrast:Math.min(...data.brandCtas.map(c=>c.contrast)),
                 min_height:Math.min(...data.brandCtas.map(c=>c.height))});
           }
+          if(name==='about'){
+            const a=data.aboutInner;
+            add('installed_about_asset_and_enhancer',a.assetLoaded&&a.enhanced,
+              {asset_loaded:a.assetLoaded,enhanced:a.enhanced});
+            add('installed_about_brand_gallery',a.brandGroups===1&&a.logos===8&&
+              a.brandColumns===(device==='desktop'?4:2)&&
+              a.maxLogoHeight<=(device==='desktop'?180:150)&&
+              a.maxLogoImageHeight<=(device==='desktop'?140:115),a);
+            add('installed_about_services_cards',a.cardGroups===2&&a.blurbs===8&&
+              a.cardColumns.every(cols=>cols===(device==='desktop'?2:1)),
+              {card_groups:a.cardGroups,blurbs:a.blurbs,columns:a.cardColumns});
+          }
           if(name==='blog-digital'){
-            // Do not gate editorial duplication, but count repeated public post cards
-            // so author-governed cleanup is based on evidence, not a CSS assumption.
+            const b=data.blogDigitalInner;
             add('editorial_latest_posts_inventory',true,data.blogDigitalLists);
+            add('installed_blog_asset_and_enhancer',b.assetLoaded&&b.enhanced,
+              {asset_loaded:b.assetLoaded,enhanced:b.enhanced});
+            add('installed_blog_unique_published_cards',
+              data.blogDigitalLists.entries===5&&data.blogDigitalLists.unique===5&&
+              data.blogDigitalLists.repeated===0&&data.blogDigitalLists.unlinked===0,
+              data.blogDigitalLists);
+            add('installed_blog_featured_archive',b.featured===1&&b.archive===4&&
+              b.archiveColumns===(device==='desktop'?2:1),
+              {featured:b.featured,archive:b.archive,archive_columns:b.archiveColumns});
+            add('installed_blog_topics_preserved',b.topics===6&&b.categories===12,
+              {topics:b.topics,categories:b.categories});
+            add('installed_blog_inert_newsletter_hidden',b.newsletterDisabled===1,
+              {disabled_placeholder_cards:b.newsletterDisabled});
           }
           if(name==='blog')add('posts_listed',data.postCards>0||data.blogPostLinks>=3,
             {native_or_latest_post_cards:data.postCards,public_post_links:data.blogPostLinks});
