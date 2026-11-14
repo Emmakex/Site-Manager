@@ -1,0 +1,14 @@
+{
+  "action": "theme.package.deploy",
+  "command_id": "cmd-emmake-nav-theme-release-plan-20261114-03",
+  "command_sha256": "75f5187bd8d05c5085289f6e1b7d00ee81608ae555fc89886ba88a83ff4eff5e",
+  "error": {
+    "code": "transport_failed",
+    "detail": "Theme package MCP upload failed or was refused",
+    "message": "The production MCP transport did not complete successfully."
+  },
+  "site": "emmake-nuevaweb",
+  "status": "failed",
+  "verified": false,
+  "version": "1"
+}
