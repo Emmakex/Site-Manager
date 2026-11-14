@@ -5,7 +5,8 @@
       "repository": "Emmakex/template-wordpress-seo-geo",
       "workflow_path": ".github/workflows/release-artifact.yml",
       "branch": "main",
-      "artifact_name": "seo-geo-theme-release-candidate"
+      "artifact_name": "seo-geo-theme-release-candidate",
+      "access": "public"
     }
   }
 }
