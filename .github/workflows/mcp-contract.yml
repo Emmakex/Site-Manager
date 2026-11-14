@@ -147,6 +147,7 @@ jobs:
           grep -Fq 'site-manager-mcp-deploy[bot]' "$workflow"
           grep -Fq -- '--project-name "$PROJECT_NAME"' "$script"
           grep -Fq 'rollback restored empty baseline' "$script"
+          grep -Fxq '  compose "$image_ref" up -d --force-recreate --remove-orphans' "$script"
           grep -Fq 'SITE_MANAGER_TOKEN=[0-9a-f]{64}' "$script"
       - name: Build container
         run: docker build -t site-manager-mcp:contract .
