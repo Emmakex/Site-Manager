@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-nav-home-label-plan-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "navigation.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "provider": "wordpress-classic-menu",
+    "target_id": 50084,
+    "fields": {
+      "title": "Inicio"
+    },
+    "reason": "Evitar duplicar el nombre EMMAKE en logotipo y primer enlace de menú; conservar enlace de portada y URL"
+  }
+}
