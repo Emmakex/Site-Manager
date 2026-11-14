@@ -95,7 +95,9 @@ def _github_fetch(url: str, token: str, binary: bool) -> Any:
         raise ThemeReleaseDownloadError("release_source_configuration_missing")
     headers = {
         "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github+json" if not binary else "application/zip",
+        # GitHub Actions artifact /zip is an API endpoint returning 302, not
+        # an application/zip media-type negotiation endpoint (HTTP 415).
+        "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
         "User-Agent": "site-manager-release-gateway/1",
     }
