@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-careers-seo-description-apply-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "seo.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-184de073e34a7098a215bb0c",
+    "confirmed": true
+  }
+}
