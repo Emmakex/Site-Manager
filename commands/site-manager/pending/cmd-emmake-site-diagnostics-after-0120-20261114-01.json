@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-site-diagnostics-after-0120-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "site.diagnostics",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
