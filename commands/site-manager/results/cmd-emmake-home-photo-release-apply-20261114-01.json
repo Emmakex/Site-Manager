@@ -1,0 +1,33 @@
+{
+  "action": "theme.package.deploy",
+  "command_id": "cmd-emmake-home-photo-release-apply-20261114-01",
+  "command_sha256": "433b41f4bf60c451e3af20eb57fab528ddfff84904482df85f2783b18eb4a259",
+  "data": {
+    "plan": {
+      "capability_id": "theme.package.write",
+      "confirmation_required": true,
+      "expires_at": "2026-11-14T21:13:49+00:00",
+      "operation": "theme.package.deploy",
+      "plan_id": "sm-plan-efeac7b79bdb2ac9ee0e6ca6",
+      "reversible": true,
+      "status": "applied",
+      "target": {
+        "theme_slug": "seo-geo-theme"
+      }
+    },
+    "rollback_available": true,
+    "stage": "apply",
+    "status": "verified",
+    "verification": {
+      "installed_tree_sha256": "3955f5e53f4bf1475c6d52d72a0f2f10b0f47603eb7501278ef5d691ae182180",
+      "verified": true
+    }
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "theme.package.write",
+  "site": "emmake-nuevaweb",
+  "stage": "apply",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
