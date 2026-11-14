@@ -91,14 +91,15 @@ def _read_bounded(response: Any, bound: int) -> bytes:
 
 
 def _github_fetch(url: str, token: str, binary: bool) -> Any:
-    if not url.startswith("https://api.github.com/repos/") or not token:
+    if not url.startswith("https://api.github.com/repos/"):
         raise ThemeReleaseDownloadError("release_source_configuration_missing")
     headers = {
-        "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json" if not binary else "application/zip",
         "X-GitHub-Api-Version": "2022-11-28",
         "User-Agent": "site-manager-release-gateway/1",
     }
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     try:
         request = Request(url, headers=headers, method="GET")
         # Metadata must never redirect; artifact downloads may redirect only
@@ -139,15 +140,18 @@ def prepare_official_theme_plan(
     MUST NEVER be logged, persisted in the GitHub command/result or shown to
     the operator. Only the small WP preview is stored in results.
     """
-    if not github_token:
+    if not github_token and not policy.public_repository:
         raise ThemeReleaseDownloadError("release_authentication_unconfigured")
+    # A reviewed public repository needs no cross-repository token; avoid
+    # accidental 403 from the current repository-scoped GITHUB_TOKEN.
+    effective_token = "" if policy.public_repository else github_token
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,79}", theme_slug):
         raise ThemeReleaseDownloadError("invalid_release_theme_slug")
     if not re.fullmatch(r"[a-f0-9]{64}", package_sha256):
         raise ThemeReleaseDownloadError("invalid_release_digest")
 
-    metadata = fetch_metadata or (lambda url: _github_fetch(url, github_token, False))
-    binary = fetch_binary or (lambda url: _github_fetch(url, github_token, True))
+    metadata = fetch_metadata or (lambda url: _github_fetch(url, effective_token, False))
+    binary = fetch_binary or (lambda url: _github_fetch(url, effective_token, True))
     run = metadata(_official_url(policy, "run", source_run_id))
     artifact = metadata(_official_url(policy, "artifact", source_artifact_id))
     if not isinstance(run, dict) or not isinstance(artifact, dict):
