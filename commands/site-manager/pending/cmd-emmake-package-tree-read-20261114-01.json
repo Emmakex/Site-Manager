@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-package-tree-read-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "site.theme_package_state",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
