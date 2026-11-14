@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-nav-theme-release-plan-20261114-02",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "20f363cdc3814dca0527ed2386cf2eb046b0c767",
+    "source_run_id": 43625823751,
+    "source_artifact_id": 14125004965,
+    "package_sha256": "1f695483818ca3dbbc87cf3778c8454c63ac802723fb843f5cb1200112876542",
+    "reason": "Reprobar credencial protegida nueva; plan reversible sin aplicar para navegacion EMMAKE, official main Release CI verde."
+  }
+}
