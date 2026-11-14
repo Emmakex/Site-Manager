@@ -1,4 +1,4 @@
-name: One-time Emmake protected Theme release diagnostics
+name: One-time Emmake protected Theme MCP diagnostics
 
 on:
   push:
@@ -15,46 +15,44 @@ jobs:
     environment: site-manager-emmake-nuevaweb
     steps:
       - uses: actions/checkout@v4
-      - name: Check official GitHub Actions release transport without exposing credentials
+      - name: Diagnose protected MCP Plan without publishing credentials or ZIP
         env:
           SITE_MANAGER_THEME_RELEASE_TOKEN: ${{ secrets.SITE_MANAGER_THEME_RELEASE_TOKEN }}
+          SITE_MANAGER_MCP_TOKEN: ${{ secrets.SITE_MANAGER_MCP_TOKEN }}
+          SITE_MANAGER_MCP_BASE_URL: ${{ vars.SITE_MANAGER_MCP_BASE_URL }}
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import os, sys
+          import os,sys
           from urllib.error import HTTPError
-          sys.path.insert(0, "scripts")
-          from site_manager_theme_release_download import _official_url, _github_fetch, ThemeReleaseDownloadError
-          from site_manager_theme_release_provenance import verify_release_reference, extract_pinned_theme_zip
-          from site_manager_theme_package_gateway import trusted_release_policy
-          p = trusted_release_policy("seo-geo-theme")
-          token = os.environ.get("SITE_MANAGER_THEME_RELEASE_TOKEN", "")
-          sha = "20f363cdc3814dca0527ed2386cf2eb046b0c767"
-          run_id = 43625823751
-          artifact_id = 14125004965
-          digest = "1f695483818ca3dbbc87cf3778c8454c63ac802723fb843f5cb1200112876542"
-          print("secret_present:", bool(token))
-          if not token:
+          sys.path.insert(0,"scripts")
+          from site_manager_theme_package_gateway import prepare_theme_package_plan, ThemePackageGatewayError
+          from site_manager_theme_large_mcp import ThemePackageMcpTransportError
+          from site_manager_theme_release_download import ThemeReleaseDownloadError
+          p = {
+            "stage":"plan", "theme_slug":"seo-geo-theme",
+            "source_commit_sha":"20f363cdc3814dca0527ed2386cf2eb046b0c767",
+            "source_run_id":43625823751, "source_artifact_id":14125004965,
+            "package_sha256":"1f695483818ca3dbbc87cf3778c8454c63ac802723fb843f5cb1200112876542",
+          }
+          print("secrets_configured:",all(os.environ.get(k) for k in ("SITE_MANAGER_MCP_TOKEN","SITE_MANAGER_THEME_RELEASE_TOKEN","SITE_MANAGER_MCP_BASE_URL")))
+          try:
+              result=prepare_theme_package_plan(p,
+                  mcp_url=os.environ.get("SITE_MANAGER_MCP_BASE_URL",""),
+                  site_token=os.environ.get("SITE_MANAGER_MCP_TOKEN",""),
+                  github_token=os.environ.get("SITE_MANAGER_THEME_RELEASE_TOKEN",""))
+          except (ThemePackageMcpTransportError,ThemePackageGatewayError,ThemeReleaseDownloadError) as exc:
+              cause=exc
+              codes=[]
+              while cause is not None:
+                  if isinstance(cause,HTTPError):codes.append(cause.code)
+                  cause=getattr(cause,"__cause__",None)
+              # These exceptions are static internal error enums; no body, path, URI or ZIP.
+              print("THEME_PACKAGE_DIAGNOSTIC",type(exc).__name__,str(exc),"HTTP_STATUS",codes)
               raise SystemExit(1)
-          def check(label, fn):
-              try:
-                  result = fn()
-              except Exception as exc:
-                  cause = exc
-                  codes = []
-                  while cause is not None:
-                      if isinstance(cause, HTTPError):
-                          codes.append(cause.code)
-                      cause = getattr(cause, "__cause__", None)
-                  print(label, "FAILED", type(exc).__name__, str(exc) if isinstance(exc, ThemeReleaseDownloadError) else "unexpected_error", "http_codes", codes)
-                  raise SystemExit(1)
-              print(label, "OK")
-              return result
-          run = check("metadata_run", lambda: _github_fetch(_official_url(p,"run",run_id),token,False))
-          artifact = check("metadata_artifact", lambda: _github_fetch(_official_url(p,"artifact",artifact_id),token,False))
-          check("official_identity", lambda: verify_release_reference(policy=p, run=run, artifact=artifact, expected_commit_sha=sha, expected_run_id=run_id, expected_artifact_id=artifact_id))
-          outer = check("download_artifact", lambda: _github_fetch(_official_url(p,"download",artifact_id),token,True))
-          check("inner_sha256", lambda: extract_pinned_theme_zip(outer,expected_zip_sha256=digest))
-          print("READY_FOR_GOVERNED_PLAN")
+          except Exception as exc:
+              print("THEME_PACKAGE_DIAGNOSTIC unexpected",type(exc).__name__)
+              raise SystemExit(1)
+          print("THEME_PACKAGE_PLAN",result.get("stage"),result.get("status"))
           PY
