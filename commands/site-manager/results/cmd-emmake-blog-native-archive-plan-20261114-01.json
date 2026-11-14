@@ -1,0 +1,44 @@
+{
+  "action": "content.update",
+  "command_id": "cmd-emmake-blog-native-archive-plan-20261114-01",
+  "command_sha256": "edbb9f3b455f614dadcedb6f3012be68c74c5718bf1eeeb2cf6af1d10b73c887",
+  "data": {
+    "plan": {
+      "applied_at": "",
+      "capability_id": "content.write",
+      "confirmation_required": true,
+      "created_at": "2026-11-14T16:59:23+00:00",
+      "expires_at": "2026-11-14T17:14:23+00:00",
+      "fields": [
+        "post_content"
+      ],
+      "operation": "content.update",
+      "plan_id": "sm-plan-49aa06867dd0dbf5bb49f5c0",
+      "reversible": true,
+      "rollback_retained_until": "2026-11-15T16:59:23+00:00",
+      "rolled_back_at": "",
+      "status": "planned",
+      "target": {
+        "post_id": 50093,
+        "post_type": "page"
+      }
+    },
+    "preview": {
+      "before_present": [
+        "post_content"
+      ],
+      "changed_fields": [
+        "post_content"
+      ],
+      "values_retained_in_github": false
+    },
+    "stage": "plan"
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "content.write",
+  "site": "emmake-nuevaweb",
+  "stage": "plan",
+  "status": "success",
+  "verified": false,
+  "version": "1"
+}
