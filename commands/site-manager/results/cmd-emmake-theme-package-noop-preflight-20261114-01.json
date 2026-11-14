@@ -1,0 +1,14 @@
+{
+  "action": "theme.package.deploy",
+  "command_id": "cmd-emmake-theme-package-noop-preflight-20261114-01",
+  "command_sha256": "48922c96f50caa8c82db86774b8335e7471a158ac109ecac9039c9a38e7e0f3e",
+  "error": {
+    "code": "configuration_failed",
+    "detail": "Official Theme release policy or credential is unavailable",
+    "message": "The bounded Site Manager command could not be executed safely."
+  },
+  "site": "emmake-nuevaweb",
+  "status": "failed",
+  "verified": false,
+  "version": "1"
+}
