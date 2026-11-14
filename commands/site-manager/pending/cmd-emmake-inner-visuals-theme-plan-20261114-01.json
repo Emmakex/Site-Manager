@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-inner-visuals-theme-plan-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "1bc79792559e3055f90b606ccd13082088f34829",
+    "source_run_id": 43644190165,
+    "source_artifact_id": 14132544385,
+    "package_sha256": "dd6c291379c0e792a0de9f36aae3f375ea68757ead34e5820c071815d9429e7a",
+    "reason": "Plan sin escritura: incorporar 9 imagenes interiores render-only y las imagenes aprobadas de home en Emmake /nuevaweb. Exigir diferencias reales, procedencia oficial, reversión y posterior QA publica."
+  }
+}
