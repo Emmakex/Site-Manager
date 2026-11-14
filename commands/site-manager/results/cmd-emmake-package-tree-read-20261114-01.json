@@ -1,0 +1,20 @@
+{
+  "action": "site.theme_package_state",
+  "command_id": "cmd-emmake-package-tree-read-20261114-01",
+  "command_sha256": "28a154dae10ddd99d93a34dddc780f09c97dfee9957ea98b199cf9e360cff904",
+  "data": {
+    "file_count": 180,
+    "installed_tree_sha256": "8dd8d28019acb47c82d7a000c27d7b9ce36a921a38b21d5a4db74b5a797e49f7",
+    "observed_at": "2026-11-14T13:49:12+00:00",
+    "theme_slug": "seo-geo-theme",
+    "theme_version": "0.1.1",
+    "tree_bytes": 1215811
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "site.read",
+  "site": "emmake-nuevaweb",
+  "stage": "read",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
