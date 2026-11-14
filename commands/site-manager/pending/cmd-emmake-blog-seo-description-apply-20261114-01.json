@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-blog-seo-description-apply-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "seo.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-96a03576ec680aacafb94758",
+    "confirmed": true
+  }
+}
