@@ -98,7 +98,7 @@ assert urls == [
     "https://api.github.com/repos/Emmakex/template-wordpress-seo-geo/actions/runs/234",
     "https://api.github.com/repos/Emmakex/template-wordpress-seo-geo/actions/artifacts/567",
     "https://api.github.com/repos/Emmakex/template-wordpress-seo-geo/actions/artifacts/567/zip",
-]
+] * 2
 assert "test-protected-action-token" not in repr(result)
 assert "download_url" not in repr(result)
 reject(lambda: prepare(github_token=""), "release_authentication_unconfigured")
