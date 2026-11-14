@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-nav-blog-digital-label-plan-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "navigation.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "provider": "wordpress-classic-menu",
+    "target_id": 50367,
+    "fields": {
+      "title": "Blog digital"
+    },
+    "reason": "Eliminar un rótulo de navegación excesivamente largo sin cambiar el destino ni otros elementos"
+  }
+}
