@@ -1,0 +1,53 @@
+name: One-time Emmake live photo asset integrity
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/emmake-home-photo-live-verify-once.yml'
+permissions:
+  contents: read
+jobs:
+  verify-public-home:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify current Emmake staging Home and four official same-origin WebPs
+        run: |
+          node <<'JS'
+          const crypto=require('node:crypto');
+          const base='https://emmake.com/nuevaweb/';
+          const folder=base+'wp-content/themes/seo-geo-theme/assets/images/presets/corporate/v5/';
+          const files=[
+            ['hero-consultoria-digital.webp',57612,'3810c0d05f8929cb1c3a896a74498b8d5a118d989bce929a534d997910812984'],
+            ['capabilities-soluciones-digitales.webp',72422,'9c9e983e210fe2b8595a3c4855d39033587ae814f940fec30da86a18f36f2ca7'],
+            ['insights-resultados-analitica.webp',60992,'315e2d5f00655f18f29c2445f7a23726535a7e14f1b190b324e9d7b070a27370'],
+            ['contact-consultoria-estrategica.webp',55726,'21c11d5011e1fd0af73ffc6e2c12069696bd6910ded1d58981cc693f69aac060']
+          ];
+          const get=async url=>{
+            if(!url.startsWith(base))throw Error('origin_refused');
+            const r=await fetch(url,{headers:{'User-Agent':'Emmake-public-photo-integrity/1','Cache-Control':'no-cache'},redirect:'follow',signal:AbortSignal.timeout(17000)});
+            if(r.status!==200)throw Error('unexpected_http_status_'+r.status);
+            if(!r.url.startsWith(base))throw Error('redirect_outside_scope');
+            return {bytes:Buffer.from(await r.arrayBuffer()),mime:r.headers.get('content-type')||''};
+          };
+          for(const [name,size,sha] of files){
+            const v=await get(folder+name);
+            const hash=crypto.createHash('sha256').update(v.bytes).digest('hex');
+            if(v.bytes.length!==size||hash!==sha||v.bytes.toString('ascii',0,4)!=='RIFF'||v.bytes.toString('ascii',8,12)!=='WEBP')
+              throw Error('asset_integrity_mismatch_'+name);
+            console.log('WEBP_VERIFIED',name,v.bytes.length);
+          }
+          const home=(await get(base)).bytes.toString('utf8');
+          for(const name of [files[0][0],files[2][0],files[3][0]]){
+             if(!home.includes(name))throw Error('home_html_missing_'+name);
+          }
+          if(!home.includes('seo-geo-corporate-home-v5'))throw Error('not_active_corporate_home');
+          console.log('HOME_HTML_REFERENCES_VERIFIED',3);
+          const css=(await get(base+'wp-content/themes/seo-geo-theme/assets/css/presets/corporate-v5-runtime.css')).bytes.toString('utf8');
+          if(!css.includes(files[1][0]))throw Error('capability_image_not_in_css');
+          console.log('HOME_CAPABILITY_CSS_VERIFIED');
+          console.log('EMMAKE_PUBLIC_HOME_FOUR_IMAGES_VERIFIED');
+          JS
