@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-nav-assist-label-plan-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "navigation.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "provider": "wordpress-classic-menu",
+    "target_id": 54391,
+    "fields": {
+      "title": "Asistentes de voz"
+    },
+    "reason": "Acortar un título de artículo de 76 caracteres que desborda el menú principal sin cambiar la URL de destino"
+  }
+}
