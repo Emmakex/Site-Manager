@@ -26,6 +26,7 @@ class ThemeReleasePolicy:
     workflow_path: str
     branch: str = "main"
     artifact_name: str = "seo-geo-theme-release-candidate"
+    public_repository: bool = False
 
 
 def _hex_digest(value: Any) -> bool:
