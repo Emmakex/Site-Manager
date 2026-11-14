@@ -25,3 +25,13 @@ The WordPress adapter provides a separately scoped `theme.package.write` capabil
 ## Fail-closed conditions
 
 Invalid package, altered SHA-256, unsupported identity, symlinks/traversal, private directory unavailable, expired plan, wrong connection generation, changed site fingerprint, theme tree drift, production environment, insufficient write scope/capabilities, non-direct filesystem, lock contention, failed readback, and incomplete restoration. These are blockers, not success states.
+
+
+## Emmake /nuevaweb activation acceptance — 14 Nov 2026
+
+- Live scoped `site.read` confirmed Site Manager `0.12.0`, WP `7.1.4`, PHP `8.5.12`, `WP_ENVIRONMENT_TYPE=staging`, active standalone `seo-geo-theme 0.1.1`, and `theme.package.write` **governable** (this is not proof that the scope is granted).
+- Protected deployment `deploy-emmake-nuevaweb-mcp-package-20261114-01` passed and pinned MCP image `sha256:69686458e63df31ae1d2503de5140a717486347c26c3c886608ffd6895f92cf6` was accepted. Read-only `site.theme_package_state` returned **180 files / 1,215,811 bytes / full-tree SHA-256 `8dd8d28019acb47c82d7a000c27d7b9ce36a921a38b21d5a4db74b5a797e49f7`**.
+- The exact file-tree SHA of the official Theme release candidate from `Emmakex/template-wordpress-seo-geo` commit `aa1f25c6c16c381deafc59619912532785cfe312`, workflow run `43418785500`, artifact `14032254429`, inner ZIP digest `2c689b23c93ed2b3dd5f75dfd078e5df734f08665f16bf801fca36b9db882c5f`, matches the live installed tree. **Never redeploy a no-op just to claim progress**.
+- A protected plan probe with missing `SITE_MANAGER_THEME_RELEASE_TOKEN` failed `configuration_failed`. Attempting current-repository ephemeral `GITHUB_TOKEN` returned `verification_failed`; isolated GitHub Actions test proved **HTTP 401** on the target repository's public artifact without an appropriate token. Experimental anonymous-access PR #122 was rejected/closed; do not bypass the official Actions artifact.
+- **Required one-time environment setup:** In the protected GitHub Environment `site-manager-emmake-nuevaweb`, create an encrypted secret named `SITE_MANAGER_THEME_RELEASE_TOKEN`, backed by a fine-grained token limited to `Emmakex/template-wordpress-seo-geo` with **Actions: read** (and no write scopes). Do not paste or store the token in a command, PR, chat, WordPress page or repository. The `Site Manager → Connection` admin must also grant `theme.package.write` to the existing connection if not yet granted. Verify real scopes before any Apply.
+- After the secret is provisioned, a future Theme release that genuinely changes the file-tree can be safely planned with exact provenance, independently verified, and applied with backup/rollback. Do not modify the live Theme while no verified newer release exists.
