@@ -23,13 +23,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: bridge/site-manager-mcp/package-lock.json
       - name: Install and build real MCP
         working-directory: bridge/site-manager-mcp
         run: |
           set -euo pipefail
-          npm ci --ignore-scripts
+          npm install --ignore-scripts
           npm run typecheck
           npm run build
       - name: Prove bounded HTTPS and local-loopback package client contracts
