@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-blog-seo-description-plan-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "seo.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_id": 50093,
+    "fields": {
+      "description": "Explora artículos de Emmake sobre transformación digital, estrategia, marketing, tecnología y comunicación. Accede al archivo completo de publicaciones."
+    },
+    "reason": "Alinear descripción SEO nativa de Blog con el nuevo archivo paginado sin cambiar título, URL ni política robots"
+  }
+}
