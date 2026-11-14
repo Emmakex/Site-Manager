@@ -1,0 +1,14 @@
+{
+  "action": "theme.package.deploy",
+  "command_id": "cmd-emmake-theme-package-noop-ephemeral-20261114-02",
+  "command_sha256": "bb3894e92b29dca02d63ee800a160b0cde45e006e88d8ee07018dd7a639a6c71",
+  "error": {
+    "code": "verification_failed",
+    "detail": "Official Theme release provenance or bytes could not be verified",
+    "message": "Site Manager did not provide the required lifecycle verification evidence."
+  },
+  "site": "emmake-nuevaweb",
+  "status": "failed",
+  "verified": false,
+  "version": "1"
+}
