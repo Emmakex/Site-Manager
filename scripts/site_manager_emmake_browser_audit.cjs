@@ -278,10 +278,9 @@ async function audit(id) {
             const a=data.aboutInner;
             add('installed_about_asset_and_enhancer',a.assetLoaded&&a.enhanced,
               {asset_loaded:a.assetLoaded,enhanced:a.enhanced});
-            add('installed_about_brand_gallery',a.brandGroups===1&&a.logos===8&&
-              a.brandColumns===(device==='desktop'?4:2)&&
-              a.maxLogoHeight<=(device==='desktop'?180:150)&&
-              a.maxLogoImageHeight<=(device==='desktop'?140:115),a);
+            // Site owner deliberately removed the obsolete eight-logo gallery
+            // from post 50097. Do not make a deleted editorial block a release gate.
+            add('approved_about_brand_gallery_absent',a.brandGroups===0&&a.logos===0,a);
             add('installed_about_services_cards',a.cardGroups===2&&a.blurbs===8&&
               a.cardColumns.every(cols=>cols===(device==='desktop'?2:1)),
               {card_groups:a.cardGroups,blurbs:a.blurbs,columns:a.cardColumns});
