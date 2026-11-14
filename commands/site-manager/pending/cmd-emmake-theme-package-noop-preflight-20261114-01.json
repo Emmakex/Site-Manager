@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-theme-package-noop-preflight-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "aa1f25c6c16c381deafc59619912532785cfe312",
+    "source_run_id": 43418785500,
+    "source_artifact_id": 14032254429,
+    "package_sha256": "2c689b23c93ed2b3dd5f75dfd078e5df734f08665f16bf801fca36b9db882c5f",
+    "reason": "Preflight sin aplicación: verificar permisos y procedencia del release ya instalado"
+  }
+}
