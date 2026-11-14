@@ -87,7 +87,8 @@ class ThemePackageMcpPlanClient:
                  wire: Callable[[str, Mapping[str, str], bytes],
                                 tuple[int, dict[str, str], bytes]] = _wire) -> None:
         p = urlparse(trusted_mcp_url)
-        if p.scheme != "https" or not p.netloc or p.username or p.password or p.fragment or p.query:
+        loopback_http = p.scheme == "http" and p.hostname in {"127.0.0.1", "localhost", "::1"}
+        if (p.scheme != "https" and not loopback_http) or not p.netloc or p.username or p.password or p.fragment or p.query:
             raise ThemePackageMcpTransportError("theme_package_mcp_invalid_trusted_url")
         if not site_token:
             raise ThemePackageMcpTransportError("theme_package_mcp_auth_unavailable")

@@ -1,0 +1,36 @@
+name: Theme Package Real MCP Transport Acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'bridge/site-manager-mcp/**'
+      - 'scripts/site_manager_theme_large_mcp.py'
+      - 'tests/site_manager_theme_large_mcp_test.py'
+      - 'tests/site_manager_theme_mcp_e2e_test.py'
+      - '.github/workflows/theme-package-mcp-real-transport.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mcp-http-real:
+    name: Genuine Node MCP 1.24 MB Theme package over loopback
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install and build real MCP
+        working-directory: bridge/site-manager-mcp
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts
+          npm run typecheck
+          npm run build
+      - name: Prove bounded HTTPS and local-loopback package client contracts
+        run: python3 tests/site_manager_theme_large_mcp_test.py
+      - name: Exercise actual MCP HTTP SDK, bearer, JSON-RPC session and large ZIP payload
+        run: python3 tests/site_manager_theme_mcp_e2e_test.py
