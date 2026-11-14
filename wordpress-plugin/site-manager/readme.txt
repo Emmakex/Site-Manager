@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.11.13
+Stable tag: 0.12.0
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -67,6 +67,15 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 8. When remote access is required, generate a scoped token and copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.12.0 =
+* Adds dedicated, explicitly granted `theme.package.write` governance for the active standalone WordPress Theme on staging/development/local environments; it does not inherit content editing permissions.
+* Plan/Apply/Verify/Rollback of official immutable Theme release ZIPs, with checked source identity, strict archive and runtime integrity, private snapshot, native WordPress Theme_Upgrader, installed file-tree SHA-256 readback, and guarded automatic recovery.
+* Adds a read-only installed Theme package fingerprint to Site Manager REST and MCP for byte-level verification of the live installation.
+* Requires a trusted GitHub Command Gateway, an updated Site Manager MCP image, an explicit administrator grant of the code deployment scope, and an explicitly declared staging environment. This release does not automatically change any Theme or update other sites.
+* Certifies the native WordPress install/rollback against disposable WordPress/MariaDB and the large-package path against the genuine Node MCP transport.
+* First-time upgrade from 0.11.13 is a one-time WordPress administrator bootstrap. Subsequent Theme code changes are intended to be applied through Site Manager, not repeated Theme ZIP uploads.
+
 
 = 0.11.13 =
 * Adds a separate site.read-only published content page endpoint using existing 40-post / 80-page bounds, with true totals, total pages and has_more; no private or draft records, article bodies or writes. The original content/targets summary remains intact.
