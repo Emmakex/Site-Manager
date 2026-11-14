@@ -16,7 +16,7 @@ const SIZES = [['desktop', 1440, 900, false], ['mobile', 390, 844, true]];
 const OUT = 'artifacts/emmake-browser';
 const ROOT = 'audits/emmake/browser';
 const H1 = 'Conectamos estrategia, datos y tecnología para impulsar lo que viene.';
-const ID_PATTERN = /^visual-emmake-202611(?:11|12|13)-[0-9]{2}$/;
+const ID_PATTERN = /^visual-emmake-202611(?:11|12|13|14)-[0-9]{2}$/;
 
 function broken(href) {
   return /%category%|%postname%|%25category%25|%25postname%25|\{[a-f0-9]{30,}\}(?:category|postname)/i.test(href);
@@ -50,6 +50,7 @@ function selfTest() {
   if (classifyPublicArticleLink('https://outside.example.test/post/')!=='wrong_origin')throw Error('external post not rejected');
   if (!validRequest({...r,audit_id:'visual-emmake-20261112-02'},'visual-emmake-20261112-02'))throw Error('New audit date refused');
   if(!validRequest({...r,audit_id:'visual-emmake-20261113-01'},'visual-emmake-20261113-01'))throw Error('Nov 13 QA request refused');
+  if(!validRequest({...r,audit_id:'visual-emmake-20261114-01'},'visual-emmake-20261114-01'))throw Error('Nov 14 QA request refused');
   if(PAGES.length!==10 || new Set(PAGES.map(p=>p[1])).size!==10)throw Error('Published page inventory mismatch');
   if(PAGES.some(p=>p[1].includes('..')||p[1].startsWith('/')||p[1].includes('?')))throw Error('Unsafe fixed path');
   process.stdout.write('PASS: fixed-domain responsive browser QA contract\n');
