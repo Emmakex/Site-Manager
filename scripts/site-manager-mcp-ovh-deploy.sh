@@ -106,7 +106,9 @@ activate() {
   test -f "$COMPOSE_FILE"
   compose "$image_ref" config --quiet
   compose "$image_ref" pull
-  # A protected redeploy must refresh WordPress-granted scopes even if the\n  # immutable image digest and Compose config have not changed.\n  compose "$image_ref" up -d --force-recreate --remove-orphans
+  # A protected redeploy must refresh WordPress-granted scopes even if the
+  # immutable image digest and Compose config have not changed.
+  compose "$image_ref" up -d --force-recreate --remove-orphans
   wait_healthy "$image_ref"
 }
 
