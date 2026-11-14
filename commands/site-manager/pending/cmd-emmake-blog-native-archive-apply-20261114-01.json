@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-blog-native-archive-apply-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "content.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-49aa06867dd0dbf5bb49f5c0",
+    "confirmed": true
+  }
+}
