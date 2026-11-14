@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-nav-assist-label-apply-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "navigation.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-4307cd9c14fc3b5badf0a87e",
+    "confirmed": true
+  }
+}
