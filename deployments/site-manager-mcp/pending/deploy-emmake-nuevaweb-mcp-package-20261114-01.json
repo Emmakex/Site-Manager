@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "deployment_id": "deploy-emmake-nuevaweb-mcp-package-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "deploy",
+  "image_ref": "ghcr.io/emmakex/site-manager-mcp@sha256:69686458e63df31ae1d2503de5140a717486347c26c3c886608ffd6895f92cf6",
+  "requested_by": "chatgpt"
+}
