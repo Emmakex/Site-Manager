@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import base64
+import json
+from unittest.mock import patch
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
@@ -12,6 +14,7 @@ import zipfile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from site_manager_theme_release_download import (  # noqa: E402
     ThemeReleaseDownloadError,
+    _github_fetch,
     VerifiedArtifactRedirects,
     prepare_official_theme_plan,
 )
@@ -117,4 +120,41 @@ for url in [
     "https://files.blob.core.windows.net/build",
 ]:
     assert VerifiedArtifactRedirects.allowed(url), url
+
+# GitHub's /actions/artifacts/{id}/zip URL responds with an API 302.
+# Regression: sending Accept: application/zip led to a real protected HTTP 415.
+class _FakeResponse:
+    def __init__(self, payload: bytes):
+        self.payload = payload
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def read(self, limit: int):
+        return self.payload[:limit]
+
+
+class _FakeOpener:
+    def open(self, request, timeout):
+        assert timeout == 35
+        assert request.get_header("Accept") == "application/vnd.github+json"
+        assert request.get_header("Authorization") == "Bearer test-protected-action-token"
+        if request.full_url.endswith("/zip"):
+            return _FakeResponse(b"official-zip-bytes")
+        return _FakeResponse(json.dumps({"valid": True}).encode("utf-8"))
+
+
+with patch("site_manager_theme_release_download.build_opener", return_value=_FakeOpener()):
+    assert _github_fetch(
+        "https://api.github.com/repos/Emmakex/template-wordpress-seo-geo/actions/artifacts/567/zip",
+        "test-protected-action-token", True,
+    ) == b"official-zip-bytes"
+    assert _github_fetch(
+        "https://api.github.com/repos/Emmakex/template-wordpress-seo-geo/actions/runs/234",
+        "test-protected-action-token", False,
+    ) == {"valid": True}
+
 print("Theme CI release retrieval: OK (fixed source, exact SHA, immutable run, no URL input, safe redirects)")
