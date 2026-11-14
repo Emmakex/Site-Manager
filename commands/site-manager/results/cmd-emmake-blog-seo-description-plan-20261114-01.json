@@ -1,0 +1,49 @@
+{
+  "action": "seo.update",
+  "command_id": "cmd-emmake-blog-seo-description-plan-20261114-01",
+  "command_sha256": "5f5c47689328be2523a8097ac2cbdc66fa347f7689357853e010c82e90cbf2f3",
+  "data": {
+    "plan": {
+      "capability_id": "seo.write",
+      "confirmation_required": true,
+      "created_at": "2026-11-14T17:05:59+00:00",
+      "expires_at": "2026-11-14T17:20:59+00:00",
+      "fields": [
+        "description"
+      ],
+      "operation": "seo.update",
+      "plan_id": "sm-plan-96a03576ec680aacafb94758",
+      "reversible": true,
+      "rollback_retained_until": "2026-11-15T17:05:59+00:00",
+      "status": "planned",
+      "target": {
+        "post_id": 50093,
+        "post_type": "page"
+      }
+    },
+    "preview": {
+      "derived_output_count": 7,
+      "original_storage_fields": [
+        "ID",
+        "post_type",
+        "post_title",
+        "post_excerpt"
+      ],
+      "semantic_fields": [
+        "description"
+      ],
+      "storage_fields": [
+        "post_excerpt"
+      ],
+      "values_retained_in_github": false
+    },
+    "stage": "plan"
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "seo.write",
+  "site": "emmake-nuevaweb",
+  "stage": "plan",
+  "status": "success",
+  "verified": false,
+  "version": "1"
+}
