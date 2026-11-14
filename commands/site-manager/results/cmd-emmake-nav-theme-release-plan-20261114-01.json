@@ -1,0 +1,14 @@
+{
+  "action": "theme.package.deploy",
+  "command_id": "cmd-emmake-nav-theme-release-plan-20261114-01",
+  "command_sha256": "66d32122915467ad407265e027bfcd5d85e8a72dcb125ca3822bfb5cf3678043",
+  "error": {
+    "code": "configuration_failed",
+    "detail": "Official Theme release policy or credential is unavailable",
+    "message": "The bounded Site Manager command could not be executed safely."
+  },
+  "site": "emmake-nuevaweb",
+  "status": "failed",
+  "verified": false,
+  "version": "1"
+}
