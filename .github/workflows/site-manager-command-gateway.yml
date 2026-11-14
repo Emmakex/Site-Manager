@@ -135,7 +135,9 @@ jobs:
         shell: bash
         env:
           SITE_MANAGER_MCP_TOKEN: ${{ secrets.SITE_MANAGER_MCP_TOKEN }}
-          SITE_MANAGER_THEME_RELEASE_TOKEN: ${{ secrets.SITE_MANAGER_THEME_RELEASE_TOKEN }}
+          # Prefer a dedicated protected token for private official themes; for public
+          # repositories the ephemeral GitHub Actions token avoids long-lived credentials.
+          SITE_MANAGER_THEME_RELEASE_TOKEN: ${{ secrets.SITE_MANAGER_THEME_RELEASE_TOKEN || github.token }}
         run: |
           set +e
           python3 scripts/site-manager-command-runner.py \
