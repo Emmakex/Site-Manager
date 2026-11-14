@@ -1,0 +1,44 @@
+{
+  "action": "navigation.update",
+  "command_id": "cmd-emmake-nav-home-label-plan-20261114-01",
+  "command_sha256": "b79b71492149859622d64a3a5ee629dc7649c93674354d2d01ea4668573c5dc2",
+  "data": {
+    "plan": {
+      "applied_at": "",
+      "capability_id": "navigation.write",
+      "confirmation_required": true,
+      "created_at": "2026-11-14T18:02:24+00:00",
+      "expires_at": "2026-11-14T18:17:24+00:00",
+      "fields": [
+        "title"
+      ],
+      "operation": "navigation.update",
+      "plan_id": "sm-plan-80aa99a77f4420a07f9622d6",
+      "reversible": true,
+      "rollback_retained_until": "2026-11-15T18:02:24+00:00",
+      "rolled_back_at": "",
+      "status": "planned",
+      "target": {
+        "provider": "wordpress-classic-menu",
+        "target_id": 50084
+      }
+    },
+    "preview": {
+      "before_present": [
+        "title"
+      ],
+      "changed_fields": [
+        "title"
+      ],
+      "values_retained_in_github": false
+    },
+    "stage": "plan"
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "navigation.write",
+  "site": "emmake-nuevaweb",
+  "stage": "plan",
+  "status": "success",
+  "verified": false,
+  "version": "1"
+}
