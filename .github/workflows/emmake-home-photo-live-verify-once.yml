@@ -16,8 +16,8 @@ jobs:
           node-version: '22'
       - name: Verify current Emmake staging Home and four official same-origin WebPs
         run: |
-          node <<'JS'
-          const crypto=require('node:crypto');
+          node --input-type=module <<'JS'
+          import crypto from 'node:crypto';
           const base='https://emmake.com/nuevaweb/';
           const folder=base+'wp-content/themes/seo-geo-theme/assets/images/presets/corporate/v5/';
           const files=[
