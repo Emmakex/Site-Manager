@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-theme-official-plan-20261114-297",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "5b73e7cdff61905583d3a6f2f5068c05814ef00f",
+    "source_run_id": 43617074464,
+    "source_artifact_id": 14122568053,
+    "package_sha256": "7f7069f386b8b3405eb3e68b77cddd8ed9ddf2763421ba418a8fb07e7abbdf80",
+    "reason": "Aplicar el release oficial auditado del Theme Emmake: tarjetas Blog, enlace de privacidad y enlace social con destino correcto"
+  }
+}
