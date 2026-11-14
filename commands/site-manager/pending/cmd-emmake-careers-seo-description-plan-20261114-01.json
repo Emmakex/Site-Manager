@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-careers-seo-description-plan-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "seo.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_id": 50476,
+    "fields": {
+      "description": "¿Te gustaría colaborar con Emmake? Descubre cómo enviar tu candidatura espontánea y presentar tu experiencia en estrategia, tecnología y comunicación digital."
+    },
+    "reason": "Retirar referencias SEO obsoletas a vacantes no verificadas; descripción fiel a contenido actual y sin datos inventados"
+  }
+}
