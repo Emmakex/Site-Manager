@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-careers-clean-governed-apply-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "content.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-c48cec8c6e9daf5e1f16e19a",
+    "confirmed": true
+  }
+}
