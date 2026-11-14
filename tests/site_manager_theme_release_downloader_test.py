@@ -82,6 +82,15 @@ def prepare(**changes):
 
 
 result = prepare()
+# Anonymous retrieval is explicitly allowed only for reviewed public repositories.
+public_policy = ThemeReleasePolicy(
+    repository=policy.repository,
+    workflow_path=policy.workflow_path,
+    public_repository=True,
+)
+anonymous = prepare(policy=public_policy, github_token="")
+assert base64.b64decode(anonymous["package_base64"]) == zipbytes
+assert anonymous["source_artifact_id"] == 567
 assert result["package_sha256"] == digest
 assert base64.b64decode(result["package_base64"]) == zipbytes
 assert result["source_artifact_id"] == 567
