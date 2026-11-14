@@ -36,7 +36,7 @@ def trusted_release_policy(theme_slug: str, policy_path: Path = POLICY_PATH) -> 
     if not isinstance(themes, dict) or theme_slug not in themes:
         raise ThemePackageGatewayError("theme_release_not_authorized")
     spec = themes[theme_slug]
-    if not isinstance(spec, dict) or set(spec) != {"repository","workflow_path","branch","artifact_name"}:
+    if not isinstance(spec, dict) or set(spec) != {"repository","workflow_path","branch","artifact_name","access"}:
         raise ThemePackageGatewayError("theme_release_policy_invalid")
     if not all(isinstance(v,str) and v for v in spec.values()):
         raise ThemePackageGatewayError("theme_release_policy_invalid")
@@ -44,20 +44,22 @@ def trusted_release_policy(theme_slug: str, policy_path: Path = POLICY_PATH) -> 
         raise ThemePackageGatewayError("theme_release_policy_invalid")
     if re.fullmatch(r"\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml", spec["workflow_path"]) is None:
         raise ThemePackageGatewayError("theme_release_policy_invalid")
-    if spec["branch"] != "main" or not re.fullmatch(r"[a-z0-9][a-z0-9_.-]+", spec["artifact_name"]):
+    if (spec["branch"] != "main" or spec["access"] not in ("public", "private")
+            or not re.fullmatch(r"[a-z0-9][a-z0-9_.-]+", spec["artifact_name"])):
         raise ThemePackageGatewayError("theme_release_policy_invalid")
     return ThemeReleasePolicy(
         repository=spec["repository"],
         workflow_path=spec["workflow_path"],
         branch=spec["branch"],
         artifact_name=spec["artifact_name"],
+        public_repository=spec["access"] == "public",
     )
 
 
 def prepare_theme_package_plan(payload: Mapping[str, Any], *, mcp_url: str,
                                site_token: str, github_token: str) -> dict[str, Any]:
     policy = trusted_release_policy(payload.get("theme_slug", ""))
-    if not github_token:
+    if not github_token and not policy.public_repository:
         raise ThemePackageGatewayError("theme_release_secret_unconfigured")
     official = prepare_official_theme_plan(
         policy,
