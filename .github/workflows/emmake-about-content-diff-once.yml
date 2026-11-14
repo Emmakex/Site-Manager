@@ -1,0 +1,46 @@
+name: Emmake About public content differential once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/emmake-about-content-diff-once.yml'
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Compare fixed staging public HTML and public WP REST rendered content
+        shell: bash
+        run: |
+          node <<'JS'
+          const base='https://emmake.com/nuevaweb/';
+          const page=base+'sobre-nosotros/';
+          const api=base+'wp-json/wp/v2/pages?slug=sobre-nosotros&_fields=id,modified,content';
+          const f=async url=>{
+             const r=await fetch(url,{redirect:'follow',headers:{'User-Agent':'Mozilla/5.0 EmmakeQA','Accept':'application/json, text/html'}});
+             const raw=await r.text();return {status:r.status,body:raw};
+          };
+          const summary=t=>({
+             length:t.length,figure:(t.match(/<figure\b/gi)||[]).length,
+             img:(t.match(/<img\b/gi)||[]).length,
+             gallery:(t.match(/wp-block-gallery|seo-geo-legacy-about-brand-grid/gi)||[]).length,
+             images:(t.match(/wp-block-image/gi)||[]).length,
+             shortcodes:(t.match(/\[gallery\b/gi)||[]).length
+          });
+          const pub=await f(page);console.log('PUBLIC_HTML',pub.status,JSON.stringify(summary(pub.body)));
+          const rest=await f(api);
+          console.log('REST_STATUS',rest.status);
+          if(rest.status===200){
+            let v=JSON.parse(rest.body);if(!Array.isArray(v))v=[];
+            console.log('REST_PAGE_COUNT',v.length);
+            for(const p of v.slice(0,1)){
+             console.log('REST_MODIFIED',p.modified||'unknown');
+             console.log('REST_RENDERED',JSON.stringify(summary(p.content?.rendered||'')));
+             console.log('REST_PROTECTED',!!p.content?.protected);
+            }
+          }
+          JS
