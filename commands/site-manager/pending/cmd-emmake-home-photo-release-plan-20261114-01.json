@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-home-photo-release-plan-20261114-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "0a5065c8d553492d4deca61d6d5a2841fcb17cdf",
+    "source_run_id": 43640138785,
+    "source_artifact_id": 14132045451,
+    "package_sha256": "8993bcd2b22d7e71f2089cd13ecadd101809f6c96c329b43a0899d1fa8c024c7",
+    "reason": "Plan protegido y no mutante: actualizar Home de Emmake con cuatro WebP aprobados, con Performance 100 y LCP 755ms (CI), preservar contenido/SEO/menu y confirmar rollback."
+  }
+}
