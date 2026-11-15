@@ -4,10 +4,10 @@
 // Check expanded mobile menu geometry, contrast and native close; never write WP.
 const fs=require('node:fs'),path=require('node:path');
 const ORIGIN='https://emmake.com/nuevaweb/';
-const PAGES=['servicios/','sobre-nosotros/'];
+const PAGES=['servicios/','sobre-nosotros/','contacto/','nuestras-marcas/','blog/','blog-transformacion-digital/','politica-de-privacidad/','trabaja-con-nosotros/','asistentes-virtuales-de-voz/'];
 const OUT='artifacts/emmake-inner-mobile-menu';
 function selfTest(){
-  if(PAGES.length!==2||PAGES.some(p=>!(/^[a-z-]+\/$/).test(p))||ORIGIN!=='https://emmake.com/nuevaweb/')
+  if(PAGES.length!==9||PAGES.some(p=>!(/^[a-z-]+\/$/).test(p))||ORIGIN!=='https://emmake.com/nuevaweb/')
     throw Error('Non-allowlisted route');
   console.log('PASS: bounded read-only interior mobile navigation QA');
 }
@@ -24,6 +24,8 @@ async function main(){
       reducedMotion:'reduce'});
     try{
       for(const slug of PAGES){
+        // Avoid hammering the public WAF while checking shared navigation.
+        await new Promise(resolve=>setTimeout(resolve, 350));
         const pg=await ctx.newPage();
         pg.on('pageerror',()=>jsErrors++);
         const response=await pg.goto(ORIGIN+slug,{waitUntil:'domcontentloaded',timeout:30000});
@@ -104,7 +106,7 @@ async function main(){
     }finally{await ctx.close();}
   }finally{await browser.close();}
   const report={scope:'fixed-public-GET-only',site:'emmake-nuevaweb',
-    status:checks.length===6&&checks.every(x=>x.ok)&&jsErrors===0?'passed':'failed',
+    status:checks.length===PAGES.length*3&&checks.every(x=>x.ok)&&jsErrors===0?'passed':'failed',
     checks,script_errors:jsErrors,wordpress_mutations:0,form_submissions:0};
   fs.writeFileSync(path.join(OUT,'report.json'),JSON.stringify(report,null,2)+'\n');
   console.log('EMMAKE_INNER_MOBILE_NAV',JSON.stringify({status:report.status,
