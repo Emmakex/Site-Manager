@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-legacy-post-urls-plan-20261115-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "655c1cde6f66866507474e166465bee3c2821bc5",
+    "source_run_id": 43703780037,
+    "source_artifact_id": 14157545754,
+    "package_sha256": "b18d33c80528a4ce1580ee23e2f6b3538d1e54f59e264acd6e7cca4915f41b0c",
+    "reason": "Preservar 1726 URLs historicas en staging Emmake: 1702 publicaciones bajo /blog/%postname%/, 24 enlaces exactos de categoria y un 301 del slug con caracteres invisibles al limpio. No modificar dominio principal, no tocar WordPress posts, no afectar otros clientes, con paquete SHA y rollback gobernados."
+  }
+}
