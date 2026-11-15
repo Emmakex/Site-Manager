@@ -397,9 +397,9 @@ async function audit(id) {
               const box=el?.getBoundingClientRect();
               const linkBox=first?.getBoundingClientRect();
               const lum=(css)=>{
-                const parts=String(css||'').match(/^rgba?\\(([^)]+)\\)/);
+                const parts=String(css||'').match(/^rgba?\(([^)]+)\)/);
                 if(!parts)return null;
-                const rgb=parts[1].trim().split(/[\\s,\\/]+/).slice(0,3).map(Number);
+                const rgb=parts[1].trim().split(/[\s,\/]+/).slice(0,3).map(Number);
                 if(rgb.length!==3||rgb.some(x=>!Number.isFinite(x)))return null;
                 return rgb.reduce((sum,x,i)=>{
                   const srgb=x/255;
