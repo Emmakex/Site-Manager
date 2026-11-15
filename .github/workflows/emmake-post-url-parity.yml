@@ -1,0 +1,32 @@
+name: Emmake Complete Published Post URL Parity
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/site_manager_emmake_post_url_parity.cjs'
+      - '.github/workflows/emmake-post-url-parity.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate bounded read-only public post inventory scanner
+        run: |
+          node --check scripts/site_manager_emmake_post_url_parity.cjs
+          node scripts/site_manager_emmake_post_url_parity.cjs --self-test
+      - name: Compare every public post slug and permalink form, old vs new
+        run: node scripts/site_manager_emmake_post_url_parity.cjs --run
+      - name: Preserve summary without exporting post content
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-post-url-parity
+          path: artifacts/emmake-launch/post-url-parity.json
+          retention-days: 3
+          if-no-files-found: warn
