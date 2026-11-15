@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-legacy-post-urls-apply-20261115-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-0ce71ab40cf3ce3e1f42a05f",
+    "confirmed": true
+  }
+}
