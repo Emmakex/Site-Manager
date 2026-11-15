@@ -40,6 +40,7 @@ async function main(){
             const el=s=>document.querySelector(s);
             const header=el('.seo-geo-site-header');
             const brand=el('.seo-geo-site-header .seo-geo-site-brand');
+            const brandLink=brand?.querySelector('a[href]');
             const details=el('.seo-geo-site-header .seo-geo-preset-navigation__mobile');
             const toggle=details?.querySelector(':scope > summary');
             const panel=details?.querySelector(':scope > .seo-geo-preset-navigation__list');
@@ -65,7 +66,8 @@ async function main(){
             const bg=luminance(panel?getComputedStyle(panel).backgroundColor:'');
             return {
               width:innerWidth,scroll:document.documentElement.scrollWidth,
-              open:!!details?.open,header:r(header),brand:r(brand),toggle:r(toggle),
+              open:!!details?.open,header:r(header),brand:r(brand),brandLink:r(brandLink),
+              brandLabelPresent:!!(brandLink?.textContent||'').trim(),brandLinksToHome:!!brandLink&&new URL(brandLink.href).pathname==='/nuevaweb/',toggle:r(toggle),
               panel:r(panel),main:r(main),firstLink:r(first),
               position:panel?getComputedStyle(panel).position:null,
               nestedPosition:nested?getComputedStyle(nested).position:null,
@@ -77,6 +79,7 @@ async function main(){
           const ok=m.open&&m.header&&m.brand&&m.toggle&&m.panel&&m.main&&m.firstLink&&
             m.toggle.width>=44&&m.toggle.width<=160&&m.toggle.right<=width-8&&
             m.toggle.left>=m.brand.right-2&&m.brand.height>=44&&
+            m.brandLink&&m.brandLink.height>=24&&m.brandLabelPresent&&m.brandLinksToHome&&
             m.panel.left>=-2&&m.panel.right<=width+2&&m.panel.width>=width*.75&&
             m.panel.top>=m.toggle.bottom+8&&m.panel.bottom<=m.header.bottom+2&&m.main.top>=m.header.bottom-3&&
             m.position==='static'&&m.nested&&m.nestedPosition==='static'&&
