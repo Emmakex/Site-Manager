@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-mobile-leftalign-plan-20261115-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "a3f339faebba3b53136dad4b8cf9f4db344fb637",
+    "source_run_id": 43696931977,
+    "source_artifact_id": 14153789897,
+    "package_sha256": "05ad0bca79031bb5777f7bc5646313a48e6d625d50c1ee1dac77d33b7dad6332",
+    "reason": "Remate del menu movil de portada: alinear todos los enlaces raiz a la izquierda y ocupar todo el ancho de la tarjeta, preservar submenu sangrado, sin modificar jerarquia ni enlaces; instalacion reversible y test de 390/430px."
+  }
+}
