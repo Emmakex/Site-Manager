@@ -1,0 +1,39 @@
+{
+  "action": "theme.package.deploy",
+  "command_id": "cmd-emmake-inner-brand-plan-20261115-01",
+  "command_sha256": "9f650213917556a17399c1bee5ab93f6088597dbe94cc331ff9ab65977582f95",
+  "data": {
+    "plan": {
+      "capability_id": "theme.package.write",
+      "confirmation_required": true,
+      "expires_at": "2026-11-15T09:37:19+00:00",
+      "operation": "theme.package.deploy",
+      "plan_id": "sm-plan-ddfa47a6ceda68f3a1c92d07",
+      "reversible": true,
+      "status": "planned",
+      "target": {
+        "theme_slug": "seo-geo-theme"
+      }
+    },
+    "preview": {
+      "after_tree_sha256": "36ff983998a3d8b200b85051a4ffea9935aa5078c84af4696c0092ce93992006",
+      "before_tree_sha256": "a7006a29f4f4e47bc1e2ea68188592e4682daa847915375f523a0f6e3506d2f5",
+      "confirmation_required": true,
+      "file_count": 195,
+      "package_sha256": "b08a010984ed52fef2efec2e4d1597e6db67cb0d9ee6f217db9a4933d3df0742",
+      "source_artifact_id": 14155696153,
+      "source_commit_sha": "35c5daef012afb3463118a8328bea1441f19a179",
+      "source_run_id": 43698753415,
+      "theme_slug": "seo-geo-theme",
+      "theme_version": "0.1.1"
+    },
+    "stage": "plan"
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "theme.package.write",
+  "site": "emmake-nuevaweb",
+  "stage": "plan",
+  "status": "success",
+  "verified": false,
+  "version": "1"
+}
