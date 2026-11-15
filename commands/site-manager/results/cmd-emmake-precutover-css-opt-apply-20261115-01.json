@@ -1,0 +1,33 @@
+{
+  "action": "theme.package.deploy",
+  "command_id": "cmd-emmake-precutover-css-opt-apply-20261115-01",
+  "command_sha256": "b260226c53bd593735220ec33b76d0ee98dc0c82cf3e9b8f8a05efab76494a64",
+  "data": {
+    "plan": {
+      "capability_id": "theme.package.write",
+      "confirmation_required": true,
+      "expires_at": "2026-11-15T10:15:06+00:00",
+      "operation": "theme.package.deploy",
+      "plan_id": "sm-plan-0cd3e560d70e7c216294ee1c",
+      "reversible": true,
+      "status": "applied",
+      "target": {
+        "theme_slug": "seo-geo-theme"
+      }
+    },
+    "rollback_available": true,
+    "stage": "apply",
+    "status": "verified",
+    "verification": {
+      "installed_tree_sha256": "5d5ea6af9d7f170931d5153c16630e51c4c60544e184c7597f0666ca7a3b0a20",
+      "verified": true
+    }
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "theme.package.write",
+  "site": "emmake-nuevaweb",
+  "stage": "apply",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
