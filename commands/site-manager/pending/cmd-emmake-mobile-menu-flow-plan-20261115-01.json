@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-mobile-menu-flow-plan-20261115-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "59eaaecb8f5db40bb4f9db84c5e143a1726c89f6",
+    "source_run_id": 43696586853,
+    "source_artifact_id": 14154228355,
+    "package_sha256": "67fd73ebf1a2e598ec2019334225cd606b22a19ef51d13b1f350b46e593e21e1",
+    "reason": "El menu movil de portada en 390/430px esta desplazado al centro y se superpone al Hero. Implementar header responsive con marca izquierda, boton a derecha, lista in-flow ancho de header, contraste alto, enlaces >=44px, submenus ordenados; sin alterar WordPress ni menus y con rollback."
+  }
+}
