@@ -19,6 +19,7 @@
 | Web antigua | Descubrimiento | Homepage y entrada muestreada indexables, con canonical, Open Graph y JSON-LD |
 | Portada nueva | Auditoría SEO | Longitud de `<title>`: 209 caracteres. Revisar título antes del lanzamiento |
 | Rendimiento del tema | [Lighthouse CI 43701537269](https://github.com/Emmakex/template-wordpress-seo-geo/actions/runs/43701537269) | Fixture corporativa 100/100, LCP ~753 ms, CLS 0, CSS 9.855 bytes con límite explícito 10 KiB; no son Core Web Vitals de usuarios reales |
+| CSS móvil optimizado | `cmd-emmake-precutover-css-opt-apply-20261115-01` y [QA móvil reejecutada](https://github.com/Emmakex/Site-Manager/actions/runs/43697116481) | Site Manager verificó el árbol instalado; menú de home aprobado a 390 y 430 px, contraste 11,37:1 y cierre correcto |
 
 ## Bloqueos de lanzamiento
 
