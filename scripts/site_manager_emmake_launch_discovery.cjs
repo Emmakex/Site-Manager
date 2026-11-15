@@ -10,12 +10,16 @@ const CHECKS=[
  {id:'legacy_robots',url:'/robots.txt',kind:'robots'},
  {id:'legacy_wp_sitemap',url:'/wp-sitemap.xml',kind:'xml'},
  {id:'legacy_posts_api_count',url:'/wp-json/wp/v2/posts?per_page=1&_fields=id',kind:'api'},
+ {id:'legacy_pages_api_count',url:'/wp-json/wp/v2/pages?per_page=1&_fields=id',kind:'api'},
+ {id:'legacy_sitemap_index',url:'/sitemap_index.xml',kind:'xml'},
  {id:'legacy_article_sample',url:'/blog/creacion-de-trafico-anuncio-de-5-poderosos-consejos-para-la-creacion-de-trafico/'},
  {id:'staging_home',url:'/nuevaweb/',kind:'html'},
  {id:'staging_robots',url:'/nuevaweb/robots.txt',kind:'robots'},
  {id:'staging_wp_sitemap',url:'/nuevaweb/wp-sitemap.xml',kind:'xml'},
  {id:'staging_llms',url:'/nuevaweb/llms.txt',kind:'llms'},
  {id:'staging_posts_api_count',url:'/nuevaweb/wp-json/wp/v2/posts?per_page=1&_fields=id',kind:'api'},
+ {id:'staging_sitemap_index',url:'/nuevaweb/sitemap_index.xml',kind:'xml'},
+ {id:'staging_article_sample',url:'/nuevaweb/blog/creacion-de-trafico-anuncio-de-5-poderosos-consejos-para-la-creacion-de-trafico/',kind:'html'},
  {id:'staging_pages_api_count',url:'/nuevaweb/wp-json/wp/v2/pages?per_page=1&_fields=id',kind:'api'},
  {id:'staging_calculator',url:'/nuevaweb/calculadora-de-donativos/',kind:'html'},
  {id:'legacy_calculator',url:'/calculadora-de-donativos/',kind:'html'}
@@ -40,7 +44,7 @@ function analyzeHtml(body){
     html_lang_present:/<html[^>]+lang=/.test(low)};
 }
 function selfTest(){
-  if(ORIGIN!=='https://emmake.com'||CHECKS.length!==13||new Set(CHECKS.map(c=>c.id)).size!==13||
+  if(ORIGIN!=='https://emmake.com'||CHECKS.length!==17||new Set(CHECKS.map(c=>c.id)).size!==17||
      CHECKS.some(c=>!/^\/[a-z0-9/?=.&_-]*$/.test(c.url)))throw Error('precutover audit not bounded');
   console.log('PASS: fixed-domain read-only launch preflight');
 }
