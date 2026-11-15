@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-inner-mobile-flow-plan-20261115-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "74d9b47ef5a42737f4ee4680d3a036e71a64143b",
+    "source_run_id": 43697832379,
+    "source_artifact_id": 14154813805,
+    "package_sha256": "bb55af01702b8fe46fc8e1219a2f646092959ae0f2a2f4a12f162f20b32e4455",
+    "reason": "Corregir menu movil de paginas interiores Emmake (Servicios, Sobre Nosotros, Blog, Contacto): eliminar dropdown absoluto de 340px que tapa contenido, boton 106px a la derecha de marca, lista in-flow en header, links con contraste y altura>=44px, anidacion consistente, sin cambiar home ni los enlaces WordPress, con reversibilidad y QA 390/430px."
+  }
+}
