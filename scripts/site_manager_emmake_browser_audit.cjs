@@ -16,7 +16,7 @@ const SIZES = [['desktop', 1440, 900, false], ['mobile', 390, 844, true]];
 const OUT = 'artifacts/emmake-browser';
 const ROOT = 'audits/emmake/browser';
 const H1 = 'Conectamos estrategia, datos y tecnología para impulsar lo que viene.';
-const ID_PATTERN = /^visual-emmake-202611(?:11|12|13|14)-[0-9]{2}$/;
+const ID_PATTERN = /^visual-emmake-202611(?:11|12|13|14|15)-[0-9]{2}$/;
 
 function broken(href) {
   return /%category%|%postname%|%25category%25|%25postname%25|\{[a-f0-9]{30,}\}(?:category|postname)/i.test(href);
@@ -51,6 +51,7 @@ function selfTest() {
   if (!validRequest({...r,audit_id:'visual-emmake-20261112-02'},'visual-emmake-20261112-02'))throw Error('New audit date refused');
   if(!validRequest({...r,audit_id:'visual-emmake-20261113-01'},'visual-emmake-20261113-01'))throw Error('Nov 13 QA request refused');
   if(!validRequest({...r,audit_id:'visual-emmake-20261114-01'},'visual-emmake-20261114-01'))throw Error('Nov 14 QA request refused');
+  if(!validRequest({...r,audit_id:'visual-emmake-20261115-01'},'visual-emmake-20261115-01'))throw Error('Nov 15 QA request refused');
   if(PAGES.length!==10 || new Set(PAGES.map(p=>p[1])).size!==10)throw Error('Published page inventory mismatch');
   if(PAGES.some(p=>p[1].includes('..')||p[1].startsWith('/')||p[1].includes('?')))throw Error('Unsafe fixed path');
   process.stdout.write('PASS: fixed-domain responsive browser QA contract\n');
@@ -372,6 +373,49 @@ async function audit(id) {
               Object.values(fallbackStatuses).reduce((a,b)=>a+b,0)===publicIds.length,
               {posts_checked:publicIds.length,status_counts:fallbackStatuses});
 
+          }
+          // Regression for the owner's captured white-on-white / right-edge submenus.
+          // Only public hover/click; no WordPress writes and no leaked link labels.
+          if (name==='services' || name==='blog') {
+            if (device==='desktop') {
+              const label=name==='services'?'Servicios':'Blog';
+              const parent=pg.locator('.seo-geo-site-header .seo-geo-preset-navigation__desktop > ul > li')
+                .filter({hasText:new RegExp('^'+label)}).first();
+              if (await parent.count()) {
+                await parent.hover();
+                await pg.waitForTimeout(150);
+              }
+            } else {
+              const summary=pg.locator('.seo-geo-site-header .seo-geo-preset-navigation__mobile > summary').first();
+              if (await summary.isVisible()) await summary.click();
+            }
+            const menu=await pg.evaluate((mode)=>{
+              const el=mode==='desktop'
+                ?document.querySelector('.seo-geo-site-header .seo-geo-preset-navigation__desktop > ul > li:hover > ul')
+                :document.querySelector('.seo-geo-site-header .seo-geo-preset-navigation__mobile[open] > ul');
+              const first=el?.querySelector('a');
+              const box=el?.getBoundingClientRect();
+              const linkBox=first?.getBoundingClientRect();
+              const lum=(css)=>{
+                const parts=String(css||'').match(/^rgba?\\(([^)]+)\\)/);
+                if(!parts)return null;
+                const rgb=parts[1].trim().split(/[\\s,\\/]+/).slice(0,3).map(Number);
+                if(rgb.length!==3||rgb.some(x=>!Number.isFinite(x)))return null;
+                return rgb.reduce((sum,x,i)=>{
+                  const srgb=x/255;
+                  return sum+(srgb<=.04045?srgb/12.92:((srgb+.055)/1.055)**2.4)*[.2126,.7152,.0722][i];
+                },0);
+              };
+              const bg=el?lum(getComputedStyle(el).backgroundColor):null;
+              const fg=first?lum(getComputedStyle(first).color):null;
+              const ratio=bg===null||fg===null?0:(Math.max(bg,fg)+.05)/(Math.min(bg,fg)+.05);
+              return {open:!!el&&getComputedStyle(el).display!=='none'&&!!box&&box.width>0&&box.height>0,
+                right:Math.round(box?.right||0),left:Math.round(box?.left||0),
+                viewport:innerWidth,ratio:Math.round(ratio*100)/100,
+                touchHeight:Math.round(linkBox?.height||0)};
+            },device);
+            add('submenu_contrast_and_viewport',menu.open&&menu.ratio>=4.5&&
+              menu.left>=-2&&menu.right<=menu.viewport+2&&menu.touchHeight>=44,menu);
           }
           const png=prefix+'.png';
           try {
