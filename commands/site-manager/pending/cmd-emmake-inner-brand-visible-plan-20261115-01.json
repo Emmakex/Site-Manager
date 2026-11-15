@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-inner-brand-visible-plan-20261115-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "161c18ed10e6b30d460e1f3e3cd826719a1ba039",
+    "source_run_id": 43699235542,
+    "source_artifact_id": 14155836623,
+    "package_sha256": "f3cdf835c4ca61ad0f849c73e909c27c95ddb468867fe51878025edabc7ed639",
+    "reason": "Finalizar correccion de cabecera interior movil: el bloque nativo wp-block-site-title estaba oculto por display:none. Restablecer la visibilidad del titulo y enlace WordPress con buen contraste manteniendo el menu in-flow ya comprobado 390/430px, reversible y sin tocar contenido ni portada."
+  }
+}
