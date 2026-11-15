@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-inner-brand-plan-20261115-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "35c5daef012afb3463118a8328bea1441f19a179",
+    "source_run_id": 43698753415,
+    "source_artifact_id": 14155696153,
+    "package_sha256": "b08a010984ed52fef2efec2e4d1597e6db67cb0d9ee6f217db9a4933d3df0742",
+    "reason": "Completar la cabecera interior responsive de Emmake restaurando el nombre de marca desde get_bloginfo(name) solo si el bloque WP seo-geo-site-brand carece de logo y titulo, enlace home con contraste, sin hardcoding client branding, sin alterar menu, con rollback y QA movil."
+  }
+}
