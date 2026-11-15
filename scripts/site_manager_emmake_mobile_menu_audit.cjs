@@ -52,6 +52,7 @@ async function main() {
           const panel=details?.querySelector(':scope > .seo-geo-preset-navigation__list');
           const main=document.querySelector('main');
           const links=[...(panel?.querySelectorAll('a')||[])];
+          const rootLink=panel?.querySelector(':scope > li > a');
           const submenu=panel?.querySelector('.seo-geo-preset-navigation__sublist');
           const r=e=>{const b=e?.getBoundingClientRect();return b?{
             left:Math.round(b.left),right:Math.round(b.right),top:Math.round(b.top),
@@ -69,7 +70,7 @@ async function main() {
             open:!!details?.open,header:r(header),brand:r(brand),summary:r(toggle),
             panel:r(panel),hero:r(main),position:panel?getComputedStyle(panel).position:null,
             textContrast:bg===null||fg===null?0:Math.round(((Math.max(bg,fg)+.05)/(Math.min(bg,fg)+.05))*100)/100,
-            links:links.length,minimumLinkHeight:Math.min(...links.map(el=>r(el)?.height||0)),
+            links:links.length,firstRootLink:r(rootLink),minimumLinkHeight:Math.min(...links.map(el=>r(el)?.height||0)),
             nested:!!submenu,submenuPosition:submenu?getComputedStyle(submenu).position:null};
         });
         const passed=status===200 && a.open && a.header && a.summary && a.brand && a.panel && a.hero &&
@@ -79,6 +80,8 @@ async function main() {
           a.summary.left>=a.brand.right+4 &&
           a.scroll<=width+4 && a.textContrast>=4.5 &&
           a.links>=8 && a.minimumLinkHeight>=44 &&
+          a.firstRootLink && a.firstRootLink.left<=a.panel.left+34 &&
+          a.firstRootLink.right>=a.panel.right-34 &&
           a.position==='static' && a.nested && a.submenuPosition==='static';
         checks.push({width,passed:!!passed,metrics:a});
         await page.screenshot({path:path.join(OUT,'home-menu-open-'+width+'.png'),
