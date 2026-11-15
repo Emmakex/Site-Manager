@@ -1,0 +1,1987 @@
+{
+  "version": "1",
+  "audit_id": "visual-emmake-20261115-03",
+  "site": "emmake-nuevaweb",
+  "checked_origin": "https://emmake.com/nuevaweb/",
+  "checked_at": "2026-11-15T08:50:07.043Z",
+  "status": "failed",
+  "checks": [
+    {
+      "id": "desktop_home_http_200",
+      "ok": true,
+      "details": 200
+    },
+    {
+      "id": "desktop_home_staging_https",
+      "ok": true
+    },
+    {
+      "id": "desktop_home_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 1440,
+        "viewport": 1440
+      }
+    },
+    {
+      "id": "desktop_home_main_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_home_lang_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_home_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 5,
+        "failed": 0
+      }
+    },
+    {
+      "id": "desktop_home_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 32,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "desktop_home_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "desktop_home_one_h1",
+      "ok": true,
+      "details": {
+        "total": 1,
+        "content_h1": 0,
+        "template_h1": 0
+      }
+    },
+    {
+      "id": "desktop_home_staging_noindex_global",
+      "ok": true
+    },
+    {
+      "id": "desktop_home_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "desktop_home_theme_rendered",
+      "ok": true
+    },
+    {
+      "id": "desktop_home_approved_h1",
+      "ok": true
+    },
+    {
+      "id": "desktop_home_contact_link",
+      "ok": true
+    },
+    {
+      "id": "desktop_home_navigation_available",
+      "ok": true
+    },
+    {
+      "id": "desktop_home_staging_noindex",
+      "ok": true
+    },
+    {
+      "id": "desktop_home_hero_background_full_bleed",
+      "ok": true
+    },
+    {
+      "id": "desktop_home_method_three_cards",
+      "ok": true,
+      "details": 3
+    },
+    {
+      "id": "desktop_home_method_inner_padding",
+      "ok": true,
+      "details": {
+        "cards_checked": 3,
+        "minimum_inset": 37
+      }
+    },
+    {
+      "id": "desktop_home_insight_links_http_200",
+      "ok": true,
+      "details": {
+        "links_checked": 3,
+        "live_200": 3,
+        "reasons": {
+          "http_200": 3
+        }
+      }
+    },
+    {
+      "id": "desktop_home_published_posts_rest_probe",
+      "ok": true,
+      "details": {
+        "rest_http_status": 200,
+        "public_posts_found": 3
+      }
+    },
+    {
+      "id": "desktop_home_post_id_fallback_probe_completed",
+      "ok": true,
+      "details": {
+        "posts_checked": 3,
+        "status_counts": {
+          "http_301": 3
+        }
+      }
+    },
+    {
+      "id": "desktop_home_submenu_contrast_and_viewport",
+      "ok": true,
+      "details": {
+        "open": true,
+        "right": 1293,
+        "left": 1053,
+        "viewport": 1440,
+        "ratio": 10.35,
+        "touchHeight": 44
+      }
+    },
+    {
+      "id": "desktop_blog_http_200",
+      "ok": true,
+      "details": 200
+    },
+    {
+      "id": "desktop_blog_staging_https",
+      "ok": true
+    },
+    {
+      "id": "desktop_blog_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 1440,
+        "viewport": 1440
+      }
+    },
+    {
+      "id": "desktop_blog_main_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_blog_lang_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_blog_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 8,
+        "failed": 0
+      }
+    },
+    {
+      "id": "desktop_blog_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 52,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "desktop_blog_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "desktop_blog_one_h1",
+      "ok": true,
+      "details": {
+        "total": 1,
+        "content_h1": 0,
+        "template_h1": 1
+      }
+    },
+    {
+      "id": "desktop_blog_staging_noindex_global",
+      "ok": true
+    },
+    {
+      "id": "desktop_blog_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "desktop_blog_posts_listed",
+      "ok": true,
+      "details": {
+        "native_or_latest_post_cards": 12,
+        "public_post_links": 24
+      }
+    },
+    {
+      "id": "desktop_blog_submenu_contrast_and_viewport",
+      "ok": true,
+      "details": {
+        "open": true,
+        "right": 1277,
+        "left": 1037,
+        "viewport": 1440,
+        "ratio": 11.52,
+        "touchHeight": 44
+      }
+    },
+    {
+      "id": "desktop_services_http_200",
+      "ok": true,
+      "details": 200
+    },
+    {
+      "id": "desktop_services_staging_https",
+      "ok": true
+    },
+    {
+      "id": "desktop_services_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 1440,
+        "viewport": 1440
+      }
+    },
+    {
+      "id": "desktop_services_main_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_services_lang_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_services_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 0,
+        "failed": 0
+      }
+    },
+    {
+      "id": "desktop_services_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 24,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "desktop_services_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "desktop_services_one_h1",
+      "ok": true,
+      "details": {
+        "total": 1,
+        "content_h1": 0,
+        "template_h1": 1
+      }
+    },
+    {
+      "id": "desktop_services_staging_noindex_global",
+      "ok": true
+    },
+    {
+      "id": "desktop_services_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "desktop_services_editorial_body_review",
+      "ok": true,
+      "details": {
+        "word_count": 220,
+        "minimum_for_initial_review": 60
+      }
+    },
+    {
+      "id": "desktop_services_submenu_contrast_and_viewport",
+      "ok": true,
+      "details": {
+        "open": true,
+        "right": 1098,
+        "left": 858,
+        "viewport": 1440,
+        "ratio": 11.52,
+        "touchHeight": 44
+      }
+    },
+    {
+      "id": "desktop_about_http_200",
+      "ok": true,
+      "details": 200
+    },
+    {
+      "id": "desktop_about_staging_https",
+      "ok": true
+    },
+    {
+      "id": "desktop_about_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 1440,
+        "viewport": 1440
+      }
+    },
+    {
+      "id": "desktop_about_main_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_about_lang_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_about_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 6,
+        "failed": 0
+      }
+    },
+    {
+      "id": "desktop_about_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 24,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "desktop_about_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "desktop_about_one_h1",
+      "ok": true,
+      "details": {
+        "total": 1,
+        "content_h1": 0,
+        "template_h1": 1
+      }
+    },
+    {
+      "id": "desktop_about_staging_noindex_global",
+      "ok": true
+    },
+    {
+      "id": "desktop_about_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "desktop_about_editorial_body_review",
+      "ok": true,
+      "details": {
+        "word_count": 452,
+        "minimum_for_initial_review": 35
+      }
+    },
+    {
+      "id": "desktop_about_installed_about_asset_and_enhancer",
+      "ok": true,
+      "details": {
+        "asset_loaded": true,
+        "enhanced": true
+      }
+    },
+    {
+      "id": "desktop_about_approved_about_brand_gallery_absent",
+      "ok": true,
+      "details": {
+        "enhanced": true,
+        "assetLoaded": true,
+        "brandGroups": 0,
+        "cardGroups": 2,
+        "logos": 0,
+        "blurbs": 8,
+        "maxLogoHeight": 0,
+        "maxLogoImageHeight": 0,
+        "brandColumns": 0,
+        "cardColumns": [
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "id": "desktop_about_installed_about_services_cards",
+      "ok": true,
+      "details": {
+        "card_groups": 2,
+        "blurbs": 8,
+        "columns": [
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "id": "desktop_contact_http_200",
+      "ok": true,
+      "details": 200
+    },
+    {
+      "id": "desktop_contact_staging_https",
+      "ok": true
+    },
+    {
+      "id": "desktop_contact_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 1440,
+        "viewport": 1440
+      }
+    },
+    {
+      "id": "desktop_contact_main_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_contact_lang_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_contact_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 1,
+        "failed": 0
+      }
+    },
+    {
+      "id": "desktop_contact_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 24,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "desktop_contact_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "desktop_contact_one_h1",
+      "ok": true,
+      "details": {
+        "total": 1,
+        "content_h1": 0,
+        "template_h1": 1
+      }
+    },
+    {
+      "id": "desktop_contact_staging_noindex_global",
+      "ok": true
+    },
+    {
+      "id": "desktop_contact_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "desktop_contact_contact_form_present",
+      "ok": true,
+      "details": {
+        "forms": 1
+      }
+    },
+    {
+      "id": "desktop_contact_contact_native_form_ready",
+      "ok": true,
+      "details": {
+        "forms_checked": 1,
+        "configured_native": 1,
+        "required_fields": [
+          3
+        ]
+      }
+    },
+    {
+      "id": "desktop_brands_http_200",
+      "ok": true,
+      "details": 200
+    },
+    {
+      "id": "desktop_brands_staging_https",
+      "ok": true
+    },
+    {
+      "id": "desktop_brands_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 1440,
+        "viewport": 1440
+      }
+    },
+    {
+      "id": "desktop_brands_main_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_brands_lang_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_brands_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 5,
+        "failed": 0
+      }
+    },
+    {
+      "id": "desktop_brands_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 25,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "desktop_brands_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "desktop_brands_one_h1",
+      "ok": true,
+      "details": {
+        "total": 1,
+        "content_h1": 0,
+        "template_h1": 1
+      }
+    },
+    {
+      "id": "desktop_brands_staging_noindex_global",
+      "ok": true
+    },
+    {
+      "id": "desktop_brands_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "desktop_brands_editorial_body_review",
+      "ok": true,
+      "details": {
+        "word_count": 213,
+        "minimum_for_initial_review": 35
+      }
+    },
+    {
+      "id": "desktop_brands_cta_accessible_contrast",
+      "ok": true,
+      "details": {
+        "buttons": 1,
+        "min_contrast": 5.07,
+        "min_height": 47
+      }
+    },
+    {
+      "id": "desktop_blog-digital_http_200",
+      "ok": true,
+      "details": 200
+    },
+    {
+      "id": "desktop_blog-digital_staging_https",
+      "ok": true
+    },
+    {
+      "id": "desktop_blog-digital_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 1440,
+        "viewport": 1440
+      }
+    },
+    {
+      "id": "desktop_blog-digital_main_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_blog-digital_lang_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_blog-digital_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 9,
+        "failed": 0
+      }
+    },
+    {
+      "id": "desktop_blog-digital_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 33,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "desktop_blog-digital_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "desktop_blog-digital_one_h1",
+      "ok": true,
+      "details": {
+        "total": 1,
+        "content_h1": 0,
+        "template_h1": 1
+      }
+    },
+    {
+      "id": "desktop_blog-digital_staging_noindex_global",
+      "ok": true
+    },
+    {
+      "id": "desktop_blog-digital_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "desktop_blog-digital_editorial_latest_posts_inventory",
+      "ok": true,
+      "details": {
+        "lists": 2,
+        "entries": 5,
+        "unique": 5,
+        "repeated": 0,
+        "unlinked": 0
+      }
+    },
+    {
+      "id": "desktop_blog-digital_installed_blog_asset_and_enhancer",
+      "ok": true,
+      "details": {
+        "asset_loaded": true,
+        "enhanced": true
+      }
+    },
+    {
+      "id": "desktop_blog-digital_installed_blog_unique_published_cards",
+      "ok": true,
+      "details": {
+        "lists": 2,
+        "entries": 5,
+        "unique": 5,
+        "repeated": 0,
+        "unlinked": 0
+      }
+    },
+    {
+      "id": "desktop_blog-digital_installed_blog_featured_archive",
+      "ok": true,
+      "details": {
+        "featured": 1,
+        "archive": 4,
+        "archive_columns": 2
+      }
+    },
+    {
+      "id": "desktop_blog-digital_installed_blog_topics_preserved",
+      "ok": true,
+      "details": {
+        "topics": 6,
+        "categories": 12
+      }
+    },
+    {
+      "id": "desktop_blog-digital_installed_blog_inert_newsletter_hidden",
+      "ok": true,
+      "details": {
+        "disabled_placeholder_cards": 1
+      }
+    },
+    {
+      "id": "desktop_privacy_http_200",
+      "ok": true,
+      "details": 200
+    },
+    {
+      "id": "desktop_privacy_staging_https",
+      "ok": true
+    },
+    {
+      "id": "desktop_privacy_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 1440,
+        "viewport": 1440
+      }
+    },
+    {
+      "id": "desktop_privacy_main_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_privacy_lang_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_privacy_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 0,
+        "failed": 0
+      }
+    },
+    {
+      "id": "desktop_privacy_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 23,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "desktop_privacy_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "desktop_privacy_one_h1",
+      "ok": true,
+      "details": {
+        "total": 1,
+        "content_h1": 0,
+        "template_h1": 1
+      }
+    },
+    {
+      "id": "desktop_privacy_staging_noindex_global",
+      "ok": true
+    },
+    {
+      "id": "desktop_privacy_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "desktop_careers_http_200",
+      "ok": true,
+      "details": 200
+    },
+    {
+      "id": "desktop_careers_staging_https",
+      "ok": true
+    },
+    {
+      "id": "desktop_careers_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 1440,
+        "viewport": 1440
+      }
+    },
+    {
+      "id": "desktop_careers_main_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_careers_lang_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_careers_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 0,
+        "failed": 0
+      }
+    },
+    {
+      "id": "desktop_careers_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 26,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "desktop_careers_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "desktop_careers_one_h1",
+      "ok": true,
+      "details": {
+        "total": 1,
+        "content_h1": 0,
+        "template_h1": 1
+      }
+    },
+    {
+      "id": "desktop_careers_staging_noindex_global",
+      "ok": true
+    },
+    {
+      "id": "desktop_careers_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "desktop_careers_editorial_body_review",
+      "ok": true,
+      "details": {
+        "word_count": 178,
+        "minimum_for_initial_review": 30
+      }
+    },
+    {
+      "id": "desktop_voice_http_200",
+      "ok": true,
+      "details": 200
+    },
+    {
+      "id": "desktop_voice_staging_https",
+      "ok": true
+    },
+    {
+      "id": "desktop_voice_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 1440,
+        "viewport": 1440
+      }
+    },
+    {
+      "id": "desktop_voice_main_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_voice_lang_present",
+      "ok": true
+    },
+    {
+      "id": "desktop_voice_no_broken_images",
+      "ok": false,
+      "details": {
+        "images": 1,
+        "failed": 1
+      }
+    },
+    {
+      "id": "desktop_voice_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 25,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "desktop_voice_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "desktop_voice_one_h1",
+      "ok": true,
+      "details": {
+        "total": 1,
+        "content_h1": 0,
+        "template_h1": 1
+      }
+    },
+    {
+      "id": "desktop_voice_staging_noindex_global",
+      "ok": true
+    },
+    {
+      "id": "desktop_voice_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "wide_home_http_200",
+      "ok": false,
+      "details": 429
+    },
+    {
+      "id": "wide_home_staging_https",
+      "ok": true
+    },
+    {
+      "id": "wide_home_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 2048,
+        "viewport": 2048
+      }
+    },
+    {
+      "id": "wide_home_main_present",
+      "ok": false
+    },
+    {
+      "id": "wide_home_lang_present",
+      "ok": false
+    },
+    {
+      "id": "wide_home_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 0,
+        "failed": 0
+      }
+    },
+    {
+      "id": "wide_home_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 0,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "wide_home_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "wide_home_one_h1",
+      "ok": false,
+      "details": {
+        "total": 0,
+        "content_h1": 0,
+        "template_h1": 0
+      }
+    },
+    {
+      "id": "wide_home_staging_noindex_global",
+      "ok": false
+    },
+    {
+      "id": "wide_home_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "wide_home_theme_rendered",
+      "ok": false
+    },
+    {
+      "id": "wide_home_approved_h1",
+      "ok": false
+    },
+    {
+      "id": "wide_home_contact_link",
+      "ok": false
+    },
+    {
+      "id": "wide_home_navigation_available",
+      "ok": false
+    },
+    {
+      "id": "wide_home_staging_noindex",
+      "ok": false
+    },
+    {
+      "id": "wide_home_hero_background_full_bleed",
+      "ok": false
+    },
+    {
+      "id": "wide_home_method_three_cards",
+      "ok": false,
+      "details": 0
+    },
+    {
+      "id": "wide_home_method_inner_padding",
+      "ok": false,
+      "details": {
+        "cards_checked": 0,
+        "minimum_inset": null
+      }
+    },
+    {
+      "id": "wide_home_insight_links_http_200",
+      "ok": false,
+      "details": {
+        "links_checked": 0,
+        "live_200": 0,
+        "reasons": {}
+      }
+    },
+    {
+      "id": "wide_home_published_posts_rest_probe",
+      "ok": false,
+      "details": {
+        "rest_http_status": 429,
+        "public_posts_found": 0
+      }
+    },
+    {
+      "id": "wide_home_post_id_fallback_probe_completed",
+      "ok": false,
+      "details": {
+        "posts_checked": 0,
+        "status_counts": {}
+      }
+    },
+    {
+      "id": "wide_home_submenu_contrast_and_viewport",
+      "ok": false,
+      "details": {
+        "open": false,
+        "right": 0,
+        "left": 0,
+        "viewport": 2048,
+        "ratio": 0,
+        "touchHeight": 0
+      }
+    },
+    {
+      "id": "mobile_home_http_200",
+      "ok": false,
+      "details": 429
+    },
+    {
+      "id": "mobile_home_staging_https",
+      "ok": true
+    },
+    {
+      "id": "mobile_home_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 980,
+        "viewport": 980
+      }
+    },
+    {
+      "id": "mobile_home_main_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_home_lang_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_home_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 0,
+        "failed": 0
+      }
+    },
+    {
+      "id": "mobile_home_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 0,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "mobile_home_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "mobile_home_one_h1",
+      "ok": false,
+      "details": {
+        "total": 0,
+        "content_h1": 0,
+        "template_h1": 0
+      }
+    },
+    {
+      "id": "mobile_home_staging_noindex_global",
+      "ok": false
+    },
+    {
+      "id": "mobile_home_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "mobile_home_theme_rendered",
+      "ok": false
+    },
+    {
+      "id": "mobile_home_approved_h1",
+      "ok": false
+    },
+    {
+      "id": "mobile_home_contact_link",
+      "ok": false
+    },
+    {
+      "id": "mobile_home_navigation_available",
+      "ok": false
+    },
+    {
+      "id": "mobile_home_staging_noindex",
+      "ok": false
+    },
+    {
+      "id": "mobile_home_hero_background_full_bleed",
+      "ok": false
+    },
+    {
+      "id": "mobile_home_method_three_cards",
+      "ok": false,
+      "details": 0
+    },
+    {
+      "id": "mobile_home_method_inner_padding",
+      "ok": false,
+      "details": {
+        "cards_checked": 0,
+        "minimum_inset": null
+      }
+    },
+    {
+      "id": "mobile_home_insight_links_http_200",
+      "ok": false,
+      "details": {
+        "links_checked": 0,
+        "live_200": 0,
+        "reasons": {}
+      }
+    },
+    {
+      "id": "mobile_home_published_posts_rest_probe",
+      "ok": false,
+      "details": {
+        "rest_http_status": 429,
+        "public_posts_found": 0
+      }
+    },
+    {
+      "id": "mobile_home_post_id_fallback_probe_completed",
+      "ok": false,
+      "details": {
+        "posts_checked": 0,
+        "status_counts": {}
+      }
+    },
+    {
+      "id": "mobile_home_submenu_contrast_and_viewport",
+      "ok": false,
+      "details": {
+        "open": false,
+        "right": 0,
+        "left": 0,
+        "viewport": 980,
+        "ratio": 0,
+        "touchHeight": 0
+      }
+    },
+    {
+      "id": "mobile_blog_http_200",
+      "ok": false,
+      "details": 429
+    },
+    {
+      "id": "mobile_blog_staging_https",
+      "ok": true
+    },
+    {
+      "id": "mobile_blog_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 980,
+        "viewport": 980
+      }
+    },
+    {
+      "id": "mobile_blog_main_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_blog_lang_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_blog_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 0,
+        "failed": 0
+      }
+    },
+    {
+      "id": "mobile_blog_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 0,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "mobile_blog_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "mobile_blog_one_h1",
+      "ok": false,
+      "details": {
+        "total": 0,
+        "content_h1": 0,
+        "template_h1": 0
+      }
+    },
+    {
+      "id": "mobile_blog_staging_noindex_global",
+      "ok": false
+    },
+    {
+      "id": "mobile_blog_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "mobile_blog_posts_listed",
+      "ok": false,
+      "details": {
+        "native_or_latest_post_cards": 0,
+        "public_post_links": 0
+      }
+    },
+    {
+      "id": "mobile_blog_submenu_contrast_and_viewport",
+      "ok": false,
+      "details": {
+        "open": false,
+        "right": 0,
+        "left": 0,
+        "viewport": 980,
+        "ratio": 0,
+        "touchHeight": 0
+      }
+    },
+    {
+      "id": "mobile_services_http_200",
+      "ok": false,
+      "details": 429
+    },
+    {
+      "id": "mobile_services_staging_https",
+      "ok": true
+    },
+    {
+      "id": "mobile_services_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 980,
+        "viewport": 980
+      }
+    },
+    {
+      "id": "mobile_services_main_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_services_lang_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_services_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 0,
+        "failed": 0
+      }
+    },
+    {
+      "id": "mobile_services_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 0,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "mobile_services_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "mobile_services_one_h1",
+      "ok": false,
+      "details": {
+        "total": 0,
+        "content_h1": 0,
+        "template_h1": 0
+      }
+    },
+    {
+      "id": "mobile_services_staging_noindex_global",
+      "ok": false
+    },
+    {
+      "id": "mobile_services_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "mobile_services_editorial_body_review",
+      "ok": false,
+      "details": {
+        "word_count": 0,
+        "minimum_for_initial_review": 60
+      }
+    },
+    {
+      "id": "mobile_services_submenu_contrast_and_viewport",
+      "ok": false,
+      "details": {
+        "open": false,
+        "right": 0,
+        "left": 0,
+        "viewport": 980,
+        "ratio": 0,
+        "touchHeight": 0
+      }
+    },
+    {
+      "id": "mobile_about_http_200",
+      "ok": false,
+      "details": 429
+    },
+    {
+      "id": "mobile_about_staging_https",
+      "ok": true
+    },
+    {
+      "id": "mobile_about_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 980,
+        "viewport": 980
+      }
+    },
+    {
+      "id": "mobile_about_main_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_about_lang_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_about_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 0,
+        "failed": 0
+      }
+    },
+    {
+      "id": "mobile_about_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 0,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "mobile_about_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "mobile_about_one_h1",
+      "ok": false,
+      "details": {
+        "total": 0,
+        "content_h1": 0,
+        "template_h1": 0
+      }
+    },
+    {
+      "id": "mobile_about_staging_noindex_global",
+      "ok": false
+    },
+    {
+      "id": "mobile_about_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "mobile_about_editorial_body_review",
+      "ok": false,
+      "details": {
+        "word_count": 0,
+        "minimum_for_initial_review": 35
+      }
+    },
+    {
+      "id": "mobile_about_installed_about_asset_and_enhancer",
+      "ok": false,
+      "details": {
+        "asset_loaded": false,
+        "enhanced": false
+      }
+    },
+    {
+      "id": "mobile_about_approved_about_brand_gallery_absent",
+      "ok": true,
+      "details": {
+        "enhanced": false,
+        "assetLoaded": false,
+        "brandGroups": 0,
+        "cardGroups": 0,
+        "logos": 0,
+        "blurbs": 0,
+        "maxLogoHeight": 0,
+        "maxLogoImageHeight": 0,
+        "brandColumns": 0,
+        "cardColumns": []
+      }
+    },
+    {
+      "id": "mobile_about_installed_about_services_cards",
+      "ok": false,
+      "details": {
+        "card_groups": 0,
+        "blurbs": 0,
+        "columns": []
+      }
+    },
+    {
+      "id": "mobile_contact_http_200",
+      "ok": false,
+      "details": 429
+    },
+    {
+      "id": "mobile_contact_staging_https",
+      "ok": true
+    },
+    {
+      "id": "mobile_contact_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 980,
+        "viewport": 980
+      }
+    },
+    {
+      "id": "mobile_contact_main_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_contact_lang_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_contact_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 0,
+        "failed": 0
+      }
+    },
+    {
+      "id": "mobile_contact_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 0,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "mobile_contact_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "mobile_contact_one_h1",
+      "ok": false,
+      "details": {
+        "total": 0,
+        "content_h1": 0,
+        "template_h1": 0
+      }
+    },
+    {
+      "id": "mobile_contact_staging_noindex_global",
+      "ok": false
+    },
+    {
+      "id": "mobile_contact_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "mobile_contact_contact_form_present",
+      "ok": false,
+      "details": {
+        "forms": 0
+      }
+    },
+    {
+      "id": "mobile_contact_contact_native_form_ready",
+      "ok": false,
+      "details": {
+        "forms_checked": 0,
+        "configured_native": 0,
+        "required_fields": []
+      }
+    },
+    {
+      "id": "mobile_brands_http_200",
+      "ok": false,
+      "details": 429
+    },
+    {
+      "id": "mobile_brands_staging_https",
+      "ok": true
+    },
+    {
+      "id": "mobile_brands_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 980,
+        "viewport": 980
+      }
+    },
+    {
+      "id": "mobile_brands_main_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_brands_lang_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_brands_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 0,
+        "failed": 0
+      }
+    },
+    {
+      "id": "mobile_brands_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 0,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "mobile_brands_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "mobile_brands_one_h1",
+      "ok": false,
+      "details": {
+        "total": 0,
+        "content_h1": 0,
+        "template_h1": 0
+      }
+    },
+    {
+      "id": "mobile_brands_staging_noindex_global",
+      "ok": false
+    },
+    {
+      "id": "mobile_brands_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "mobile_brands_editorial_body_review",
+      "ok": false,
+      "details": {
+        "word_count": 0,
+        "minimum_for_initial_review": 35
+      }
+    },
+    {
+      "id": "mobile_brands_cta_accessible_contrast",
+      "ok": false,
+      "details": {
+        "buttons": 0,
+        "min_contrast": null,
+        "min_height": null
+      }
+    },
+    {
+      "id": "mobile_blog-digital_http_200",
+      "ok": false,
+      "details": 429
+    },
+    {
+      "id": "mobile_blog-digital_staging_https",
+      "ok": true
+    },
+    {
+      "id": "mobile_blog-digital_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 980,
+        "viewport": 980
+      }
+    },
+    {
+      "id": "mobile_blog-digital_main_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_blog-digital_lang_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_blog-digital_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 0,
+        "failed": 0
+      }
+    },
+    {
+      "id": "mobile_blog-digital_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 0,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "mobile_blog-digital_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "mobile_blog-digital_one_h1",
+      "ok": false,
+      "details": {
+        "total": 0,
+        "content_h1": 0,
+        "template_h1": 0
+      }
+    },
+    {
+      "id": "mobile_blog-digital_staging_noindex_global",
+      "ok": false
+    },
+    {
+      "id": "mobile_blog-digital_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "mobile_blog-digital_editorial_latest_posts_inventory",
+      "ok": true,
+      "details": {
+        "lists": 0,
+        "entries": 0,
+        "unique": 0,
+        "repeated": 0,
+        "unlinked": 0
+      }
+    },
+    {
+      "id": "mobile_blog-digital_installed_blog_asset_and_enhancer",
+      "ok": false,
+      "details": {
+        "asset_loaded": false,
+        "enhanced": false
+      }
+    },
+    {
+      "id": "mobile_blog-digital_installed_blog_unique_published_cards",
+      "ok": false,
+      "details": {
+        "lists": 0,
+        "entries": 0,
+        "unique": 0,
+        "repeated": 0,
+        "unlinked": 0
+      }
+    },
+    {
+      "id": "mobile_blog-digital_installed_blog_featured_archive",
+      "ok": false,
+      "details": {
+        "featured": 0,
+        "archive": 0,
+        "archive_columns": 0
+      }
+    },
+    {
+      "id": "mobile_blog-digital_installed_blog_topics_preserved",
+      "ok": false,
+      "details": {
+        "topics": 0,
+        "categories": 0
+      }
+    },
+    {
+      "id": "mobile_blog-digital_installed_blog_inert_newsletter_hidden",
+      "ok": false,
+      "details": {
+        "disabled_placeholder_cards": 0
+      }
+    },
+    {
+      "id": "mobile_privacy_http_200",
+      "ok": false,
+      "details": 429
+    },
+    {
+      "id": "mobile_privacy_staging_https",
+      "ok": true
+    },
+    {
+      "id": "mobile_privacy_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 980,
+        "viewport": 980
+      }
+    },
+    {
+      "id": "mobile_privacy_main_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_privacy_lang_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_privacy_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 0,
+        "failed": 0
+      }
+    },
+    {
+      "id": "mobile_privacy_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 0,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "mobile_privacy_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "mobile_privacy_one_h1",
+      "ok": false,
+      "details": {
+        "total": 0,
+        "content_h1": 0,
+        "template_h1": 0
+      }
+    },
+    {
+      "id": "mobile_privacy_staging_noindex_global",
+      "ok": false
+    },
+    {
+      "id": "mobile_privacy_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "mobile_careers_http_200",
+      "ok": false,
+      "details": 429
+    },
+    {
+      "id": "mobile_careers_staging_https",
+      "ok": true
+    },
+    {
+      "id": "mobile_careers_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 980,
+        "viewport": 980
+      }
+    },
+    {
+      "id": "mobile_careers_main_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_careers_lang_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_careers_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 0,
+        "failed": 0
+      }
+    },
+    {
+      "id": "mobile_careers_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 0,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "mobile_careers_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "mobile_careers_one_h1",
+      "ok": false,
+      "details": {
+        "total": 0,
+        "content_h1": 0,
+        "template_h1": 0
+      }
+    },
+    {
+      "id": "mobile_careers_staging_noindex_global",
+      "ok": false
+    },
+    {
+      "id": "mobile_careers_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    },
+    {
+      "id": "mobile_careers_editorial_body_review",
+      "ok": false,
+      "details": {
+        "word_count": 0,
+        "minimum_for_initial_review": 30
+      }
+    },
+    {
+      "id": "mobile_voice_http_200",
+      "ok": false,
+      "details": 429
+    },
+    {
+      "id": "mobile_voice_staging_https",
+      "ok": true
+    },
+    {
+      "id": "mobile_voice_no_overflow",
+      "ok": true,
+      "details": {
+        "document": 980,
+        "viewport": 980
+      }
+    },
+    {
+      "id": "mobile_voice_main_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_voice_lang_present",
+      "ok": false
+    },
+    {
+      "id": "mobile_voice_no_broken_images",
+      "ok": true,
+      "details": {
+        "images": 0,
+        "failed": 0
+      }
+    },
+    {
+      "id": "mobile_voice_no_malformed_links",
+      "ok": true,
+      "details": {
+        "total": 0,
+        "malformed": 0
+      }
+    },
+    {
+      "id": "mobile_voice_no_javascript_exceptions",
+      "ok": true,
+      "details": 0
+    },
+    {
+      "id": "mobile_voice_one_h1",
+      "ok": false,
+      "details": {
+        "total": 0,
+        "content_h1": 0,
+        "template_h1": 0
+      }
+    },
+    {
+      "id": "mobile_voice_staging_noindex_global",
+      "ok": false
+    },
+    {
+      "id": "mobile_voice_no_header_links_to_unpublished_legacy",
+      "ok": true,
+      "details": {
+        "links": 0
+      }
+    }
+  ],
+  "errors": [],
+  "screenshots_taken": 21,
+  "visual_human_review_completed": false,
+  "html_in_results": false,
+  "screenshots_in_git_results": false
+}
