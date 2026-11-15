@@ -17,7 +17,7 @@
 | Identidad de páginas | [Comparación de slugs 43701239241](https://github.com/Emmakex/Site-Manager/actions/runs/43701239241) | Antigua: `calculadora-de-donativos`; nueva: `servicios`; 9 slugs compartidos |
 | Rutas de artículos | [Paridad tras el despliegue 43702916067](https://github.com/Emmakex/Site-Manager/actions/runs/43702916067) + [HTTP 43704144126](https://github.com/Emmakex/Site-Manager/actions/runs/43704144126) | **Corregido en staging**: 1.725 slugs idénticos con 0 diferencias de ruta; 1 normalizado recibe 301. El histórico real son 1.702 enlaces `/blog/` (dos slugs percent-encoded) y 24 excepciones bajo categorías, no 24 URLs de raíz. HTTP 31/31 |
 | Web antigua | Descubrimiento | Homepage y entrada muestreada indexables, con canonical, Open Graph y JSON-LD |
-| Portada nueva | Auditoría SEO | Longitud de `<title>`: 209 caracteres. Revisar título antes del lanzamiento |
+| Portada nueva | [QA posterior al despliegue 43712323106](https://github.com/Emmakex/Site-Manager/actions/runs/43712323106) + `cmd-emmake-home-seo-title-apply-20261115-01` | **Corregido**: título HTML de 209 a 65 caracteres; `EMMAKE | Estrategia digital, tecnología e inteligencia artificial`; H1 único, 10 páginas activas en staging, `noindex` preservado |
 | Rendimiento del tema | [Lighthouse CI 43701537269](https://github.com/Emmakex/template-wordpress-seo-geo/actions/runs/43701537269) | Fixture corporativa 100/100, LCP ~753 ms, CLS 0, CSS 9.855 bytes con límite explícito 10 KiB; no son Core Web Vitals de usuarios reales |
 | CSS móvil optimizado | `cmd-emmake-precutover-css-opt-apply-20261115-01` y [QA móvil reejecutada](https://github.com/Emmakex/Site-Manager/actions/runs/43697116481) | Site Manager verificó el árbol instalado; menú de home aprobado a 390 y 430 px, contraste 11,37:1 y cierre correcto |
 
@@ -25,9 +25,9 @@
 
 1. **Calculadora de donativos — exclusión aprobada por el propietario:** no se migrará; la ausencia de esta página en la nueva web es deliberada. No inventar redirecciones ni bloquear el proyecto por esta página.
 2. **URLs de artículos — cerrado en staging:** el tema conserva `/blog/%postname%/` y las 24 rutas históricas por categorías. Los 1.725 slugs coincidentes tienen paridad exacta; el único slug normalizado recibe 301 hacia su enlace limpio. La auditoría HTTP ha pasado 31/31. Durante el cambio al dominio principal, verificar que continúe el mismo comportamiento sin `/nuevaweb` y revisar aparte adjuntos, taxonomías y paginación.
-3. **Backup y rollback:** exigir copia íntegra y verificada del WordPress actual (base de datos, uploads, configuración, tema, plugins y reglas de servidor) y una recuperación ensayada antes de sustituir el dominio principal.
+3. **Backup y rollback — BLOQUEO ACTUAL:** exigir copia íntegra y verificada del WordPress actual y del staging (bases de datos correctas, archivos, uploads, plugins, temas y configuración), más una prueba de restauración. Site Manager expone rollback de despliegues de tema, **no** una acción de respaldo/restauración de la base de datos principal. No hay todavía evidencia de copia descargable y recuperable: NO MIGRAR sin ella.
 4. **SEO indexable post-cambio:** activar visibilidad pública solo al terminar la migración, eliminar `noindex` de la nueva web, y comprobar canonical único con URL definitiva, Open Graph, datos estructurados coherentes, `robots.txt`, `sitemap_index.xml` o sitemap nativo, y `llms.txt` en el dominio final.
-5. **Portada y calidad:** ajustar el `<title>` excesivo sin cambiar el H1 visible; CI de rendimiento aprobada; comprobar carga real y Core Web Vitals tras la migración.
+5. **Portada y calidad — título cerrado:** `<title>` de portada corregido a 65 caracteres sin tocar H1 ni contenido; CI de rendimiento aprobada. Comprobar Core Web Vitals reales tras la migración.
 6. **Contacto y seguimiento:** probar envío controlado del formulario, enlaces y CTA, política de privacidad, HTTPS, y las comprobaciones de navegación/visual inmediatamente después del cambio.
 
 ## Procedimiento recomendado
