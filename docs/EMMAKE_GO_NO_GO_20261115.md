@@ -18,6 +18,7 @@
 | Ruta de blog | [Auditoría íntegra 43701626605](https://github.com/Emmakex/Site-Manager/actions/runs/43701626605) | 1.726 entradas cotejadas; 1.725 slugs iguales, 1 variante de normalización; **1.725 rutas relativas distintas**. Antigua: 1.700 `/blog/<slug>/`, 24 raíz y 2 especiales. Nueva: 1.725 raíz y 1 especial |
 | Web antigua | Descubrimiento | Homepage y entrada muestreada indexables, con canonical, Open Graph y JSON-LD |
 | Portada nueva | Auditoría SEO | Longitud de `<title>`: 209 caracteres. Revisar título antes del lanzamiento |
+| Rendimiento del tema | [Lighthouse CI 43701537269](https://github.com/Emmakex/template-wordpress-seo-geo/actions/runs/43701537269) | Fixture corporativa 100/100, LCP ~753 ms, CLS 0, CSS 9.855 bytes con límite explícito 10 KiB; no son Core Web Vitals de usuarios reales |
 
 ## Bloqueos de lanzamiento
 
@@ -25,7 +26,7 @@
 2. **Paridad de permalinks:** el inventario completo de 1.726 posts se ha comparado y revela 1.725 diferencias de ruta. Conservar primero la estructura histórica `/blog/%postname%/` para el grueso del contenido, y después preparar excepciones verificadas para las entradas históricas de raíz/otras rutas y el slug normalizado. La alternativa es un mapa 301 completo, comprobado URL a URL. Revisar además categorías y adjuntos.
 3. **Backup y rollback:** exigir copia íntegra y verificada del WordPress actual (base de datos, uploads, configuración, tema, plugins y reglas de servidor) y una recuperación ensayada antes de sustituir el dominio principal.
 4. **SEO indexable post-cambio:** activar visibilidad pública solo al terminar la migración, eliminar `noindex` de la nueva web, y comprobar canonical único con URL definitiva, Open Graph, datos estructurados coherentes, `robots.txt`, `sitemap_index.xml` o sitemap nativo, y `llms.txt` en el dominio final.
-5. **Portada y calidad:** ajustar el `<title>` excesivo sin cambiar el H1 visible; asegurar CI de rendimiento aprobado y comprobar carga real en producción.
+5. **Portada y calidad:** ajustar el `<title>` excesivo sin cambiar el H1 visible; CI de rendimiento aprobada; comprobar carga real y Core Web Vitals tras la migración.
 6. **Contacto y seguimiento:** probar envío controlado del formulario, enlaces y CTA, política de privacidad, HTTPS, y las comprobaciones de navegación/visual inmediatamente después del cambio.
 
 ## Procedimiento recomendado
