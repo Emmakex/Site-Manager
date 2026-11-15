@@ -1,0 +1,33 @@
+{
+  "action": "theme.package.deploy",
+  "command_id": "cmd-emmake-mobile-menu-flow-apply-20261115-01",
+  "command_sha256": "1d8c4977cd82c8ef0ef1c9298af55b7115ab706e2cea057a6e2c05b02516e618",
+  "data": {
+    "plan": {
+      "capability_id": "theme.package.write",
+      "confirmation_required": true,
+      "expires_at": "2026-11-15T09:10:31+00:00",
+      "operation": "theme.package.deploy",
+      "plan_id": "sm-plan-8b652fb46b1170b76274a92a",
+      "reversible": true,
+      "status": "applied",
+      "target": {
+        "theme_slug": "seo-geo-theme"
+      }
+    },
+    "rollback_available": true,
+    "stage": "apply",
+    "status": "verified",
+    "verification": {
+      "installed_tree_sha256": "b3f4b62c2dcfc34787574d3e49e980300e0c8868d47226778edbe3051354d33d",
+      "verified": true
+    }
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "theme.package.write",
+  "site": "emmake-nuevaweb",
+  "stage": "apply",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
