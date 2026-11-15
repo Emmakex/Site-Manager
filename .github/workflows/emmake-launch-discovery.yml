@@ -1,0 +1,32 @@
+name: Emmake Final Launch Public Discovery
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/emmake-launch-discovery.yml'
+      - 'scripts/site_manager_emmake_launch_discovery.cjs'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify fixed-domain and read-only request list
+        run: |
+          node --check scripts/site_manager_emmake_launch_discovery.cjs
+          node scripts/site_manager_emmake_launch_discovery.cjs --self-test
+      - name: Inspect robots discovery sitemaps and REST page/post counts
+        run: node scripts/site_manager_emmake_launch_discovery.cjs --run
+      - name: Save only bounded non-content evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-final-launch-readiness
+          path: artifacts/emmake-launch/discovery.json
+          retention-days: 3
+          if-no-files-found: warn
