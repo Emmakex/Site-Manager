@@ -1,0 +1,32 @@
+name: Emmake Precutover SEO Read-only Acceptance
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/emmake-precutover-seo-qa.yml'
+      - 'scripts/site_manager_emmake_public_seo_audit.cjs'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate bounded fixed-public-site scanner
+        run: |
+          node --check scripts/site_manager_emmake_public_seo_audit.cjs
+          node scripts/site_manager_emmake_public_seo_audit.cjs --self-test
+      - name: Inspect SEO metadata of eleven staging routes
+        run: node scripts/site_manager_emmake_public_seo_audit.cjs --run
+      - name: Preserve bounded metadata without page content
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-precutover-seo-metadata
+          path: artifacts/emmake-seo/public-pages-seo.json
+          if-no-files-found: warn
+          retention-days: 3
