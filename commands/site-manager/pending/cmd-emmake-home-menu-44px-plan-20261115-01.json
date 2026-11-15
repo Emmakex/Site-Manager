@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-home-menu-44px-plan-20261115-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "ecd852b2f694f57416a779f63001c73d31b219f7",
+    "source_run_id": 43696082376,
+    "source_artifact_id": 14154461334,
+    "package_sha256": "7d2939c9a9a2a1b9203f94519489656a08aa913bcf5d8a0770885f1155fb6e93",
+    "reason": "Cerrar hallazgo de QA de dropdown de portada: anchura ya correcta en 1440/2048 y contraste correcto, enlaces de Blog home 42px pasan a minimo 44px con alineacion vertical y reversibilidad gobernada."
+  }
+}
