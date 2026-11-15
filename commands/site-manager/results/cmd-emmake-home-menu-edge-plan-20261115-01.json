@@ -1,0 +1,39 @@
+{
+  "action": "theme.package.deploy",
+  "command_id": "cmd-emmake-home-menu-edge-plan-20261115-01",
+  "command_sha256": "84feea243a3b1ff98b40db982418a584b7e4e9d9ca8c7bcc552ec33dbf5b7eda",
+  "data": {
+    "plan": {
+      "capability_id": "theme.package.write",
+      "confirmation_required": true,
+      "expires_at": "2026-11-15T08:58:39+00:00",
+      "operation": "theme.package.deploy",
+      "plan_id": "sm-plan-e2298450036bbbe9f2cba1ca",
+      "reversible": true,
+      "status": "planned",
+      "target": {
+        "theme_slug": "seo-geo-theme"
+      }
+    },
+    "preview": {
+      "after_tree_sha256": "89741ff36125f4007e11c2cd1896113820f6d6088368dbc51f64a23862eae992",
+      "before_tree_sha256": "fbcec1add5a1ef963e24cf083988c8a85fc92446779e7b76b4a44b4103bd5a4f",
+      "confirmation_required": true,
+      "file_count": 195,
+      "package_sha256": "5e50a9ee1b5c5b5228997edb4978f91b50f100a98bd97611f89563e8a3e46513",
+      "source_artifact_id": 14154098968,
+      "source_commit_sha": "c57056eeb6d680c8a32a19f7772683f9696d8d91",
+      "source_run_id": 43695716690,
+      "theme_slug": "seo-geo-theme",
+      "theme_version": "0.1.1"
+    },
+    "stage": "plan"
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "theme.package.write",
+  "site": "emmake-nuevaweb",
+  "stage": "plan",
+  "status": "success",
+  "verified": false,
+  "version": "1"
+}
