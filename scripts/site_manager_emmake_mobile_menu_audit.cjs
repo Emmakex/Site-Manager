@@ -4,7 +4,7 @@
 // No credentials, admin endpoints, POSTs, forms or WordPress mutations.
 const fs = require('node:fs');
 const path = require('node:path');
-const {chromium} = require('playwright');
+// Playwright is loaded only for --run after the disposable CI install.
 const URL = 'https://emmake.com/nuevaweb/';
 const OUT = 'artifacts/emmake-mobile-menu';
 const reportPath = 'audits/emmake/mobile-menu/results/visual-mobile-emmake-20261115-01.json';
@@ -25,6 +25,7 @@ async function main() {
   if(process.argv[2]!=='--run' || process.argv.length!==3)throw Error('Unsupported invocation');
   fs.mkdirSync(OUT,{recursive:true});
   fs.mkdirSync(path.dirname(reportPath),{recursive:true});
+  const {chromium}=require('playwright');
   const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
   const checks=[];
   let status=0,errors=0;
