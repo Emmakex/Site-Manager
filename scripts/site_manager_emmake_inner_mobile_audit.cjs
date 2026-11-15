@@ -67,7 +67,7 @@ async function main(){
             return {
               width:innerWidth,scroll:document.documentElement.scrollWidth,
               open:!!details?.open,header:r(header),brand:r(brand),brandLink:r(brandLink),
-              brandLabelPresent:!!(brandLink?.textContent||'').trim(),brandLinksToHome:!!brandLink&&new URL(brandLink.href).pathname==='/nuevaweb/',
+              brandLabelPresent:!!(brandLink?.textContent||'').trim(),brandLinksToHome:!!brandLink&&new URL(brandLink.href).pathname.replace(/\/$/,'')==='/nuevaweb',
               brandHrefPath:brandLink?new URL(brandLink.href).pathname:null,
               brandDisplay:brandLink?getComputedStyle(brandLink).display:null,
               brandVisibility:brandLink?getComputedStyle(brandLink).visibility:null,
