@@ -1,0 +1,14 @@
+{
+  "action": "theme.package.deploy",
+  "command_id": "cmd-emmake-inner-mobile-flow-plan-20261115-01",
+  "command_sha256": "00ceb179b5b811221d4040610f57b2027150b71d13d16e9aa833c014adb9ec32",
+  "error": {
+    "code": "verification_failed",
+    "detail": "Official Theme release provenance or bytes could not be verified",
+    "message": "Site Manager did not provide the required lifecycle verification evidence."
+  },
+  "site": "emmake-nuevaweb",
+  "status": "failed",
+  "verified": false,
+  "version": "1"
+}
