@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-// Public GET-only acceptance of two fixed Emmake interior routes.
+// Post-deployment acceptance of two fixed public Emmake interior routes (visible site title).
 // Check expanded mobile menu geometry, contrast and native close; never write WP.
 const fs=require('node:fs'),path=require('node:path');
 const ORIGIN='https://emmake.com/nuevaweb/';
