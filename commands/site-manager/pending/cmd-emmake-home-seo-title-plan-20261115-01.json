@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-home-seo-title-plan-20261115-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "01ac9e70e70c11478c88af2554b3a2ac37cd5947",
+    "source_run_id": 43712422523,
+    "source_artifact_id": 14160892784,
+    "package_sha256": "2321d0680b66eec91e823a314e1b06f2836e8b7f3885514e101d87011b329ad8",
+    "reason": "Sustituir solo title HTML de portada Emmake 209 caracteres legado por 'EMMAKE | Estrategia digital, tecnología e inteligencia artificial'. Mantener post_title, H1, contenidos, enlaces, schema, noindex staging y tema reutilizable de otros clientes intactos. Despliegue reversible y comprobacion publica."
+  }
+}
