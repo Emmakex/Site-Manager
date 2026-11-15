@@ -1,0 +1,40 @@
+name: Emmake Homepage Mobile Menu Regression
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/site_manager_emmake_mobile_menu_audit.cjs'
+      - '.github/workflows/emmake-mobile-menu-qa.yml'
+permissions:
+  contents: read
+jobs:
+  mobile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate fixed-origin public-only audit
+        run: |
+          node --check scripts/site_manager_emmake_mobile_menu_audit.cjs
+          node scripts/site_manager_emmake_mobile_menu_audit.cjs --self-test
+      - name: Install disposable Playwright Chromium
+        run: |
+          npm install --prefix .qa-deps --no-audit --no-fund --ignore-scripts --no-save playwright@1.65.0
+          .qa-deps/node_modules/.bin/playwright install chromium
+      - name: Check real 390px and 430px expanded mobile navigation
+        env:
+          NODE_PATH: ${{ github.workspace }}/.qa-deps/node_modules
+        run: node scripts/site_manager_emmake_mobile_menu_audit.cjs --run
+      - name: Preserve screenshots and bounded metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-home-mobile-menu-qa
+          path: |
+            artifacts/emmake-mobile-menu/
+            audits/emmake/mobile-menu/results/
+          retention-days: 3
+          if-no-files-found: warn
