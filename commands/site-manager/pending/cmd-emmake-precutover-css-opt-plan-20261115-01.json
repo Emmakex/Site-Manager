@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-precutover-css-opt-plan-20261115-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "97d37f3653c604aada72780be66cdb81006990a8",
+    "source_run_id": 43701190948,
+    "source_artifact_id": 14155989805,
+    "package_sha256": "3f6870ca1f29f788faaaf8cc19bb3a083c5a1fe7f8e16ec776925100039d95b3",
+    "reason": "Aplicar la optimizacion de CSS de home mobile a Emmake Nuevaweb. Reglas responsive semanticas sin cambiar enlaces/menus, payload oficial y reversible. Validaciones self contained, WP smoke y accessibility CI success y rendimiento Lighthouse 100 / CLS0 / CSS 9855 bytes dentro del presupuesto corporativo estricto de 10KiB."
+  }
+}
