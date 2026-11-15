@@ -15,14 +15,14 @@
 | GEO | [Descubrimiento 43700972091](https://github.com/Emmakex/Site-Manager/actions/runs/43700972091) | `/nuevaweb/llms.txt` sirve contenido; robots y sitemaps del staging devuelven 404 mientras la indexación está desactivada |
 | Contenido publicado | Mismo descubrimiento | 1.726 entradas y 10 páginas publicadas en cada instalación |
 | Identidad de páginas | [Comparación de slugs 43701239241](https://github.com/Emmakex/Site-Manager/actions/runs/43701239241) | Antigua: `calculadora-de-donativos`; nueva: `servicios`; 9 slugs compartidos |
-| Ruta de blog | Comparación de URL pública | Una URL histórica `/blog/<slug>/` funciona (200); bajo `/nuevaweb/blog/<slug>/` se observa 301 hacia una URL interna del staging con el mismo slug |
+| Ruta de blog | [Auditoría íntegra 43701626605](https://github.com/Emmakex/Site-Manager/actions/runs/43701626605) | 1.726 entradas cotejadas; 1.725 slugs iguales, 1 variante de normalización; **1.725 rutas relativas distintas**. Antigua: 1.700 `/blog/<slug>/`, 24 raíz y 2 especiales. Nueva: 1.725 raíz y 1 especial |
 | Web antigua | Descubrimiento | Homepage y entrada muestreada indexables, con canonical, Open Graph y JSON-LD |
 | Portada nueva | Auditoría SEO | Longitud de `<title>`: 209 caracteres. Revisar título antes del lanzamiento |
 
 ## Bloqueos de lanzamiento
 
 1. **Página antigua sin equivalencia:** la calculadora de donativos devuelve 200 en la instalación antigua y 404 en la nueva. Conservarla o aprobar su retirada con una respuesta HTTP deliberada y política de redirección si corresponde; nunca redirigir indiscriminadamente al inicio.
-2. **Paridad de permalinks:** validar el inventario completo de 1.726 posts, no solamente el recuento. Preservar preferentemente las rutas históricas `/blog/<slug>/`, o generar un mapa probado de 301 uno a uno. Comprobar referencias a adjuntos, categorías y páginas.
+2. **Paridad de permalinks:** el inventario completo de 1.726 posts se ha comparado y revela 1.725 diferencias de ruta. Conservar primero la estructura histórica `/blog/%postname%/` para el grueso del contenido, y después preparar excepciones verificadas para las entradas históricas de raíz/otras rutas y el slug normalizado. La alternativa es un mapa 301 completo, comprobado URL a URL. Revisar además categorías y adjuntos.
 3. **Backup y rollback:** exigir copia íntegra y verificada del WordPress actual (base de datos, uploads, configuración, tema, plugins y reglas de servidor) y una recuperación ensayada antes de sustituir el dominio principal.
 4. **SEO indexable post-cambio:** activar visibilidad pública solo al terminar la migración, eliminar `noindex` de la nueva web, y comprobar canonical único con URL definitiva, Open Graph, datos estructurados coherentes, `robots.txt`, `sitemap_index.xml` o sitemap nativo, y `llms.txt` en el dominio final.
 5. **Portada y calidad:** ajustar el `<title>` excesivo sin cambiar el H1 visible; asegurar CI de rendimiento aprobado y comprobar carga real en producción.
