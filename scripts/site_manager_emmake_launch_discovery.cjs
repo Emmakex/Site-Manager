@@ -11,6 +11,7 @@ const CHECKS=[
  {id:'legacy_wp_sitemap',url:'/wp-sitemap.xml',kind:'xml'},
  {id:'legacy_posts_api_count',url:'/wp-json/wp/v2/posts?per_page=1&_fields=id',kind:'api'},
  {id:'legacy_pages_api_count',url:'/wp-json/wp/v2/pages?per_page=1&_fields=id',kind:'api'},
+ {id:'legacy_page_slugs',url:'/wp-json/wp/v2/pages?per_page=100&_fields=slug',kind:'page-slugs'},
  {id:'legacy_sitemap_index',url:'/sitemap_index.xml',kind:'xml'},
  {id:'legacy_article_sample',url:'/blog/creacion-de-trafico-anuncio-de-5-poderosos-consejos-para-la-creacion-de-trafico/'},
  {id:'staging_home',url:'/nuevaweb/',kind:'html'},
@@ -21,6 +22,7 @@ const CHECKS=[
  {id:'staging_sitemap_index',url:'/nuevaweb/sitemap_index.xml',kind:'xml'},
  {id:'staging_article_sample',url:'/nuevaweb/blog/creacion-de-trafico-anuncio-de-5-poderosos-consejos-para-la-creacion-de-trafico/',kind:'html'},
  {id:'staging_pages_api_count',url:'/nuevaweb/wp-json/wp/v2/pages?per_page=1&_fields=id',kind:'api'},
+ {id:'staging_page_slugs',url:'/nuevaweb/wp-json/wp/v2/pages?per_page=100&_fields=slug',kind:'page-slugs'},
  {id:'staging_calculator',url:'/nuevaweb/calculadora-de-donativos/',kind:'html'},
  {id:'legacy_calculator',url:'/calculadora-de-donativos/',kind:'html'}
 ];
@@ -44,7 +46,7 @@ function analyzeHtml(body){
     html_lang_present:/<html[^>]+lang=/.test(low)};
 }
 function selfTest(){
-  if(ORIGIN!=='https://emmake.com'||CHECKS.length!==17||new Set(CHECKS.map(c=>c.id)).size!==17||
+  if(ORIGIN!=='https://emmake.com'||CHECKS.length!==19||new Set(CHECKS.map(c=>c.id)).size!==19||
      CHECKS.some(c=>!/^\/[a-z0-9/?=.&_-]*$/.test(c.url)))throw Error('precutover audit not bounded');
   console.log('PASS: fixed-domain read-only launch preflight');
 }
@@ -62,7 +64,16 @@ async function run(){
         content_type:(r.headers.get('content-type')||'').split(';')[0],
         x_robots_noindex:/noindex/i.test(r.headers.get('x-robots-tag')||''),
         total_count:/^\d+$/.test(r.headers.get('x-wp-total')||'')?Number(r.headers.get('x-wp-total')):null};
-      if(r.status===200 && ['robots','llms','html','xml'].includes(item.kind||'html')){
+      if(result.redirected){
+        try {const loc=new URL(r.headers.get('location')||'',ORIGIN);
+          result.redirect_target={same_host:loc.origin===ORIGIN,
+            staging_path:loc.pathname.startsWith('/nuevaweb/'),
+            same_slug:loc.pathname.replace(/\\/$/,'').split('/').at(-1)===item.url.replace(/\\/$/,'').split('/').at(-1)};
+        }catch {result.redirect_target={invalid:true};}
+      }
+      if(r.status===200 && item.kind==='page-slugs'){
+        const data=await r.json();result.public_slugs=Array.isArray(data)?data.map(x=>x.slug).filter(x=>typeof x==='string').sort():[];
+      }else if(r.status===200 && ['robots','llms','html','xml'].includes(item.kind||'html')){
         const type=item.kind||'html';const body=(await r.text()).slice(0,750000);
         if(type==='robots')result.robots=analyzeRobots(body);
         if(type==='html')result.html=analyzeHtml(body);
@@ -75,7 +86,14 @@ async function run(){
     finally{clearTimeout(timer);}
   }
   const byId=Object.fromEntries(results.map(x=>[x.id,x]));
+  const before=new Set(byId.legacy_page_slugs?.public_slugs||[]);
+  const after=new Set(byId.staging_page_slugs?.public_slugs||[]);
+  const page_slug_parity={known:before.size>0&&after.size>0,
+    old_count:before.size,new_count:after.size,
+    missing_from_staging:[...before].filter(x=>!after.has(x)).sort(),
+    new_only:[...after].filter(x=>!before.has(x)).sort()};
   const report={version:1,scope:'legacy/staging fixed public endpoints',
+    page_slug_parity,
     observed_at:new Date().toISOString(),wordpress_mutations:0,
     posts_count_parity_known:byId.legacy_posts_api_count?.total_count!==null&&
       byId.staging_posts_api_count?.total_count!==null,
