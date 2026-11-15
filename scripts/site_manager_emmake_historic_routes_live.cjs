@@ -48,11 +48,7 @@ async function run(){
  for(const [id,category] of Object.entries(CATEGORIES)){
   await sleep(1150);
   try{
-   const rest=await get('wp-json/wp/v2/posts/'+id+'?_fields=id,slug,link');
-   if(rest.status!==200){
-    checks.push({id,kind:'category',ok:false,reason:'post_api_'+rest.status});bad++;continue;
-   }
-   // Fetch JSON separately in a bounded fresh GET to avoid exporting title/body.
+   // Limit the REST response to the three public identity fields only.
    const endpoint=new URL('wp-json/wp/v2/posts/'+id+'?_fields=id,slug,link',BASE);
    const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),15000);
    let data;
