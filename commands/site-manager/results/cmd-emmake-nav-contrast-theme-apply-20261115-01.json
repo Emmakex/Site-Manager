@@ -1,0 +1,33 @@
+{
+  "action": "theme.package.deploy",
+  "command_id": "cmd-emmake-nav-contrast-theme-apply-20261115-01",
+  "command_sha256": "4736390e0a31c30c04b789954fc424def80173e0948fd5f8f8c300de7496cb42",
+  "data": {
+    "plan": {
+      "capability_id": "theme.package.write",
+      "confirmation_required": true,
+      "expires_at": "2026-11-15T08:46:45+00:00",
+      "operation": "theme.package.deploy",
+      "plan_id": "sm-plan-11e662a19ac639ffc2c020cf",
+      "reversible": true,
+      "status": "applied",
+      "target": {
+        "theme_slug": "seo-geo-theme"
+      }
+    },
+    "rollback_available": true,
+    "stage": "apply",
+    "status": "verified",
+    "verification": {
+      "installed_tree_sha256": "fbcec1add5a1ef963e24cf083988c8a85fc92446779e7b76b4a44b4103bd5a4f",
+      "verified": true
+    }
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "theme.package.write",
+  "site": "emmake-nuevaweb",
+  "stage": "apply",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
