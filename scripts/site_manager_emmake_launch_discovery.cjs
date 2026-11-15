@@ -68,7 +68,7 @@ async function run(){
         try {const loc=new URL(r.headers.get('location')||'',ORIGIN);
           result.redirect_target={same_host:loc.origin===ORIGIN,
             staging_path:loc.pathname.startsWith('/nuevaweb/'),
-            same_slug:loc.pathname.replace(/\\/$/,'').split('/').at(-1)===item.url.replace(/\\/$/,'').split('/').at(-1)};
+            same_slug:loc.pathname.replace(/\/$/,'').split('/').at(-1)===item.url.replace(/\/$/,'').split('/').at(-1)};
         }catch {result.redirect_target={invalid:true};}
       }
       if(r.status===200 && item.kind==='page-slugs'){
