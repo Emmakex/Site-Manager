@@ -46,7 +46,7 @@ async function audit(){
    }
    const html=await r.text();
    if(html.length>3500000)throw Error('public HTML too large');
-   result.push({route:route||'home',http_status:r.status,...auditHtml(html,url),...(route===''?{public_home_html_title:((html.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i)||[])[1]||'').trim().slice(0,300)}:{})});
+   result.push({route:route||'home',http_status:r.status,...auditHtml(html,url),...(route===''?{public_home_html_title:((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||'').trim().slice(0,300)}:{})});
   }finally{clearTimeout(timer);}
  }
  let public_page_api_statuses={};
