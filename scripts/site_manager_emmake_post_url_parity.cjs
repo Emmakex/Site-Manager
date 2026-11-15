@@ -73,6 +73,16 @@ async function main(){
   const missing=[...a.map.keys()].filter(k=>!b.map.has(k)).sort();
   const added=[...b.map.keys()].filter(k=>!a.map.has(k)).sort();
   const idMismatch=[...a.map.entries()].filter(([k,v])=>b.map.has(k)&&b.map.get(k).id!==v.id).length;
+  const exceptions=[...a.map.entries()].filter(([slug,item])=>
+    !item.route.endsWith('/blog/'+encodeURIComponent(slug).replace(/%[0-9A-F]{2}/g,m=>m.toLowerCase()))).map(([slug,item])=>({
+       id:item.id,slug,old_path:item.route+'/',
+       staging_path:[...b.map.values()].find(q=>q.id===item.id)?.route+'/'||null
+    })).sort((x,y)=>x.id-y.id);
+  // These are the small public permalink exceptions only; no post bodies.
+  const variant=[...a.map.entries()].filter(([slug,item])=>!b.map.has(slug))
+     .map(([slug,item])=>({id:item.id,old_slug:slug,old_path:item.route+'/',
+         staging_slug:[...b.map.entries()].find(([k,v])=>v.id===item.id)?.[0]||null,
+         staging_path:[...b.map.values()].find(v=>v.id===item.id)?.route+'/'||null}));
   const changedRoutes=[...a.map.keys()].filter(k=>b.map.has(k)&&
     a.map.get(k).route!==b.map.get(k).route.replace(/^\/nuevaweb/,'')).length;
   parity={slug_sets_identical:missing.length===0&&added.length===0,
@@ -80,7 +90,7 @@ async function main(){
    staging_only_count:added.length,id_mismatch_count:idMismatch,
    relative_permalink_mismatch_count:changedRoutes,
    old_pattern_counts:a.types,new_pattern_counts:b.types,
-   missing_slug_examples:missing.slice(0,12),new_slug_examples:added.slice(0,12)};
+   missing_slug_examples:missing.slice(0,12),new_slug_examples:added.slice(0,12),exceptions,normalization_variants:variant};
  }
  const report={site:'emmake-nuevaweb',scope:'fixed-domain public published-post slugs/links',
    observed_at:new Date().toISOString(),status:errors.length?'incomplete':'complete',
