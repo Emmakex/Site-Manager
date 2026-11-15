@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-// Read-only mobile header regression on the single fixed public staging URL.
+// Final post-deployment, read-only mobile header regression on the fixed staging URL.
 // No credentials, admin endpoints, POSTs, forms or WordPress mutations.
 const fs = require('node:fs');
 const path = require('node:path');
