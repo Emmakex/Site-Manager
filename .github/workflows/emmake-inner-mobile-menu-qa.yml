@@ -1,0 +1,38 @@
+name: Emmake Interior Mobile Menu Visual QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/site_manager_emmake_inner_mobile_audit.cjs'
+      - '.github/workflows/emmake-inner-mobile-menu-qa.yml'
+permissions:
+  contents: read
+jobs:
+  mobile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate bounded public-only script
+        run: |
+          node --check scripts/site_manager_emmake_inner_mobile_audit.cjs
+          node scripts/site_manager_emmake_inner_mobile_audit.cjs --self-test
+      - name: Install disposable Chromium
+        run: |
+          npm install --prefix .qa-deps --ignore-scripts --no-audit --no-fund --no-save playwright@1.65.0
+          .qa-deps/node_modules/.bin/playwright install chromium
+      - name: Verify Servicios and Sobre Nosotros mobile dropdowns in real browser
+        env:
+          NODE_PATH: ${{ github.workspace }}/.qa-deps/node_modules
+        run: node scripts/site_manager_emmake_inner_mobile_audit.cjs --run
+      - name: Preserve screenshots and bounded report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-inner-mobile-menu-qa
+          path: artifacts/emmake-inner-mobile-menu/
+          retention-days: 3
+          if-no-files-found: warn
