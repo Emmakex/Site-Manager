@@ -15,7 +15,7 @@
 | GEO | [Descubrimiento 43700972091](https://github.com/Emmakex/Site-Manager/actions/runs/43700972091) | `/nuevaweb/llms.txt` sirve contenido; robots y sitemaps del staging devuelven 404 mientras la indexación está desactivada |
 | Contenido publicado | Mismo descubrimiento | 1.726 entradas y 10 páginas publicadas en cada instalación |
 | Identidad de páginas | [Comparación de slugs 43701239241](https://github.com/Emmakex/Site-Manager/actions/runs/43701239241) | Antigua: `calculadora-de-donativos`; nueva: `servicios`; 9 slugs compartidos |
-| Ruta de blog | [Auditoría íntegra 43701626605](https://github.com/Emmakex/Site-Manager/actions/runs/43701626605) | 1.726 entradas cotejadas; 1.725 slugs iguales, 1 variante de normalización; **1.725 rutas relativas distintas**. Antigua: 1.700 `/blog/<slug>/`, 24 raíz y 2 especiales. Nueva: 1.725 raíz y 1 especial |
+| Rutas de artículos | [Paridad tras el despliegue 43702916067](https://github.com/Emmakex/Site-Manager/actions/runs/43702916067) + [HTTP 43704144126](https://github.com/Emmakex/Site-Manager/actions/runs/43704144126) | **Corregido en staging**: 1.725 slugs idénticos con 0 diferencias de ruta; 1 normalizado recibe 301. El histórico real son 1.702 enlaces `/blog/` (dos slugs percent-encoded) y 24 excepciones bajo categorías, no 24 URLs de raíz. HTTP 31/31 |
 | Web antigua | Descubrimiento | Homepage y entrada muestreada indexables, con canonical, Open Graph y JSON-LD |
 | Portada nueva | Auditoría SEO | Longitud de `<title>`: 209 caracteres. Revisar título antes del lanzamiento |
 | Rendimiento del tema | [Lighthouse CI 43701537269](https://github.com/Emmakex/template-wordpress-seo-geo/actions/runs/43701537269) | Fixture corporativa 100/100, LCP ~753 ms, CLS 0, CSS 9.855 bytes con límite explícito 10 KiB; no son Core Web Vitals de usuarios reales |
@@ -23,8 +23,8 @@
 
 ## Bloqueos de lanzamiento
 
-1. **Página antigua sin equivalencia:** la calculadora de donativos devuelve 200 en la instalación antigua y 404 en la nueva. Conservarla o aprobar su retirada con una respuesta HTTP deliberada y política de redirección si corresponde; nunca redirigir indiscriminadamente al inicio.
-2. **Paridad de permalinks:** el inventario completo de 1.726 posts se ha comparado y revela 1.725 diferencias de ruta. Conservar primero la estructura histórica `/blog/%postname%/` para el grueso del contenido, y después preparar excepciones verificadas para las entradas históricas de raíz/otras rutas y el slug normalizado. La alternativa es un mapa 301 completo, comprobado URL a URL. Revisar además categorías y adjuntos.
+1. **Calculadora de donativos — exclusión aprobada por el propietario:** no se migrará; la ausencia de esta página en la nueva web es deliberada. No inventar redirecciones ni bloquear el proyecto por esta página.
+2. **URLs de artículos — cerrado en staging:** el tema conserva `/blog/%postname%/` y las 24 rutas históricas por categorías. Los 1.725 slugs coincidentes tienen paridad exacta; el único slug normalizado recibe 301 hacia su enlace limpio. La auditoría HTTP ha pasado 31/31. Durante el cambio al dominio principal, verificar que continúe el mismo comportamiento sin `/nuevaweb` y revisar aparte adjuntos, taxonomías y paginación.
 3. **Backup y rollback:** exigir copia íntegra y verificada del WordPress actual (base de datos, uploads, configuración, tema, plugins y reglas de servidor) y una recuperación ensayada antes de sustituir el dominio principal.
 4. **SEO indexable post-cambio:** activar visibilidad pública solo al terminar la migración, eliminar `noindex` de la nueva web, y comprobar canonical único con URL definitiva, Open Graph, datos estructurados coherentes, `robots.txt`, `sitemap_index.xml` o sitemap nativo, y `llms.txt` en el dominio final.
 5. **Portada y calidad:** ajustar el `<title>` excesivo sin cambiar el H1 visible; CI de rendimiento aprobada; comprobar carga real y Core Web Vitals tras la migración.
@@ -32,7 +32,7 @@
 
 ## Procedimiento recomendado
 
-- **Preflight:** resolver los seis bloqueos, inventariar 1.726 enlaces, fotografiar la configuración actual, fijar ventana de cambio y copia restaurable.
+- **Preflight:** resolver los pendientes aún abiertos, conservar la evidencia de los 1.726 enlaces, fotografiar la configuración actual, fijar ventana de cambio y copia restaurable.
 - **Cutover:** solo con autorización explícita y plan reversible; aplicar cambio de URL base, migración de datos y rutas, limpiar cachés y regenerar reglas de enlaces permanentes/sitemap.
 - **Verify (sin asumir éxito):** visitar URLs antiguas y nuevas, exigir 200/301 deliberados y ningún 404 inesperado; repetir SEO/GEO y pruebas de escritorio/móvil; comprobar que el dominio final es indexable y `/nuevaweb` deja de competir en buscadores.
 - **Rollback:** restaurar datos y rutas de la web previa si falla cualquiera de las condiciones críticas. Conservar evidencias y backups hasta cerrar aceptación.
