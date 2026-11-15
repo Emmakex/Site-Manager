@@ -1,0 +1,32 @@
+name: Emmake Historic Article URL Live QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/site_manager_emmake_historic_routes_live.cjs'
+      - '.github/workflows/emmake-historic-routes-live.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify fixed-origin read-only audit
+        run: |
+          node --check scripts/site_manager_emmake_historic_routes_live.cjs
+          node scripts/site_manager_emmake_historic_routes_live.cjs --self-test
+      - name: Verify 24 category URLs, five blog articles and normalized slug 301
+        run: node scripts/site_manager_emmake_historic_routes_live.cjs --run
+      - name: Preserve public bounded route status evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-legacy-route-live-acceptance
+          path: artifacts/emmake-launch/historic-routes-live.json
+          retention-days: 3
+          if-no-files-found: warn
