@@ -76,9 +76,9 @@ async function main(){
           });
           const ok=m.open&&m.header&&m.brand&&m.toggle&&m.panel&&m.main&&m.firstLink&&
             m.toggle.width>=44&&m.toggle.width<=160&&m.toggle.right<=width-8&&
-            m.toggle.left>=m.brand.right-2&&
+            m.toggle.left>=m.brand.right-2&&m.brand.height>=44&&
             m.panel.left>=-2&&m.panel.right<=width+2&&m.panel.width>=width*.75&&
-            m.panel.bottom<=m.header.bottom+2&&m.main.top>=m.header.bottom-3&&
+            m.panel.top>=m.toggle.bottom+8&&m.panel.bottom<=m.header.bottom+2&&m.main.top>=m.header.bottom-3&&
             m.position==='static'&&m.nested&&m.nestedPosition==='static'&&
             m.firstLink.left<=m.panel.left+34&&m.firstLink.right>=m.panel.right-34&&
             m.minimumLinkHeight>=44&&m.links>=8&&m.contrast>=4.5&&m.scroll<=width+4;
