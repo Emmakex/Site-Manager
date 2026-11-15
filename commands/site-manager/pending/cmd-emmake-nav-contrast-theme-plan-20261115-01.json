@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-nav-contrast-theme-plan-20261115-01",
+  "site": "emmake-nuevaweb",
+  "action": "theme.package.deploy",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "theme_slug": "seo-geo-theme",
+    "source_commit_sha": "43a0fddf560326f78e52c6a11b80455012a098ea",
+    "source_run_id": 43694776137,
+    "source_artifact_id": 14153538832,
+    "package_sha256": "ce9b28f7cff51bccbe21b42ee554ef640f98a6abf92ad8122259376d7b472446",
+    "reason": "Corregir el contraste blanco/blanco de los submenus en las paginas interiores y alinear Blog/Contacto hacia el interior del viewport, con menus compactos legibles, sin cambiar contenido ni enlaces, respaldado por ZIP reproducible, plan reversible y QA."
+  }
+}
