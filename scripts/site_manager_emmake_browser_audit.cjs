@@ -12,7 +12,7 @@ const PAGES = [
   ['privacy','politica-de-privacidad/'],
   ['careers','trabaja-con-nosotros/'], ['voice','asistentes-virtuales-de-voz/'],
 ];
-const SIZES = [['desktop', 1440, 900, false], ['mobile', 390, 844, true]];
+const SIZES = [['desktop', 1440, 900, false], ['wide', 2048, 960, false], ['mobile', 390, 844, true]];
 const OUT = 'artifacts/emmake-browser';
 const ROOT = 'audits/emmake/browser';
 const H1 = 'Conectamos estrategia, datos y tecnología para impulsar lo que viene.';
@@ -69,6 +69,8 @@ async function audit(id) {
         reducedMotion:'reduce',locale:'es-ES',deviceScaleFactor:1,serviceWorkers:'block'});
       try {
         for (const [name,route] of PAGES) {
+          // Reproduce the owner's 2048px screenshot on the actual homepage.
+          if (device==='wide' && name!=='home') continue;
           const pg=await context.newPage();
           let jsErrors=0, status=0;
           pg.on('pageerror',()=>jsErrors++);
@@ -283,7 +285,7 @@ async function audit(id) {
             // from post 50097. Do not make a deleted editorial block a release gate.
             add('approved_about_brand_gallery_absent',a.brandGroups===0&&a.logos===0,a);
             add('installed_about_services_cards',a.cardGroups===2&&a.blurbs===8&&
-              a.cardColumns.every(cols=>cols===(device==='desktop'?2:1)),
+              a.cardColumns.every(cols=>cols===(device!=='mobile'?2:1)),
               {card_groups:a.cardGroups,blurbs:a.blurbs,columns:a.cardColumns});
           }
           if(name==='blog-digital'){
@@ -296,7 +298,7 @@ async function audit(id) {
               data.blogDigitalLists.repeated===0&&data.blogDigitalLists.unlinked===0,
               data.blogDigitalLists);
             add('installed_blog_featured_archive',b.featured===1&&b.archive===4&&
-              b.archiveColumns===(device==='desktop'?2:1),
+              b.archiveColumns===(device!=='mobile'?2:1),
               {featured:b.featured,archive:b.archive,archive_columns:b.archiveColumns});
             add('installed_blog_topics_preserved',b.topics===6&&b.categories===12,
               {topics:b.topics,categories:b.categories});
@@ -376,23 +378,24 @@ async function audit(id) {
           }
           // Regression for the owner's captured white-on-white / right-edge submenus.
           // Only public hover/click; no WordPress writes and no leaked link labels.
-          if (name==='services' || name==='blog') {
-            if (device==='desktop') {
+          if (name==='services' || name==='blog' || name==='home') {
+            const header=name==='home'?'.seo-geo-strategic-header':'.seo-geo-site-header';
+            if (device!=='mobile') {
               const label=name==='services'?'Servicios':'Blog';
-              const parent=pg.locator('.seo-geo-site-header .seo-geo-preset-navigation__desktop > ul > li')
+              const parent=pg.locator(header+' .seo-geo-preset-navigation__desktop > ul > li')
                 .filter({hasText:new RegExp('^'+label)}).first();
               if (await parent.count()) {
                 await parent.hover();
                 await pg.waitForTimeout(150);
               }
             } else {
-              const summary=pg.locator('.seo-geo-site-header .seo-geo-preset-navigation__mobile > summary').first();
+              const summary=pg.locator(header+' .seo-geo-preset-navigation__mobile > summary').first();
               if (await summary.isVisible()) await summary.click();
             }
-            const menu=await pg.evaluate((mode)=>{
-              const el=mode==='desktop'
-                ?document.querySelector('.seo-geo-site-header .seo-geo-preset-navigation__desktop > ul > li:hover > ul')
-                :document.querySelector('.seo-geo-site-header .seo-geo-preset-navigation__mobile[open] > ul');
+            const menu=await pg.evaluate(({mode,header})=>{
+              const el=mode!=='mobile'
+                ?document.querySelector(header+' .seo-geo-preset-navigation__desktop > ul > li:hover > ul')
+                :document.querySelector(header+' .seo-geo-preset-navigation__mobile[open] > ul');
               const first=el?.querySelector('a');
               const box=el?.getBoundingClientRect();
               const linkBox=first?.getBoundingClientRect();
@@ -413,7 +416,7 @@ async function audit(id) {
                 right:Math.round(box?.right||0),left:Math.round(box?.left||0),
                 viewport:innerWidth,ratio:Math.round(ratio*100)/100,
                 touchHeight:Math.round(linkBox?.height||0)};
-            },device);
+            },{mode:device,header});
             add('submenu_contrast_and_viewport',menu.open&&menu.ratio>=4.5&&
               menu.left>=-2&&menu.right<=menu.viewport+2&&menu.touchHeight>=44,menu);
           }
