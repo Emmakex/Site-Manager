@@ -46,7 +46,7 @@ async function main() {
         await page.waitForTimeout(130);
         const a=await page.evaluate(()=>{
           const header=document.querySelector('.seo-geo-strategic-header');
-          const brand=header?.querySelector('.seo-geo-strategic-brand');
+          const brand=header?.querySelector('.seo-geo-strategic-brand__name');
           const details=header?.querySelector('.seo-geo-preset-navigation__mobile');
           const toggle=details?.querySelector(':scope > summary');
           const panel=details?.querySelector(':scope > .seo-geo-preset-navigation__list');
