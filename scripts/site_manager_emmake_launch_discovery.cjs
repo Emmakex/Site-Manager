@@ -41,7 +41,7 @@ function analyzeHtml(body){
 }
 function selfTest(){
   if(ORIGIN!=='https://emmake.com'||CHECKS.length!==13||new Set(CHECKS.map(c=>c.id)).size!==13||
-     CHECKS.some(c=>!/^\/[a-z0-9/?=._-]*$/.test(c.url)))throw Error('precutover audit not bounded');
+     CHECKS.some(c=>!/^\/[a-z0-9/?=.&_-]*$/.test(c.url)))throw Error('precutover audit not bounded');
   console.log('PASS: fixed-domain read-only launch preflight');
 }
 async function run(){
