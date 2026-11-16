@@ -1,0 +1,24 @@
+name: Emmake Cutover Preflight Safety Contract
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/emmake-hostinger-preflight.sh'
+      - '.github/workflows/emmake-cutover-preflight-contract.yml'
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check read-only preflight shell syntax
+        run: bash -n scripts/emmake-hostinger-preflight.sh
+      - name: Reject execution without explicit legacy and staging paths
+        run: |
+          if bash scripts/emmake-hostinger-preflight.sh > /tmp/emmake-preflight-expected-failure.log 2>&1; then
+            echo "FAIL: preflight succeeded without explicit paths" >&2
+            exit 1
+          fi
+          grep -q 'Usage:' /tmp/emmake-preflight-expected-failure.log
