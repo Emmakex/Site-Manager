@@ -3,6 +3,8 @@
 **Destino previsto:** `https://emmake.com/nuevaweb/` → `https://emmake.com/`.
 **Decisión:** **NO-GO por ahora.** Este informe no ejecuta ni autoriza el cambio de dominio.
 
+**Actualización 16-11-2026:** [Runbook de corte Hostinger con backup y rollback](./EMMAKE_CUTOVER_RUNBOOK_20261116.md); [preflight SSH solo lectura](../scripts/emmake-hostinger-preflight.sh) (CI aprobado). El plugin Migration Bridge no traslada por sí mismo el WordPress entre directorios. La raíz actual sigue sin cambios. El único bloqueo operativo fundamental es obtener y verificar la copia recuperable y fijar la ejecución controlada del traslado; el formulario requiere además pruebas de contacto/indexación de la instalación definitiva.
+
 ## Evidencia revisada
 
 | Área | Evidencia | Resultado |
