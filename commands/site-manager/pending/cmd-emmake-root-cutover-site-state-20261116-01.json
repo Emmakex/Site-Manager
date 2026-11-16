@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-root-cutover-site-state-20261116-01",
+  "site": "emmake-nuevaweb",
+  "action": "site.overview",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
