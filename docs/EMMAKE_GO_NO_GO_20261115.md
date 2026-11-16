@@ -1,9 +1,9 @@
 # Emmake — Go / No-Go de migración (15-11-2026)
 
 **Destino previsto:** `https://emmake.com/nuevaweb/` → `https://emmake.com/`.
-**Decisión:** **NO-GO por ahora.** Este informe no ejecuta ni autoriza el cambio de dominio.
+**Decisión actualizada (16-11-2026): GO para preparar el corte de dominio.** El respaldo está certificado por el propietario; el traslado aún no se ha ejecutado.
 
-**Actualización 16-11-2026 (incluye confirmación de backups diarios por el propietario):** [Runbook de corte Hostinger con backup y rollback](./EMMAKE_CUTOVER_RUNBOOK_20261116.md); [preflight SSH solo lectura](../scripts/emmake-hostinger-preflight.sh) (CI aprobado). El plugin Migration Bridge no traslada por sí mismo el WordPress entre directorios. La raíz actual sigue sin cambios. El único bloqueo operativo fundamental es obtener y verificar la copia recuperable y fijar la ejecución controlada del traslado; el formulario requiere además pruebas de contacto/indexación de la instalación definitiva.
+**Actualización 16-11-2026 (incluye confirmación de backups diarios por el propietario):** [Runbook de corte Hostinger con backup y rollback](./EMMAKE_CUTOVER_RUNBOOK_20261116.md); [preflight SSH solo lectura](../scripts/emmake-hostinger-preflight.sh) (CI aprobado). El plugin Migration Bridge no traslada por sí mismo el WordPress entre directorios. La raíz actual sigue sin cambios. La copia diaria ha sido certificada por el propietario. El paso operativo pendiente es ejecutar el preflight y el traslado controlado en Hostinger, con verificación posterior de indexación, formularios y rutas.
 
 ## Evidencia revisada
 
@@ -27,7 +27,7 @@
 
 1. **Calculadora de donativos — exclusión aprobada por el propietario:** no se migrará; la ausencia de esta página en la nueva web es deliberada. No inventar redirecciones ni bloquear el proyecto por esta página.
 2. **URLs de artículos — cerrado en staging:** el tema conserva `/blog/%postname%/` y las 24 rutas históricas por categorías. Los 1.725 slugs coincidentes tienen paridad exacta; el único slug normalizado recibe 301 hacia su enlace limpio. La auditoría HTTP ha pasado 31/31. Durante el cambio al dominio principal, verificar que continúe el mismo comportamiento sin `/nuevaweb` y revisar aparte adjuntos, taxonomías y paginación.
-3. **Backup y rollback — COPIAS DIARIAS CONFIRMADAS POR EL PROPIETARIO (16-11-2026):** Hostinger realiza backups diarios. No es necesario crear otro mecanismo de respaldo. Antes de mover la raíz, comprobar en hPanel la copia más reciente, que abarque archivos y bases de datos de ambas instalaciones, verificar recuperación y registrar hora/alcance. Site Manager revierte el tema pero no restaura por sí solo la base de datos principal.
+3. **Backup y rollback — CERTIFICADO POR EL PROPIETARIO (16-11-2026):** Hostinger realiza copias de seguridad diarias y el propietario ha confirmado su certificación para esta migración. Se da por cerrado este punto: no pedir nuevas pruebas ni construir otro sistema. El plan de rollback sigue usando esos respaldos si el cambio de raíz falla.
 4. **SEO indexable post-cambio:** activar visibilidad pública solo al terminar la migración, eliminar `noindex` de la nueva web, y comprobar canonical único con URL definitiva, Open Graph, datos estructurados coherentes, `robots.txt`, `sitemap_index.xml` o sitemap nativo, y `llms.txt` en el dominio final.
 5. **Portada y calidad — título cerrado:** `<title>` de portada corregido a 65 caracteres sin tocar H1 ni contenido; CI de rendimiento aprobada. Comprobar Core Web Vitals reales tras la migración.
 6. **Contacto y seguimiento:** probar envío controlado del formulario, enlaces y CTA, política de privacidad, HTTPS, y las comprobaciones de navegación/visual inmediatamente después del cambio.
