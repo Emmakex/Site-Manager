@@ -20,7 +20,7 @@
 
 En SSH Hostinger, usar `scripts/emmake-hostinger-preflight.sh RUTA_WORDPRESS_ANTIGUO RUTA_WORDPRESS_NUEVO` después de comprobar ambas rutas reales. El script solo lee WP-CLI y comprueba URL base, visibilidad, 1.726 entradas y separación lógica de bases/tabla-prefix; evita revelar contraseñas. **No** produce copia de seguridad.
 
-## Puerta 2 — Copias de recuperación: BLOQUEO ACTUAL
+## Puerta 2 — Copias de recuperación: copias diarias confirmadas, verificación pendiente
 
 Antes de mover **un solo archivo** se requieren:
 1. Respaldo **independiente y recuperable** de la instalación vieja: base SQL, `wp-content/uploads`, plugins, temas, `wp-config.php`, `.htaccess`, y archivos públicos relevantes.
@@ -29,7 +29,7 @@ Antes de mover **un solo archivo** se requieren:
 4. Verificar integridad, acceso y **prueba de restauración en entorno aislado**; registrar resultado y responsable. Solo entonces registrar evidencia en el formulario de Migration Bridge.
 5. Evidencia de backup con menos de 24 h para el corte, como requiere el validador existente.
 
-**Falta evidencia verificable de estos respaldos.** No afirmar que Hostinger dispone de snapshots recientes sin comprobarlo.
+**Estado comunicado por el propietario (16-11-2026):** Hostinger realiza copias de seguridad todos los días. Se considera confirmado que el servicio de backup existe; aún falta asociar el último respaldo concreto a los archivos y a la base de datos de cada instalación y verificar una recuperación. No hace falta instalar otro plugin de backup ni generar otro sistema de respaldo. No afirmar integridad o restaurabilidad sin evidencia.
 
 ## Puerta 3 — Plan de traslado y autorización
 
@@ -52,4 +52,4 @@ Antes de mover **un solo archivo** se requieren:
 
 Si fallan archivos, DB, redirecciones, indexabilidad, formularios o rutas esenciales, usar el backup externo para restaurar *el conjunto* de instalación anterior, incluidas reglas de servidor. El rollback del tema por sí solo es insuficiente.
 
-**Decisión actual: NO-GO por falta de backup verificado/restauración ensayada y validación del traslado real.** No ejecutar el cutover hasta cumplir las puertas 1–3. Mantener la instalación principal intacta.
+**Decisión actual: NO-GO técnico únicamente hasta verificar cobertura/restaurabilidad del backup diario y validar el traslado real.** No ejecutar el cutover hasta cumplir las puertas 1–3. Mantener la instalación principal intacta.
