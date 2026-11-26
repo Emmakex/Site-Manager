@@ -81,12 +81,14 @@ final class RemoteConnectionStore
      *
      * @return array{token:string,connection:array<string,mixed>}|null
      */
-    public function replaceClonedIdentity(string $expectedConnectionId): ?array
+    public function replaceClonedIdentity(string $expectedConnectionId, array $grantableScopes): ?array
     {
+        $scopes = ScopePolicy::filter(['site.read', 'site.diagnostics'], $grantableScopes);
         $previous = $this->state();
         $currentId = (string) ($previous['connection_id'] ?? '');
         if (
-            ! (bool) ($previous['enabled'] ?? false)
+            ! in_array('site.read', $scopes, true)
+            || ! (bool) ($previous['enabled'] ?? false)
             || ! preg_match('/^smc_[a-f0-9]{32}$/', $currentId)
             || ! hash_equals($currentId, $expectedConnectionId)
         ) {
@@ -101,7 +103,7 @@ final class RemoteConnectionStore
             'connection_id'=>$newId,
             'enabled'=>true,
             'generation'=>1,
-            'scopes'=>['site.diagnostics', 'site.read'],
+            'scopes'=>$scopes,
             'token_hash'=>hash('sha256', $token),
             'write_principal_user_id'=>0,
             'created_at'=>$now,
