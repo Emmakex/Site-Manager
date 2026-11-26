@@ -67,6 +67,59 @@ final class RemoteConnectionStore
         return ['token'=>$token, 'connection'=>$this->publicState($state)];
     }
 
+    /**
+     * Enroll a WordPress installation as a new site after a database clone.
+     *
+     * Ordinary token rotation preserves identity. A copied identity would
+     * make two independently installed sites indistinguishable, so this
+     * explicit administrative operation replaces BOTH the ID and bearer.
+     * It starts read-only; existing write scopes must be granted again.
+     *
+     * The caller must independently check manage_options, CSRF nonce and
+     * explicit user confirmation. The expected old ID prevents a stale
+     * admin screen from replacing a newer connection unexpectedly.
+     *
+     * @return array{token:string,connection:array<string,mixed>}|null
+     */
+    public function replaceClonedIdentity(string $expectedConnectionId, array $grantableScopes): ?array
+    {
+        $scopes = ScopePolicy::filter(['site.read', 'site.diagnostics'], $grantableScopes);
+        $previous = $this->state();
+        $currentId = (string) ($previous['connection_id'] ?? '');
+        if (
+            ! in_array('site.read', $scopes, true)
+            || ! (bool) ($previous['enabled'] ?? false)
+            || ! preg_match('/^smc_[a-f0-9]{32}$/', $currentId)
+            || ! hash_equals($currentId, $expectedConnectionId)
+        ) {
+            return null;
+        }
+
+        $now = gmdate(DATE_W3C);
+        $newId = 'smc_' . bin2hex(random_bytes(16));
+        $token = bin2hex(random_bytes(32));
+        $state = [
+            'schema_version'=>2,
+            'connection_id'=>$newId,
+            'enabled'=>true,
+            'generation'=>1,
+            'scopes'=>$scopes,
+            'token_hash'=>hash('sha256', $token),
+            'write_principal_user_id'=>0,
+            'created_at'=>$now,
+            'rotated_at'=>$now,
+            'last_used_at'=>'',
+            'last_used_scope'=>'',
+            'cloned_identity_replaced_at'=>$now,
+            'previous_connection_id_sha256'=>hash('sha256', $currentId),
+        ];
+        if (! update_option(self::OPTION, $state, false)) {
+            return null;
+        }
+
+        return ['token'=>$token, 'connection'=>$this->publicState($state)];
+    }
+
     /** @param list<string> $scopes */
     public function saveScopes(array $scopes, ?int $writePrincipalUserId = null): array
     {

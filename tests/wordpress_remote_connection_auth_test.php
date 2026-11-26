@@ -100,6 +100,30 @@ $store->revoke();
 $assert(false === $store->authorize($token3, 'site.read'), 'revoked connection must deny its token');
 $assert([] === $store->grantedScopes(), 'revoked connection must expose no granted scopes');
 
+// A DB clone duplicates the connection identity and bearer hash. A specific
+// user-authorized fresh enrollment must invalidate both on this installation,
+// without touching site content or the original installation.
+$cloned = $store->issue(['site.read', 'content.write'], 42);
+$clonedToken = (string) $cloned['token'];
+$clonedId = (string) $cloned['connection']['connection_id'];
+$clonedState = $store->state();
+$assert(null === $store->replaceClonedIdentity('smc_00000000000000000000000000000000', $grantable), 'stale identity must fail closed');
+$assert($clonedState === $store->state(), 'stale identity must not alter connection');
+$replaced = $store->replaceClonedIdentity($clonedId, $grantable);
+$assert(is_array($replaced), 'confirmed clone recovery must issue new scoped credentials');
+$replacementId = (string) ($replaced['connection']['connection_id'] ?? '');
+$replacementToken = (string) ($replaced['token'] ?? '');
+$assert($replacementId !== $clonedId && str_starts_with($replacementId, 'smc_'), 'clone recovery must create an independent connection ID');
+$assert(1 === ($replaced['connection']['generation'] ?? 0), 'new connection identity must start generation one');
+$assert(['site.diagnostics', 'site.read'] === ($replaced['connection']['scopes'] ?? []), 'clone recovery must strip all write scopes');
+$assert(false === ($replaced['connection']['write_principal_bound'] ?? true), 'clone recovery must remove old write principal');
+$assert(false === $store->tokenIsValid($clonedToken), 'original cloned token must be invalid on this WordPress');
+$assert(true === $store->authorize($replacementToken, 'site.read'), 'new token must allow a read-only Site Manager operation');
+$assert(false === $store->authorize($replacementToken, 'content.write'), 'new identity must not retain cloned write permission');
+$assert(null === $store->replaceClonedIdentity($clonedId, $grantable), 'stale reset cannot replace a newer connection');
+$assert(hash('sha256', $clonedId) === ($store->state()['previous_connection_id_sha256'] ?? ''), 'reset must retain only old identity fingerprint for audit');
+$assert(hash('sha256', $clonedToken) === ($clonedState['token_hash'] ?? ''), 'the snapshot of the source identity is unchanged');
+
 $assert('abc' === RemoteConnectionStore::bearerFromHeader('Bearer abc'), 'bearer header parser must return token');
 $assert('' === RemoteConnectionStore::bearerFromHeader('Basic abc'), 'non-bearer header must be rejected');
 

@@ -33,32 +33,50 @@ final class ConnectionPage
         $error = '';
 
         if ('POST' === strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? ''))) {
-            check_admin_referer('site_manager_connection');
             $action = sanitize_key((string) wp_unslash($_POST['site_manager_connection_action'] ?? ''));
-            $rawScopes = isset($_POST['scopes']) && is_array($_POST['scopes'])
-                ? array_map(static fn($value): string => sanitize_text_field((string) wp_unslash($value)), $_POST['scopes'])
-                : [];
-            $scopes = ScopePolicy::filter($rawScopes, $grantable);
-            if (count($rawScopes) !== count($scopes)) {
-                $error = __('One or more requested scopes are not governable on this installation and were not granted.', 'site-manager');
-            }
-            $principalUserId = (int) get_current_user_id();
+            if ('replace_cloned_identity' === $action) {
+                check_admin_referer('site_manager_replace_cloned_identity');
+                $oldId = sanitize_text_field((string) wp_unslash($_POST['expected_connection_id'] ?? ''));
+                $confirmed = '1' === (string) ($_POST['confirm_cloned_identity_reset'] ?? '');
+                if (! $confirmed) {
+                    $error = __('Confirm that this WordPress is a separate cloned installation before replacing its connection identity.', 'site-manager');
+                } else {
+                    $issued = $store->replaceClonedIdentity($oldId, $grantable);
+                    if (null === $issued) {
+                        $error = __('Connection changed or could not be replaced. Refresh the page before retrying.', 'site-manager');
+                    } else {
+                        $oneTimeToken = (string) $issued['token'];
+                        $message = __('New WordPress connection identity created with read-only permissions. The previous token is invalid on this installation.', 'site-manager');
+                        (new Plugin())->refresh('connection-changed');
+                    }
+                }
+            } else {
+                check_admin_referer('site_manager_connection');
+                $rawScopes = isset($_POST['scopes']) && is_array($_POST['scopes'])
+                    ? array_map(static fn($value): string => sanitize_text_field((string) wp_unslash($value)), $_POST['scopes'])
+                    : [];
+                $scopes = ScopePolicy::filter($rawScopes, $grantable);
+                if (count($rawScopes) !== count($scopes)) {
+                    $error = __('One or more requested scopes are not governable on this installation and were not granted.', 'site-manager');
+                }
+                $principalUserId = (int) get_current_user_id();
 
-            if (in_array($action, ['generate','rotate'], true)) {
-                $issued = $store->issue($scopes, $principalUserId);
-                $oneTimeToken = (string) ($issued['token'] ?? '');
-                $message = 'rotate' === $action
-                    ? __('Connection token rotated. The previous token is invalid immediately.', 'site-manager')
-                    : __('Connection token generated.', 'site-manager');
-            } elseif ('save_scopes' === $action) {
-                $store->saveScopes($scopes, $principalUserId);
-                $message = __('Connection scopes saved.', 'site-manager');
-            } elseif ('revoke' === $action) {
-                $store->revoke();
-                $message = __('Connection revoked. Its token can no longer authenticate.', 'site-manager');
-            }
+                if (in_array($action, ['generate','rotate'], true)) {
+                    $issued = $store->issue($scopes, $principalUserId);
+                    $oneTimeToken = (string) ($issued['token'] ?? '');
+                    $message = 'rotate' === $action
+                        ? __('Connection token rotated. The previous token is invalid immediately.', 'site-manager')
+                        : __('Connection token generated.', 'site-manager');
+                } elseif ('save_scopes' === $action) {
+                    $store->saveScopes($scopes, $principalUserId);
+                    $message = __('Connection scopes saved.', 'site-manager');
+                } elseif ('revoke' === $action) {
+                    $store->revoke();
+                    $message = __('Connection revoked. Its token can no longer authenticate.', 'site-manager');
+                }
 
-            (new Plugin())->refresh('connection-changed');
+                (new Plugin())->refresh('connection-changed');
+            }
         }
 
         $connection = $store->publicState();
@@ -127,6 +145,20 @@ final class ConnectionPage
             <?php endif; ?>
             </p>
           </form>
+
+          <?php if ('' !== (string) ($connection['connection_id'] ?? '') && ! empty($connection['enabled'])) : ?>
+          <h2><?php echo esc_html__('New identity for a cloned WordPress', 'site-manager'); ?></h2>
+          <p><?php echo esc_html__('Use this only on the new installation when a database migration copied the Site Manager connection ID from another WordPress. Ordinary token rotation does not change the connection ID.', 'site-manager'); ?></p>
+          <p><strong><?php echo esc_html__('This replaces the ID and token on this WordPress only, disconnects its old bearer, and grants only site.read and site.diagnostics. It does not change content or another WordPress installation.', 'site-manager'); ?></strong></p>
+          <form method="post">
+            <?php wp_nonce_field('site_manager_replace_cloned_identity'); ?>
+            <input type="hidden" name="expected_connection_id" value="<?php echo esc_attr((string) $connection['connection_id']); ?>">
+            <label><input type="checkbox" name="confirm_cloned_identity_reset" value="1" required>
+              <?php echo esc_html__('I confirm this is the cloned WordPress installation and I want a new, independent connection identity.', 'site-manager'); ?>
+            </label>
+            <p><button type="submit" class="button" name="site_manager_connection_action" value="replace_cloned_identity"><?php echo esc_html__('Create new connection identity for this site', 'site-manager'); ?></button></p>
+          </form>
+          <?php endif; ?>
         </div>
         <?php
     }
