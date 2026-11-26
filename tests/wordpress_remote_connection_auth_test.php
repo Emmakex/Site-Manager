@@ -107,9 +107,9 @@ $cloned = $store->issue(['site.read', 'content.write'], 42);
 $clonedToken = (string) $cloned['token'];
 $clonedId = (string) $cloned['connection']['connection_id'];
 $clonedState = $store->state();
-$assert(null === $store->replaceClonedIdentity('smc_00000000000000000000000000000000'), 'stale identity must fail closed');
+$assert(null === $store->replaceClonedIdentity('smc_00000000000000000000000000000000', $grantable), 'stale identity must fail closed');
 $assert($clonedState === $store->state(), 'stale identity must not alter connection');
-$replaced = $store->replaceClonedIdentity($clonedId);
+$replaced = $store->replaceClonedIdentity($clonedId, $grantable);
 $assert(is_array($replaced), 'confirmed clone recovery must issue new scoped credentials');
 $replacementId = (string) ($replaced['connection']['connection_id'] ?? '');
 $replacementToken = (string) ($replaced['token'] ?? '');
@@ -120,7 +120,7 @@ $assert(false === ($replaced['connection']['write_principal_bound'] ?? true), 'c
 $assert(false === $store->tokenIsValid($clonedToken), 'original cloned token must be invalid on this WordPress');
 $assert(true === $store->authorize($replacementToken, 'site.read'), 'new token must allow a read-only Site Manager operation');
 $assert(false === $store->authorize($replacementToken, 'content.write'), 'new identity must not retain cloned write permission');
-$assert(null === $store->replaceClonedIdentity($clonedId), 'stale reset cannot replace a newer connection');
+$assert(null === $store->replaceClonedIdentity($clonedId, $grantable), 'stale reset cannot replace a newer connection');
 $assert(hash('sha256', $clonedId) === ($store->state()['previous_connection_id_sha256'] ?? ''), 'reset must retain only old identity fingerprint for audit');
 $assert(hash('sha256', $clonedToken) === ($clonedState['token_hash'] ?? ''), 'the snapshot of the source identity is unchanged');
 
