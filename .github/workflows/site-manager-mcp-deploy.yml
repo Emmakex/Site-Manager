@@ -243,7 +243,7 @@ jobs:
           fi
           "${SSH[@]}" "$SSH_TARGET" "$REMOTE_CMD"
 
-      - name: Run protected public site.read acceptance
+      - name: Run canonical public site.read acceptance
         id: acceptance
         if: env.REPLAY_DECISION == 'new' && env.DEPLOY_ACTION == 'deploy' && steps.remote.outcome == 'success'
         continue-on-error: true
