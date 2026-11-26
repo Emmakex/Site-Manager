@@ -53,27 +53,27 @@ final class ConnectionPage
             } else {
                 check_admin_referer('site_manager_connection');
                 $rawScopes = isset($_POST['scopes']) && is_array($_POST['scopes'])
-                ? array_map(static fn($value): string => sanitize_text_field((string) wp_unslash($value)), $_POST['scopes'])
-                : [];
-            $scopes = ScopePolicy::filter($rawScopes, $grantable);
-            if (count($rawScopes) !== count($scopes)) {
-                $error = __('One or more requested scopes are not governable on this installation and were not granted.', 'site-manager');
-            }
-            $principalUserId = (int) get_current_user_id();
+                    ? array_map(static fn($value): string => sanitize_text_field((string) wp_unslash($value)), $_POST['scopes'])
+                    : [];
+                $scopes = ScopePolicy::filter($rawScopes, $grantable);
+                if (count($rawScopes) !== count($scopes)) {
+                    $error = __('One or more requested scopes are not governable on this installation and were not granted.', 'site-manager');
+                }
+                $principalUserId = (int) get_current_user_id();
 
-            if (in_array($action, ['generate','rotate'], true)) {
-                $issued = $store->issue($scopes, $principalUserId);
-                $oneTimeToken = (string) ($issued['token'] ?? '');
-                $message = 'rotate' === $action
-                    ? __('Connection token rotated. The previous token is invalid immediately.', 'site-manager')
-                    : __('Connection token generated.', 'site-manager');
-            } elseif ('save_scopes' === $action) {
-                $store->saveScopes($scopes, $principalUserId);
-                $message = __('Connection scopes saved.', 'site-manager');
-            } elseif ('revoke' === $action) {
-                $store->revoke();
-                $message = __('Connection revoked. Its token can no longer authenticate.', 'site-manager');
-            }
+                if (in_array($action, ['generate','rotate'], true)) {
+                    $issued = $store->issue($scopes, $principalUserId);
+                    $oneTimeToken = (string) ($issued['token'] ?? '');
+                    $message = 'rotate' === $action
+                        ? __('Connection token rotated. The previous token is invalid immediately.', 'site-manager')
+                        : __('Connection token generated.', 'site-manager');
+                } elseif ('save_scopes' === $action) {
+                    $store->saveScopes($scopes, $principalUserId);
+                    $message = __('Connection scopes saved.', 'site-manager');
+                } elseif ('revoke' === $action) {
+                    $store->revoke();
+                    $message = __('Connection revoked. Its token can no longer authenticate.', 'site-manager');
+                }
 
                 (new Plugin())->refresh('connection-changed');
             }
