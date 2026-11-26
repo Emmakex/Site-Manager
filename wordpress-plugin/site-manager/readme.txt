@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.12.0
+Stable tag: 0.12.1
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -67,6 +67,12 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 8. When remote access is required, generate a scoped token and copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.12.1 =
+* Adds an explicitly confirmed, admin-only new-identity flow for independently installed WordPress clones whose Site Manager connection ID and bearer were copied with the database.
+* Requires nonce and stale connection ID verification; generates a fresh independent connection ID and token on this WordPress only, and starts with the currently governable read-only scopes.
+* Keeps existing connection rotation and revocation unchanged. Production MCP and the protected environment must be configured separately before migration cleanup.
+
 
 = 0.12.0 =
 * Adds dedicated, explicitly granted `theme.package.write` governance for the active standalone WordPress Theme on staging/development/local environments; it does not inherit content editing permissions.
