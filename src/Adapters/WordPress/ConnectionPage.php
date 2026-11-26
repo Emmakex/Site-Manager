@@ -41,7 +41,7 @@ final class ConnectionPage
                 if (! $confirmed) {
                     $error = __('Confirm that this WordPress is a separate cloned installation before replacing its connection identity.', 'site-manager');
                 } else {
-                    $issued = $store->replaceClonedIdentity($oldId);
+                    $issued = $store->replaceClonedIdentity($oldId, $grantable);
                     if (null === $issued) {
                         $error = __('Connection changed or could not be replaced. Refresh the page before retrying.', 'site-manager');
                     } else {
