@@ -248,14 +248,33 @@ jobs:
         if: env.REPLAY_DECISION == 'new' && env.DEPLOY_ACTION == 'deploy' && steps.remote.outcome == 'success'
         continue-on-error: true
         shell: bash
+        env:
+          SITE_MANAGER_EXPECTED_SITE_URL: ${{ vars.SITE_MANAGER_EXPECTED_SITE_URL }}
+          SITE_MANAGER_EXPECTED_CONNECTION_ID: ${{ secrets.SITE_MANAGER_EXPECTED_CONNECTION_ID }}
         run: |
           set -euo pipefail
-          ACCEPTANCE_DIR="${RUNNER_TEMP}/site-manager-mcp-acceptance"
-          mkdir -p "$ACCEPTANCE_DIR"
-          COMMAND_PATH="$ACCEPTANCE_DIR/command.json"
-          RESULT_DIR="$ACCEPTANCE_DIR/results"
-          COMMAND_ID="cmd-deploy-read-${GITHUB_RUN_ID}"
-          cat > "$COMMAND_PATH" <<JSON
+
+          # For a first site enrollment the ordinary Command Gateway correctly
+          # refuses unregistered sites. Use the existing independent SM-4K
+          # read-only bootstrap authority (which checks site URL AND connection
+          # identity from the protected Environment) for first deployment.
+          # The separate manual onboarding workflow remains the only way to
+          # persist the enrollment proof and update the trusted site catalog.
+          if [[ -n "${SITE_MANAGER_EXPECTED_SITE_URL:-}" || -n "${SITE_MANAGER_EXPECTED_CONNECTION_ID:-}" ]]; then
+            test -n "$SITE_MANAGER_EXPECTED_SITE_URL"
+            test -n "$SITE_MANAGER_EXPECTED_CONNECTION_ID"
+            python3 scripts/site_manager_site_bootstrap.py \
+              --site "$REQUESTED_SITE_ID" --run-id "$GITHUB_RUN_ID"
+            RESULT="commands/site-manager/results/cmd-bootstrap-${GITHUB_RUN_ID}.json"
+          else
+            # Backward-compatible acceptance for previously enrolled sites
+            # whose protected Environment has not opted into identity checks.
+            ACCEPTANCE_DIR="${RUNNER_TEMP}/site-manager-mcp-acceptance"
+            mkdir -p "$ACCEPTANCE_DIR"
+            COMMAND_PATH="$ACCEPTANCE_DIR/command.json"
+            RESULT_DIR="$ACCEPTANCE_DIR/results"
+            COMMAND_ID="cmd-deploy-read-${GITHUB_RUN_ID}"
+            cat > "$COMMAND_PATH" <<JSON
           {
             "version": "1",
             "command_id": "$COMMAND_ID",
@@ -265,15 +284,17 @@ jobs:
             "payload": {}
           }
           JSON
-          python3 scripts/site-manager-command-runner.py "$COMMAND_PATH" --result-dir "$RESULT_DIR"
-          RESULT="$RESULT_DIR/$COMMAND_ID.json"
+            python3 scripts/site-manager-command-runner.py "$COMMAND_PATH" --result-dir "$RESULT_DIR"
+            RESULT="$RESULT_DIR/$COMMAND_ID.json"
+          fi
+
           python3 - "$RESULT" <<'PY'
           import json, sys
           value = json.load(open(sys.argv[1], encoding='utf-8'))
           if value.get('status') != 'success' or value.get('verified') is not True:
-              raise SystemExit('public Site Manager MCP site.read acceptance did not verify')
+              raise SystemExit('protected public Site Manager site.read acceptance did not verify')
           if not isinstance(value.get('data'), dict):
-              raise SystemExit('public Site Manager MCP site.read acceptance returned no structured data')
+              raise SystemExit('protected Site Manager acceptance returned no structured data')
           PY
 
       - name: Roll back automatically when public acceptance fails
