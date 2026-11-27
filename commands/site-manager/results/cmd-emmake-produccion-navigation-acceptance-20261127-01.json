@@ -1,0 +1,33 @@
+{
+  "action": "navigation.acceptance",
+  "command_id": "cmd-emmake-produccion-navigation-acceptance-20261127-01",
+  "command_sha256": "2d28f1968080249c6c138c9eeb795100e733f49d793b5821265f3b716fe0e09d",
+  "data": {
+    "apply_verified": true,
+    "assigned_to_theme_location": false,
+    "content_and_seo_untouched_by_test": true,
+    "menu_deleted": true,
+    "plan_id": "sm-plan-541eedfe0373a58ad0bd691a",
+    "planned": true,
+    "profile": "mcp-navigation-only",
+    "rollback_verified": true,
+    "run_id": "sm-mcp-accept-fcf00e6f1d656309f57a",
+    "step_statuses": {
+      "cleanup": "passed",
+      "fixture_navigation_create": "passed",
+      "navigation_apply_verify": "passed",
+      "navigation_plan": "passed",
+      "navigation_rollback": "passed",
+      "precheck": "passed"
+    },
+    "temporary_menu_id": 2724,
+    "temporary_menu_item_id": 54406
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "navigation.write",
+  "site": "emmake-produccion",
+  "stage": "navigation-only-roundtrip",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
