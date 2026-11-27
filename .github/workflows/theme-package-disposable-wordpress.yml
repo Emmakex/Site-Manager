@@ -7,6 +7,8 @@ on:
       - 'src/Adapters/WordPress/*DraftCreation*.php'
       - 'src/Adapters/WordPress/*FeaturedImage*.php'
       - 'src/Adapters/WordPress/PublicImageInventory.php'
+      - 'src/Adapters/WordPress/ImageIngressGuard.php'
+      - 'tests/wordpress_image_ingress_guard_test.php'
       - 'src/Adapters/WordPress/RemoteAccess.php'
       - 'tests/wordpress_featured_image_live_acceptance.php'
       - 'src/Adapters/WordPress/RemoteWriteAccess.php'
@@ -36,7 +38,7 @@ jobs:
         with:
           php-version: '8.2'
           tools: composer:v2
-          extensions: zip
+          extensions: zip, gd
           coverage: none
 
       - name: Resolve plugin version
@@ -51,6 +53,8 @@ jobs:
           set -euo pipefail
           composer install --no-interaction --prefer-dist
           composer test
+          php -r 'exit(function_exists("imagecreatefromstring") ? 0 : 1);'
+          php tests/wordpress_image_ingress_guard_test.php
           bash scripts/build-wordpress-release.sh
           bash scripts/verify-wordpress-release.sh dist/site-manager-${{ steps.version.outputs.version }}.zip
 
