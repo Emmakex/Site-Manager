@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"content.featured_image", "site.public_images", "content.create", "site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
+expected_actions = {"content.image_alt", "content.featured_image", "site.public_images", "content.create", "site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 # Regression for the real live failure: paginated read must not enter the
@@ -79,6 +79,10 @@ assert registry["actions"]["theme.bootstrap"] == {
 }
 assert registry["actions"]["site.public_images"] == {
     "tool": "site_public_images", "required_scope": "site.read", "read_only": True,
+}
+assert registry["actions"]["content.image_alt"] == {
+    "tools": {"plan": "image_alt_plan", "apply": "image_alt_apply", "rollback": "image_alt_rollback"},
+    "required_scope": "content.write", "read_only": False,
 }
 assert registry["actions"]["content.featured_image"] == {
     "tools": {"plan": "featured_image_plan", "apply": "featured_image_apply", "rollback": "featured_image_rollback"},
@@ -244,7 +248,14 @@ assert media_rule["then"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False, "required": ["page"],
     "properties": {"page": {"type": "integer", "minimum": 1, "maximum": 1000}},
 }
-assert media_rule["else"]["properties"]["payload"] == {
+alt_rule = media_rule["else"]
+assert alt_rule["if"]["properties"]["action"]["const"] == "content.image_alt"
+alt_stages = alt_rule["then"]["properties"]["payload"]["oneOf"]
+assert len(alt_stages) == 3
+assert all(x["additionalProperties"] is False for x in alt_stages)
+assert set(alt_stages[0]["required"]) == {"stage", "attachment_id", "parent_id", "alt"}
+assert all(x["properties"]["confirmed"]["const"] is True for x in alt_stages[1:])
+assert alt_rule["else"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False, "maxProperties": 0
 }
 stages = conditional["then"]["properties"]["payload"]["oneOf"]
