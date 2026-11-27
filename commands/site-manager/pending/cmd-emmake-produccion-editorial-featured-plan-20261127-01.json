@@ -1,0 +1,13 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-produccion-editorial-featured-plan-20261127-01",
+  "site": "emmake-produccion",
+  "action": "content.featured_image",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_id": 54410,
+    "attachment_id": 53914,
+    "reason": "Preview reversible assignment of an existing public innovation image to the unpublished AI automation article; no apply or publication authorized."
+  }
+}
