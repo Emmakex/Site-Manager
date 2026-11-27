@@ -1,0 +1,34 @@
+name: Site Manager public synthetic media fixture
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/site-manager-media-artifact.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  public-fixture:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate one synthetic PNG (not customer media)
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, pathlib, struct, zlib
+          w,h=320,200
+          def chunk(t,d):
+              return struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d)&0xffffffff)
+          rows=b''.join(b'\x00'+bytes((40,90,160))*w for _ in range(h))
+          png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(rows))+chunk(b'IEND',b'')
+          p=pathlib.Path('media-fixture.png')
+          p.write_bytes(png)
+          print(json.dumps({'filename':p.name,'mime':'image/png','sha256':hashlib.sha256(png).hexdigest(),'bytes':len(png),'width':w,'height':h}))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-manager-media-image
+          path: media-fixture.png
+          if-no-files-found: error
+          retention-days: 7
