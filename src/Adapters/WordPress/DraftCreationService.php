@@ -34,6 +34,8 @@ final class DraftCreationService
             || array_diff(array_keys($input), array_keys(self::FIELDS))) {
             throw new InvalidArgumentException('Only native post/page draft fields are accepted.');
         }
+        $types = array_column((array) ($snapshot->inventory['content_types'] ?? []), 'name');
+        if (! in_array($type, $types, true)) { throw new LogicException('Content type was not discovered.'); }
         $runtime = $this->runtime();
         if (! $runtime->canCreate($type)) { throw new LogicException('Cannot create this WordPress content type.'); }
         $fields = [];
