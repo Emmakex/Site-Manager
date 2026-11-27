@@ -1,0 +1,32 @@
+{
+  "action": "content.acceptance",
+  "command_id": "cmd-emmake-produccion-content-acceptance-20261127-01",
+  "command_sha256": "7c79c6e0baac6bf8ab154a2d2b9ef5d02e420c0d206c4a081c2b844dd78d3edd",
+  "data": {
+    "apply_verified": true,
+    "draft_deleted": true,
+    "navigation_and_seo_untouched_by_test": true,
+    "plan_id": "sm-plan-b421d362c4f85f0e75e4bd9a",
+    "planned": true,
+    "post_status": "draft",
+    "profile": "mcp-content-only",
+    "rollback_verified": true,
+    "run_id": "sm-mcp-accept-55a96077550137de472e",
+    "step_statuses": {
+      "cleanup": "passed",
+      "content_apply_verify": "passed",
+      "content_plan": "passed",
+      "content_rollback": "passed",
+      "fixture_content_create": "passed",
+      "precheck": "passed"
+    },
+    "temporary_post_id": 54403
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "content.write",
+  "site": "emmake-produccion",
+  "stage": "content-only-roundtrip",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
