@@ -982,3 +982,12 @@ continue to work independently.
 A pending command contains the proposed editorial text in Git history: use only material approved for this repository, never confidential drafts or credentials. Sanitized results retain the new post ID, not body text.
 
 This implementation is not production-ready until real disposable WordPress integration, official plugin/MCP release and deployment, and scoped end-to-end acceptance are verified. No automatic retries after ambiguous mutation failures. Existing human edits and providers remain authoritative.
+
+
+### Media discovery and featured image assignment (development)
+
+- `site.public_images`: read-only `site.read`, exact payload `{"page":1}` (1–1000). Each page scans at most 30 native attachments plus one lookahead; results may contain fewer than 30 rows, including zero. Only images linked to published, non-password-protected native posts/pages with same-origin HTTPS URLs are returned. This is a sample, not the complete library; it does not expose unattached or private-parent media. No arbitrary URL lookup.
+- `content.featured_image`: existing `content.write` scope, native post/page and theme thumbnail support required. Plan payload `{"stage":"plan","post_id":42,"attachment_id":43}` (positive IDs, optional reason). Apply and rollback require the exact plan ID and explicit confirmation. Preview shows both previous and proposed attachment IDs. WordPress checks the bound user's edit rights, target and source fingerprints; verifies assignment and restores the previous reference if rollback remains valid. No attachment file is deleted or modified.
+- Neither operation uploads bytes, edits ALT, inserts inline media, nor changes publication status. A failed or ambiguous apply requires reconciliation before retry. The public sample does not certify external object-store/CDN URLs, private media or rendered visual output.
+
+New uploads will require a separately bounded image-ingress operation: explicit byte digest, supported image MIME and dimensions, controlled transfer without caller-selected fetch URLs, native WordPress attachment creation and readback. Do not send image binaries through command JSON or store customer media in engineering Git history. ALT is a separate shared attachment property and must never be silently changed during featured-image assignment. These capabilities are not implemented or released by this section.
