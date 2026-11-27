@@ -49,7 +49,8 @@
       "@php tests/wordpress_acceptance_terminal_refresh_test.php",
       "@php tests/wordpress_remote_client_tracker_test.php",
       "@php tests/wordpress_remote_acceptance_test.php",
-      "@php tests/wordpress_plugin_package_archive_guard_test.php"
+      "@php tests/wordpress_plugin_package_archive_guard_test.php",
+      "@php tests/wordpress_plugin_package_recovery_test.php"
     ],
     "lint": [
       "@php scripts/lint.php"
