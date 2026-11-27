@@ -1654,6 +1654,38 @@ def self_test() -> int:
             pass
         else:
             raise CommandError("unsafe draft creation accepted")
+    draft_id = "sm-plan-" + "a"*24
+    draft_fields = {"post_title": "Article", "post_name": "article",
+                    "post_content": "<p>Body</p>", "post_excerpt": "", "post_status": "draft"}
+    draft_plan = {"plan_id": draft_id, "operation": "content.create",
+                  "capability_id": "content.write", "reversible": True,
+                  "confirmation_required": True, "status": "planned",
+                  "target": {"post_type": "post", "slug": "article"},
+                  "fields": list(draft_fields)}
+    draft_response = {"plan": draft_plan, "changes": {"after": draft_fields, "before": {}}}
+    if verify_create_response("plan", draft_response, draft["payload"]) is not False:
+        raise CommandError("draft planning claimed mutation")
+    confirmed = {"stage": "apply", "plan_id": draft_id, "confirmed": True}
+    created = {"plan": {**draft_plan, "status": "applied"}, "status": "verified",
+               "execution": {"success": True, "data": {"post_id": 42}},
+               "verification": {"verified": True, "evidence": {"post_id": 42}}}
+    if not verify_create_response("apply", created, confirmed):
+        raise CommandError("verified draft rejected")
+    rolled = {"plan": {**draft_plan, "status": "rolled-back"}, "status": "rolled-back",
+              "rollback": {"success": True, "evidence": {"post_id": 42, "trashed": True}}}
+    if not verify_create_response("rollback", rolled, {**confirmed, "stage": "rollback"}):
+        raise CommandError("verified trash rejected")
+    for stage, response, req in (
+        ("plan", {**draft_response, "changes": {"after": {**draft_fields, "post_status": "publish"}}}, draft["payload"]),
+        ("apply", {**created, "verification": {"verified": True, "evidence": {"post_id": 43}}}, confirmed),
+        ("rollback", {**rolled, "rollback": {"success": True, "evidence": {"post_id": 42, "trashed": False}}}, {**confirmed, "stage": "rollback"}),
+    ):
+        try:
+            verify_create_response(stage, response, req)
+        except VerificationError:
+            pass
+        else:
+            raise CommandError("invalid creation evidence accepted")
     package_valid = {**valid, "action":"theme.package.deploy", "payload":{
         "stage":"plan", "theme_slug":"seo-geo-theme", "source_commit_sha":"a"*40,
         "source_run_id":12, "source_artifact_id":43, "package_sha256":"b"*64,
