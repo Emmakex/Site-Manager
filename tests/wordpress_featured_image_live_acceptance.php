@@ -75,4 +75,34 @@ status(callFeatured('apply',['plan_id'=>$stale['plan']['plan_id'],'confirmed'=>t
 check((int) get_post_thumbnail_id($postId)===0,'human change preserved');
 check(get_post_status($postId)==='draft' && get_post_field('post_content',$postId)==='Original article','status and content untouched');
 check(get_post($a) && get_post($b) && get_post($private),'no media deleted');
+// Verify native public-only discovery independently of featured image writes.
+wp_set_current_user($admin->ID);
+$publicParent = wp_insert_post(['post_type'=>'post','post_status'=>'publish','post_title'=>'Public media fixture'],true);
+$protectedParent = wp_insert_post(['post_type'=>'post','post_status'=>'publish','post_title'=>'Protected media fixture','post_password'=>'fixture-password'],true);
+check(is_int($publicParent) && is_int($protectedParent),'public and protected parents created');
+$publicImage = imageFixture($publicParent,'sm-ci-public-image');
+$protectedImage = imageFixture($protectedParent,'sm-ci-protected-image');
+$orphan = imageFixture(0,'sm-ci-orphan-image');
+update_post_meta($publicImage,'_wp_attachment_image_alt','Public fixture alt');
+wp_set_current_user(0);
+function callImages(int $page, string $token): WP_REST_Response
+{
+    $request = new WP_REST_Request('GET','/site-manager/v1/media/images');
+    $request->set_query_params(['page'=>$page]);
+    if ($token !== '') { $request->set_header('authorization','Bearer '.$token); }
+    return rest_do_request($request);
+}
+check(callImages(1,'')->get_status() >= 400,'public image inventory requires authentication');
+status(callImages(0,$token),400,'zero page rejected');
+status(callImages(1001,$token),400,'oversized page rejected');
+$inventory = status(callImages(1,$token),200,'read actual public images');
+check(($inventory['sample_only'] ?? false)===true && ($inventory['private_values_included'] ?? true)===false,'truthful bounded sample');
+$ids = array_column($inventory['items'],'attachment_id');
+check(in_array($publicImage,$ids,true),'public attachment visible');
+foreach ([$a,$b,$private,$protectedImage,$orphan] as $excluded) {
+    check(!in_array($excluded,$ids,true),'nonpublic or unassigned attachment excluded');
+}
+$row = array_values(array_filter($inventory['items'],static fn($item)=>$item['attachment_id']===$publicImage))[0];
+check($row['alt']==='Public fixture alt' && $row['parent_id']===$publicParent && $row['mime']==='image/png','public metadata verified');
+echo "DISPOSABLE_WP_PUBLIC_IMAGE_INVENTORY=PASSED\n";
 echo "DISPOSABLE_WP_FEATURED_IMAGE_ACCEPTANCE=PASSED\n";
