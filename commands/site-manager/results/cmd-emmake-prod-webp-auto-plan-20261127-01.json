@@ -1,0 +1,42 @@
+{
+  "action": "content.image_upload",
+  "command_id": "cmd-emmake-prod-webp-auto-plan-20261127-01",
+  "command_sha256": "5783d0d219c2e36960234a87ba8f16da98b3112eb8e2f0886f93f690da300b1d",
+  "data": {
+    "byte_validation_pending": true,
+    "expires_at": "2026-11-27T20:27:35+00:00",
+    "manifest": {
+      "bytes": 1973370,
+      "filename": "site-manager-drive-test.png",
+      "height": 1024,
+      "mime": "image/png",
+      "sha256": "3c2a8fb3cd1679f39f55d9d3b26138a9b8be4258356f65985cd6be10accc3168",
+      "width": 1536
+    },
+    "optimized_manifest": {
+      "bytes": 152834,
+      "filename": "site-manager-drive-test-optimized.webp",
+      "height": 1024,
+      "mime": "image/webp",
+      "sha256": "6ce49bde8e1dff5fa4f15dcd1035127ca74d7c19bbfc3555587f93f01bd9572b",
+      "width": 1536
+    },
+    "parent_id": 54410,
+    "plan_id": "sm-plan-04e3de9add1e479632ed2622",
+    "public_url_possible": true,
+    "rollback_available": false,
+    "source": {
+      "optimization": "featured_webp_v1",
+      "provider": "google_drive"
+    },
+    "stage": "plan",
+    "status": "planned"
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "content.write",
+  "site": "emmake-produccion",
+  "stage": "plan",
+  "status": "success",
+  "verified": false,
+  "version": "1"
+}
