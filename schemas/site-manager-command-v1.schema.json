@@ -42,7 +42,9 @@
         "theme.bootstrap",
         "site.content_page",
         "theme.package.deploy",
-        "content.create"
+        "content.create",
+        "content.featured_image",
+        "site.public_images"
       ]
     },
     "requested_by": {
@@ -1030,11 +1032,129 @@
                             }
                           },
                           "else": {
-                            "properties": {
-                              "payload": {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "maxProperties": 0
+                            "if": {
+                              "properties": {
+                                "action": {
+                                  "const": "content.featured_image"
+                                }
+                              },
+                              "required": [
+                                "action"
+                              ]
+                            },
+                            "then": {
+                              "properties": {
+                                "payload": {
+                                  "oneOf": [
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "stage",
+                                        "post_id",
+                                        "attachment_id"
+                                      ],
+                                      "properties": {
+                                        "stage": {
+                                          "const": "plan"
+                                        },
+                                        "post_id": {
+                                          "type": "integer",
+                                          "minimum": 1
+                                        },
+                                        "attachment_id": {
+                                          "type": "integer",
+                                          "minimum": 1
+                                        },
+                                        "reason": {
+                                          "type": "string",
+                                          "maxLength": 500
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "stage",
+                                        "plan_id",
+                                        "confirmed"
+                                      ],
+                                      "properties": {
+                                        "stage": {
+                                          "const": "apply"
+                                        },
+                                        "plan_id": {
+                                          "type": "string",
+                                          "pattern": "^sm-plan-[a-f0-9]{24}$"
+                                        },
+                                        "confirmed": {
+                                          "const": true
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "stage",
+                                        "plan_id",
+                                        "confirmed"
+                                      ],
+                                      "properties": {
+                                        "stage": {
+                                          "const": "rollback"
+                                        },
+                                        "plan_id": {
+                                          "type": "string",
+                                          "pattern": "^sm-plan-[a-f0-9]{24}$"
+                                        },
+                                        "confirmed": {
+                                          "const": true
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "else": {
+                              "if": {
+                                "properties": {
+                                  "action": {
+                                    "const": "site.public_images"
+                                  }
+                                },
+                                "required": [
+                                  "action"
+                                ]
+                              },
+                              "then": {
+                                "properties": {
+                                  "payload": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "page"
+                                    ],
+                                    "properties": {
+                                      "page": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 1000
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "else": {
+                                "properties": {
+                                  "payload": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "maxProperties": 0
+                                  }
+                                }
                               }
                             }
                           }
