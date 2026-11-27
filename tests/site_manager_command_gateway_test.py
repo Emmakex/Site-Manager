@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"content.create", "site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
+expected_actions = {"content.featured_image", "site.public_images", "content.create", "site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 # Regression for the real live failure: paginated read must not enter the
@@ -23,7 +23,7 @@ read_actions = {name for name, config in registry["actions"].items()
                 if config.get("read_only") is True}
 assert '"site.content_page"' in runner
 assert "declared_reads != READ_ACTIONS" in runner
-assert read_actions == { "site.read", "site.diagnostics", "site.overview",
+assert read_actions == { "site.public_images", "site.read", "site.diagnostics", "site.overview",
                          "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state" }
 assert registry["actions"]["site.read"] == {
     "tool": "site_read",
@@ -76,6 +76,13 @@ assert registry["actions"]["theme.bootstrap"] == {
     "tools": {"plan": "theme_bootstrap_plan", "apply": "theme_bootstrap_apply", "rollback": "theme_bootstrap_rollback"},
     "required_scope": "content.write",
     "read_only": False,
+}
+assert registry["actions"]["site.public_images"] == {
+    "tool": "site_public_images", "required_scope": "site.read", "read_only": True,
+}
+assert registry["actions"]["content.featured_image"] == {
+    "tools": {"plan": "featured_image_plan", "apply": "featured_image_apply", "rollback": "featured_image_rollback"},
+    "required_scope": "content.write", "read_only": False,
 }
 assert registry["actions"]["content.create"] == {
     "tools": {"plan": "content_create_plan", "apply": "content_create_apply", "rollback": "content_create_rollback"},
@@ -224,7 +231,20 @@ assert all(x["additionalProperties"] is False for x in create_stages)
 assert set(create_stages[0]["required"]) == {"stage", "post_type", "fields"}
 assert set(create_stages[0]["properties"]["fields"]["properties"]) == {"title", "slug", "content", "excerpt"}
 assert all(x["properties"]["confirmed"]["const"] is True for x in create_stages[1:])
-assert create_rule["else"]["properties"]["payload"] == {
+featured_rule = create_rule["else"]
+assert featured_rule["if"]["properties"]["action"]["const"] == "content.featured_image"
+featured_stages = featured_rule["then"]["properties"]["payload"]["oneOf"]
+assert len(featured_stages) == 3
+assert all(x["additionalProperties"] is False for x in featured_stages)
+assert set(featured_stages[0]["required"]) == {"stage", "post_id", "attachment_id"}
+assert all(x["properties"]["confirmed"]["const"] is True for x in featured_stages[1:])
+media_rule = featured_rule["else"]
+assert media_rule["if"]["properties"]["action"]["const"] == "site.public_images"
+assert media_rule["then"]["properties"]["payload"] == {
+    "type": "object", "additionalProperties": False, "required": ["page"],
+    "properties": {"page": {"type": "integer", "minimum": 1, "maximum": 1000}},
+}
+assert media_rule["else"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False, "maxProperties": 0
 }
 stages = conditional["then"]["properties"]["payload"]["oneOf"]
