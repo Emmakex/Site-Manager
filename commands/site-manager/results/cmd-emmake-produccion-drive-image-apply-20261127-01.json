@@ -1,0 +1,14 @@
+{
+  "action": "content.image_upload",
+  "command_id": "cmd-emmake-produccion-drive-image-apply-20261127-01",
+  "command_sha256": "04b01ba083d45976dde28b4ef7546e343f512aa3b398e0c5f6b3806a1617d2a1",
+  "error": {
+    "code": "transport_failed",
+    "detail": "Image apply not verified; reconcile before retry",
+    "message": "The production MCP transport did not complete successfully."
+  },
+  "site": "emmake-produccion",
+  "status": "failed",
+  "verified": false,
+  "version": "1"
+}
