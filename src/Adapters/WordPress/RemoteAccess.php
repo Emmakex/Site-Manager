@@ -159,6 +159,26 @@ final class RemoteAccess
             },
         ], true);
 
+        register_rest_route('site-manager/v1', '/media/images', [
+            'methods'=>\WP_REST_Server::READABLE,
+            'permission_callback'=>static function (\WP_REST_Request $request): bool {
+                if (current_user_can('manage_options')) { return true; }
+                return (new RemoteConnectionStore())->authorize(RemoteConnectionStore::bearerFromRequest($request), 'site.read');
+            },
+            'callback'=>static function (\WP_REST_Request $request): \WP_REST_Response {
+                $page = $request->get_param('page');
+                if ((! is_string($page) && ! is_int($page)) || ! preg_match('/^[1-9][0-9]{0,3}$/D', (string) $page)
+                    || (int) $page > 1000) {
+                    return new \WP_REST_Response(['error'=>['code'=>'invalid_image_page']], 400);
+                }
+                try {
+                    return new \WP_REST_Response(['data'=>(new PublicImageInventory())->page((int) $page)], 200);
+                } catch (\Throwable) {
+                    return new \WP_REST_Response(['error'=>['code'=>'image_inventory_unavailable']], 503);
+                }
+            },
+        ], true);
+
         register_rest_route('site-manager/v1', '/connection', [
             'methods'=>\WP_REST_Server::READABLE,
             'permission_callback'=>static function (\WP_REST_Request $request): bool {

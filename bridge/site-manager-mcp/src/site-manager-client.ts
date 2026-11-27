@@ -7,6 +7,7 @@ export type SiteManagerReadResource =
   | 'diagnostics'
   | 'content/targets'
   | 'content/page'
+  | 'media/images'
   | 'theme/model'
   | 'theme/package/state'
   | 'acceptance/remote/job';
@@ -27,6 +28,12 @@ export type SiteManagerWriteResource =
   | 'write/content/create/plan'
   | 'write/content/create/apply'
   | 'write/content/create/rollback'
+  | 'write/content/featured-image/plan'
+  | 'write/content/featured-image/apply'
+  | 'write/content/featured-image/rollback'
+  | 'write/content/image-alt/plan'
+  | 'write/content/image-alt/apply'
+  | 'write/content/image-alt/rollback'
   | 'write/navigation/plan'
   | 'write/navigation/apply'
   | 'write/navigation/rollback'
@@ -112,6 +119,15 @@ export class SiteManagerClient {
     return { ...targets, connection_id: this.config.connectionId };
   }
 
+  public async publicImages(input: {page: number}): Promise<JsonRecord> {
+    if (!Number.isInteger(input.page) || input.page < 1 || input.page > 1000) {
+      throw new SiteManagerClientError('Unsafe image page selector.');
+    }
+    const result = await this.request('media/images', 'GET', undefined, input);
+    if (!isRecord(result)) throw new SiteManagerClientError('Invalid public image sample.');
+    return { ...result, connection_id: this.config.connectionId };
+  }
+
   public async themeModel(): Promise<JsonRecord> {
     const model = await this.request('theme/model', 'GET');
     if (!isRecord(model)) {
@@ -184,6 +200,26 @@ export class SiteManagerClient {
 
   public async themeUpdateRollback(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
     return this.request('write/theme/rollback', 'POST', input);
+  }
+
+  public async imageAltPlan(input: {attachment_id: number; parent_id: number; alt: string; reason?: string}): Promise<unknown> {
+    return this.request('write/content/image-alt/plan', 'POST', input);
+  }
+  public async imageAltApply(input: {plan_id: string; confirmed: boolean}): Promise<unknown> {
+    return this.request('write/content/image-alt/apply', 'POST', input);
+  }
+  public async imageAltRollback(input: {plan_id: string; confirmed: boolean}): Promise<unknown> {
+    return this.request('write/content/image-alt/rollback', 'POST', input);
+  }
+
+  public async featuredImagePlan(input: {post_id: number; attachment_id: number; reason?: string}): Promise<unknown> {
+    return this.request('write/content/featured-image/plan', 'POST', input);
+  }
+  public async featuredImageApply(input: {plan_id: string; confirmed: boolean}): Promise<unknown> {
+    return this.request('write/content/featured-image/apply', 'POST', input);
+  }
+  public async featuredImageRollback(input: {plan_id: string; confirmed: boolean}): Promise<unknown> {
+    return this.request('write/content/featured-image/rollback', 'POST', input);
   }
 
   public async contentCreatePlan(input: { post_type: 'post' | 'page'; fields: JsonRecord; reason?: string }): Promise<unknown> {
@@ -295,10 +331,10 @@ export class SiteManagerClient {
     return data;
   }
 
-  private async request(resource: SiteManagerReadResource | SiteManagerWriteResource, method: 'GET' | 'POST', body?: unknown, query?: { post_type: 'post' | 'page'; page: number }): Promise<unknown> {
+  private async request(resource: SiteManagerReadResource | SiteManagerWriteResource, method: 'GET' | 'POST', body?: unknown, query?: { post_type?: 'post' | 'page'; page: number }): Promise<unknown> {
     const endpoint = new URL(resource, this.config.restBase);
     if (query) {
-      endpoint.searchParams.set('post_type', query.post_type);
+      if (query.post_type !== undefined) endpoint.searchParams.set('post_type', query.post_type);
       endpoint.searchParams.set('page', String(query.page));
     }
     if (endpoint.origin !== this.config.restBase.origin) {

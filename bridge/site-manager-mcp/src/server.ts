@@ -681,6 +681,93 @@ export function createSiteManagerMcpServer(
     );
   }
 
+  if (scopes.has('site.read')) {
+    server.registerTool('site_public_images', {
+      title: 'Read one bounded sample of public WordPress images',
+      description: 'Public-parent images only; excludes private, unattached and cross-origin media.',
+      inputSchema: fromJsonSchema<{page: number}>({
+        type: 'object', additionalProperties: false, required: ['page'],
+        properties: {page: {type: 'integer', minimum: 1, maximum: 1000}},
+      }),
+      annotations: {readOnlyHint: true, openWorldHint: false},
+    }, async ({page}) => {
+      try { return toolResult(await client.publicImages({page})); }
+      catch { return toolError('Public image sample unavailable.'); }
+    });
+  }
+
+  if (scopes.has('content.write')) {
+    server.registerTool('featured_image_plan', {
+      title: 'Plan assignment of an existing WordPress featured image',
+      description: 'Select an existing attachment ID for a native post/page. No upload or publication.',
+      inputSchema: fromJsonSchema<{post_id: number; attachment_id: number; reason?: string}>({
+        type: 'object', additionalProperties: false, required: ['post_id','attachment_id'],
+        properties: {post_id: {type: 'integer', minimum: 1}, attachment_id: {type: 'integer', minimum: 1},
+          reason: {type: 'string', maxLength: 500}},
+      }),
+      annotations: {readOnlyHint: false, destructiveHint: false, openWorldHint: false},
+    }, async ({post_id, attachment_id, reason}) => {
+      try { return toolResult(await client.featuredImagePlan({post_id, attachment_id, ...(reason === undefined ? {} : {reason})})); }
+      catch { return toolError('Featured image plan refused.'); }
+    });
+    server.registerTool('featured_image_apply', {
+      title: 'Apply a confirmed featured image plan',
+      description: 'Assign and verify the exact planned image; reject stale state.',
+      inputSchema: confirmedPlanSchema,
+      annotations: {readOnlyHint: false, destructiveHint: true, openWorldHint: false},
+    }, async ({plan_id, confirmed}) => {
+      if (confirmed !== true) return toolError('Explicit confirmation required.');
+      try { return toolResult(await client.featuredImageApply({plan_id, confirmed: true})); }
+      catch { return toolError('Featured image apply not verified. Reconcile before retry.'); }
+    });
+    server.registerTool('featured_image_rollback', {
+      title: 'Restore the previous featured image',
+      description: 'Restore the original reference only if the target has not changed. Never delete attachments.',
+      inputSchema: confirmedPlanSchema,
+      annotations: {readOnlyHint: false, destructiveHint: true, openWorldHint: false},
+    }, async ({plan_id, confirmed}) => {
+      if (confirmed !== true) return toolError('Explicit rollback confirmation required.');
+      try { return toolResult(await client.featuredImageRollback({plan_id, confirmed: true})); }
+      catch { return toolError('Featured image rollback not verified.'); }
+    });
+  }
+
+  if (scopes.has('content.write')) {
+    server.registerTool('image_alt_plan', {
+      title: 'Plan an explicit shared image ALT change',
+      description: 'Change the native attachment ALT property; all uses of the same attachment may be affected. Requires its actual parent ID.',
+      inputSchema: fromJsonSchema<{attachment_id: number; parent_id: number; alt: string; reason?: string}>({
+        type: 'object', additionalProperties: false, required: ['attachment_id','parent_id','alt'],
+        properties: {attachment_id: {type: 'integer', minimum: 1}, parent_id: {type: 'integer', minimum: 1},
+          alt: {type: 'string', maxLength: 800}, reason: {type: 'string', maxLength: 500}},
+      }),
+      annotations: {readOnlyHint: false, destructiveHint: false, openWorldHint: false},
+    }, async ({attachment_id, parent_id, alt, reason}) => {
+      try { return toolResult(await client.imageAltPlan({attachment_id,parent_id,alt,...(reason === undefined ? {} : {reason})})); }
+      catch { return toolError('Image ALT plan refused.'); }
+    });
+    server.registerTool('image_alt_apply', {
+      title: 'Apply and verify a confirmed image ALT change',
+      description: 'Changes only the planned attachment ALT; never publishes or uploads media.',
+      inputSchema: confirmedPlanSchema,
+      annotations: {readOnlyHint: false, destructiveHint: true, openWorldHint: false},
+    }, async ({plan_id, confirmed}) => {
+      if (confirmed !== true) return toolError('Explicit confirmation required.');
+      try { return toolResult(await client.imageAltApply({plan_id,confirmed:true})); }
+      catch { return toolError('Image ALT apply not verified. Reconcile before retry.'); }
+    });
+    server.registerTool('image_alt_rollback', {
+      title: 'Restore the exact previous native image ALT',
+      description: 'Restores the prior value or absence only if state still matches.',
+      inputSchema: confirmedPlanSchema,
+      annotations: {readOnlyHint: false, destructiveHint: true, openWorldHint: false},
+    }, async ({plan_id, confirmed}) => {
+      if (confirmed !== true) return toolError('Explicit rollback confirmation required.');
+      try { return toolResult(await client.imageAltRollback({plan_id,confirmed:true})); }
+      catch { return toolError('Image ALT rollback not verified.'); }
+    });
+  }
+
   // A confirmed, bounded fixture test backed by WordPress Acceptance Center.
   // No menu IDs, client content or routes can be selected by the caller.
   if (scopes.has('navigation.write') && scopes.has('site.read')) {

@@ -34,7 +34,7 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"content.create", "site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
+SUPPORTED_ACTIONS = {"content.image_alt", "content.featured_image", "site.public_images", "content.create", "site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
 SEO_ACCEPTANCE_TOOLS = {"start": "seo_acceptance_start", "status": "seo_acceptance_status"}
 SEO_ACCEPTANCE_PROFILE = "mcp-seo-only"
 SEO_ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "seo_plan", "seo_apply_verify", "seo_rollback", "cleanup")
@@ -57,7 +57,7 @@ ACCEPTANCE_TOOLS = {"start": "content_acceptance_start", "status": "content_acce
 ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "content_plan", "content_apply_verify", "content_rollback", "cleanup")
 ACCEPTANCE_PROFILE = "mcp-content-only"
 ACCEPTANCE_TIMEOUT_SECONDS = 420
-READ_ACTIONS = {"site.read", "site.diagnostics", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state"}
+READ_ACTIONS = {"site.public_images", "site.read", "site.diagnostics", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state"}
 CONTENT_STAGES = {"plan", "apply", "rollback"}
 CONTENT_TOOLS = {
     "plan": "content_update_plan",
@@ -68,7 +68,10 @@ CREATE_TOOLS = {"plan": "content_create_plan", "apply": "content_create_apply", 
 CREATE_FIELDS = {"title": 512, "slug": 200, "content": 100_000, "excerpt": 4000}
 CONTENT_FIELD_LIMITS = {"title": 500, "slug": 200, "content": 200_000, "excerpt": 20_000, "status": 20}
 CONTENT_STATUSES = {"draft", "publish", "private", "pending"}
+ALT_TOOLS = {"plan": "image_alt_plan", "apply": "image_alt_apply", "rollback": "image_alt_rollback"}
+FEATURED_TOOLS = {"plan": "featured_image_plan", "apply": "featured_image_apply", "rollback": "featured_image_rollback"}
 EXPECTED_TOOLS = {
+    "site.public_images": ("site_public_images", "site.read"),
     "site.read": ("site_read", "site.read"),
     "site.diagnostics": ("site_diagnostics", "site.diagnostics"),
     "site.overview": ("site_read", "site.read"),
@@ -163,6 +166,10 @@ def validate_registry(registry: dict[str, Any]) -> None:
     if content["read_only"] is not False:
         raise CommandError("content.update cannot be marked read-only")
 
+    if actions.get("content.image_alt") != {"tools": ALT_TOOLS, "required_scope": "content.write", "read_only": False}:
+        raise CommandError("image ALT must use fixed scoped tools")
+    if actions.get("content.featured_image") != {"tools": FEATURED_TOOLS, "required_scope": "content.write", "read_only": False}:
+        raise CommandError("featured image must use fixed scoped tools")
     creation = actions.get("content.create")
     if creation != {"tools": CREATE_TOOLS, "required_scope": "content.write", "read_only": False}:
         raise CommandError("content.create must use the fixed draft lifecycle tools")
@@ -243,6 +250,9 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
                 or type(payload["page"]) is not int
                 or not 1 <= payload["page"] <= 10_000):
             raise CommandError("content page requires a bounded post/page selector")
+    elif action == "site.public_images":
+        if set(payload) != {"page"} or type(payload["page"]) is not int or not 1 <= payload["page"] <= 1000:
+            raise CommandError("invalid bounded public media page")
     elif action in READ_ACTIONS:
         if payload:
             raise CommandError("read-only Site Manager commands require an empty payload object")
@@ -250,6 +260,10 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
         validate_content_payload(payload)
     elif action == "content.create":
         validate_create_payload(payload)
+    elif action == "content.image_alt":
+        validate_alt_payload(payload)
+    elif action == "content.featured_image":
+        validate_featured_payload(payload)
     elif action == "theme.update":
         validate_theme_payload(payload)
     elif action == "theme.bootstrap":
@@ -304,6 +318,42 @@ def validate_theme_package_payload(payload: dict[str, Any]) -> None:
             raise CommandError("Theme package plan ID is invalid")
     else:
         raise CommandError("Theme package stage is not authorized")
+
+
+def validate_alt_payload(payload: dict[str, Any]) -> None:
+    if payload.get("stage") != "plan":
+        validate_featured_payload(payload)
+        return
+    required = {"stage", "attachment_id", "parent_id", "alt"}
+    if not required <= set(payload) or set(payload) - (required | {"reason"}):
+        raise CommandError("ALT requires exact attachment and parent IDs")
+    if any(type(payload[k]) is not int or payload[k] < 1 for k in ("attachment_id", "parent_id")):
+        raise CommandError("invalid native ALT selector")
+    alt = payload["alt"]
+    if (not isinstance(alt, str) or len(alt.encode("utf-8")) > 800 or alt != alt.strip()
+            or re.search(r"[<>\x00-\x1f\x7f]", alt)):
+        raise CommandError("ALT must be bounded plain text")
+    if "reason" in payload and (not isinstance(payload["reason"], str) or len(payload["reason"].encode("utf-8")) > 500):
+        raise CommandError("invalid ALT reason")
+
+
+def validate_featured_payload(payload: dict[str, Any]) -> None:
+    if payload.get("stage") == "plan":
+        required = {"stage", "post_id", "attachment_id"}
+        if not required <= set(payload) or set(payload) - (required | {"reason"}):
+            raise CommandError("featured image requires exact native IDs")
+        if any(type(payload[k]) is not int or payload[k] < 1 for k in ("post_id", "attachment_id")):
+            raise CommandError("invalid native image selector")
+        if "reason" in payload and (not isinstance(payload["reason"], str) or len(payload["reason"]) > 500):
+            raise CommandError("invalid image reason")
+    elif payload.get("stage") in ("apply", "rollback"):
+        if (set(payload) != {"stage", "plan_id", "confirmed"}
+                or not isinstance(payload["plan_id"], str)
+                or re.fullmatch(r"sm-plan-[a-f0-9]{24}", payload["plan_id"]) is None
+                or payload["confirmed"] is not True):
+            raise CommandError("confirmed image plan required")
+    else:
+        raise CommandError("unsupported featured image stage")
 
 
 def validate_create_payload(payload: dict[str, Any]) -> None:
@@ -790,6 +840,131 @@ class McpClient:
                         except json.JSONDecodeError:
                             continue
         raise TransportError(f"MCP tool {tool} returned no structured result")
+
+
+def summarize_public_images(data: Any, requested_page: int) -> dict[str, Any]:
+    if (not isinstance(data, dict) or data.get("source") != "wordpress-native-public-image-sample"
+            or data.get("page") != requested_page or data.get("page_size") != 30
+            or data.get("sample_only") is not True or data.get("private_values_included") is not False
+            or type(data.get("has_more")) is not bool or not isinstance(data.get("items"), list)
+            or len(data["items"]) > 30 or not isinstance(data.get("site_url"), str)):
+        raise VerificationError("invalid public image sample")
+    origin = urlparse(data["site_url"])
+    if origin.scheme != "https" or not origin.hostname or origin.username or origin.password:
+        raise VerificationError("invalid image site origin")
+    safe = []
+    seen = set()
+    for item in data["items"]:
+        if (not isinstance(item, dict) or set(item) != {"attachment_id", "parent_id", "title", "alt", "mime", "width", "height", "url"}
+                or any(type(item[k]) is not int or item[k] < 1 for k in ("attachment_id", "parent_id"))
+                or any(type(item[k]) is not int or not 0 <= item[k] <= 100000 for k in ("width", "height"))
+                or any(not isinstance(item[k], str) or len(item[k]) > n for k,n in (("title",160),("alt",200),("mime",80),("url",2048)))
+                or not item["mime"].startswith("image/") or item["attachment_id"] in seen):
+            raise VerificationError("invalid public image row")
+        url = urlparse(item["url"])
+        if (url.scheme != "https" or url.netloc != origin.netloc or url.username or url.password
+                or url.query or url.fragment):
+            raise VerificationError("public image escaped site origin")
+        seen.add(item["attachment_id"])
+        safe.append(item)
+    return {"source": data["source"], "site_url": data["site_url"], "page": requested_page,
+            "page_size": 30, "has_more": data["has_more"], "sample_only": True,
+            "private_values_included": False, "items": safe}
+
+
+def verify_alt_response(stage: str, data: Any, request: dict[str, Any]) -> bool:
+    if not isinstance(data, dict) or not isinstance(data.get("plan"), dict):
+        raise VerificationError("ALT plan missing")
+    plan = data["plan"]
+    target = plan.get("target")
+    plan_id = plan.get("plan_id")
+    if (plan.get("operation") != "content.image_alt" or plan.get("capability_id") != "content.write"
+            or not isinstance(plan_id, str) or re.fullmatch(r"sm-plan-[a-f0-9]{24}", plan_id) is None
+            or plan.get("confirmation_required") is not True or plan.get("reversible") is not True
+            or not isinstance(target, dict) or set(target) != {"attachment_id", "parent_id", "post_type"}
+            or any(type(target[k]) is not int or target[k] < 1 for k in ("attachment_id", "parent_id"))
+            or target["post_type"] != "attachment" or plan.get("fields") != ["alt"]):
+        raise VerificationError("ALT plan authority mismatch")
+    if stage == "plan":
+        changes = data.get("changes")
+        before = changes.get("before") if isinstance(changes, dict) else None
+        after = changes.get("after") if isinstance(changes, dict) else None
+        if (plan.get("status") != "planned" or target["attachment_id"] != request["attachment_id"]
+                or target["parent_id"] != request["parent_id"] or after != {"alt": request["alt"]}
+                or not isinstance(before, dict) or set(before) != {"alt"}
+                or (before["alt"] is not None and not isinstance(before["alt"], str))):
+            raise VerificationError("ALT preview mismatch")
+        return False
+    if plan_id != request["plan_id"]:
+        raise VerificationError("ALT plan identity changed")
+    if stage == "apply":
+        ex = data.get("execution")
+        v = data.get("verification")
+        ev = ex.get("data") if isinstance(ex, dict) else None
+        proof = v.get("evidence") if isinstance(v, dict) else None
+        if (data.get("status") != "verified" or plan.get("status") != "applied"
+                or not isinstance(ex, dict) or ex.get("success") is not True or not isinstance(ev, dict)
+                or not isinstance(v, dict) or v.get("verified") is not True or not isinstance(proof, dict)
+                or proof.get("attachment_id") != target["attachment_id"] or ev.get("attachment_id") != target["attachment_id"]
+                or proof.get("alt_verified") is not True):
+            raise VerificationError("ALT assignment lacks verified identity")
+        return True
+    rollback = data.get("rollback")
+    proof = rollback.get("evidence") if isinstance(rollback, dict) else None
+    if (stage != "rollback" or data.get("status") != "rolled-back" or plan.get("status") != "rolled-back"
+            or not isinstance(rollback, dict) or rollback.get("success") is not True
+            or not isinstance(proof, dict) or proof.get("attachment_id") != target["attachment_id"]
+            or proof.get("alt_restored") is not True):
+        raise VerificationError("ALT restoration lacks evidence")
+    return True
+
+
+def verify_featured_response(stage: str, data: Any, request: dict[str, Any]) -> bool:
+    if not isinstance(data, dict) or not isinstance(data.get("plan"), dict):
+        raise VerificationError("featured image plan missing")
+    plan = data["plan"]
+    target = plan.get("target")
+    plan_id = plan.get("plan_id")
+    if (plan.get("operation") != "content.featured_image" or plan.get("capability_id") != "content.write"
+            or not isinstance(plan_id, str) or re.fullmatch(r"sm-plan-[a-f0-9]{24}", plan_id) is None
+            or plan.get("confirmation_required") is not True or plan.get("reversible") is not True
+            or not isinstance(target, dict) or type(target.get("post_id")) is not int or target["post_id"] < 1
+            or target.get("post_type") not in ("post", "page")
+            or plan.get("fields") != ["featured_image_id"]):
+        raise VerificationError("featured image plan authority mismatch")
+    if stage == "plan":
+        changes = data.get("changes")
+        before = changes.get("before") if isinstance(changes, dict) else None
+        after = changes.get("after") if isinstance(changes, dict) else None
+        if (plan.get("status") != "planned" or target["post_id"] != request["post_id"]
+                or after != {"featured_image_id": request["attachment_id"]}
+                or not isinstance(before, dict) or set(before) != {"featured_image_id"}
+                or type(before["featured_image_id"]) is not int or before["featured_image_id"] < 0):
+            raise VerificationError("featured image preview mismatch")
+        return False
+    if plan_id != request["plan_id"]:
+        raise VerificationError("featured image plan identity changed")
+    if stage == "apply":
+        ex = data.get("execution")
+        v = data.get("verification")
+        ev = ex.get("data") if isinstance(ex, dict) else None
+        proof = v.get("evidence") if isinstance(v, dict) else None
+        if (data.get("status") != "verified" or plan.get("status") != "applied"
+                or not isinstance(ex, dict) or ex.get("success") is not True or not isinstance(ev, dict)
+                or not isinstance(v, dict) or v.get("verified") is not True or not isinstance(proof, dict)
+                or proof.get("post_id") != target["post_id"] or ev.get("post_id") != target["post_id"]
+                or type(proof.get("featured_image_id")) is not int or proof["featured_image_id"] < 1
+                or proof["featured_image_id"] != ev.get("featured_image_id")):
+            raise VerificationError("featured image assignment lacks verified identity")
+        return True
+    rollback = data.get("rollback")
+    proof = rollback.get("evidence") if isinstance(rollback, dict) else None
+    if (stage != "rollback" or data.get("status") != "rolled-back" or plan.get("status") != "rolled-back"
+            or not isinstance(rollback, dict) or rollback.get("success") is not True
+            or not isinstance(proof, dict) or proof.get("post_id") != target["post_id"]
+            or type(proof.get("restored_featured_image_id")) is not int or proof["restored_featured_image_id"] < 0):
+        raise VerificationError("featured image restoration lacks evidence")
+    return True
 
 
 def verify_create_response(stage: str, data: Any, request: dict[str, Any]) -> bool:
@@ -1395,7 +1570,7 @@ def execute(command_path: Path, result_dir: Path) -> int:
         else:
             stage = "read" if action_name in READ_ACTIONS else command["payload"]["stage"]
             tool = str(action["tool"] if stage == "read" else action["tools"][stage])
-            tool_args = command["payload"] if action_name == "site.content_page" else ({} if stage == "read" else {
+            tool_args = command["payload"] if action_name in {"site.content_page", "site.public_images"} else ({} if stage == "read" else {
                 k: v for k, v in command["payload"].items() if k != "stage"
             })
             data = client.call(tool, tool_args)
@@ -1406,6 +1581,9 @@ def execute(command_path: Path, result_dir: Path) -> int:
                     raise VerificationError(str(exc)) from exc
                 verified = True
                 sanitized = sanitize_value(overview, token)
+            elif action_name == "site.public_images":
+                sanitized = sanitize_value(summarize_public_images(data, command["payload"]["page"]), token)
+                verified = True
             elif action_name == "site.content_targets":
                 try:
                     published = summarize_content_targets(data)
@@ -1461,6 +1639,26 @@ def execute(command_path: Path, result_dir: Path) -> int:
             elif stage == "read":
                 verified = True
                 sanitized = sanitize_value(data, token)
+            elif action_name == "content.image_alt":
+                verified = verify_alt_response(stage, data, command["payload"])
+                sanitized = sanitize_write_evidence(stage, data, token)
+                sanitized["attachment_id"] = data["plan"]["target"]["attachment_id"]
+                sanitized["parent_id"] = data["plan"]["target"]["parent_id"]
+                sanitized["shared_attachment_property"] = True
+                if stage == "apply":
+                    sanitized["alt_verified"] = True
+                elif stage == "rollback":
+                    sanitized["alt_restored"] = True
+            elif action_name == "content.featured_image":
+                verified = verify_featured_response(stage, data, command["payload"])
+                sanitized = sanitize_write_evidence(stage, data, token)
+                if stage == "plan":
+                    sanitized["previous_attachment_id"] = data["changes"]["before"]["featured_image_id"]
+                    sanitized["planned_attachment_id"] = data["changes"]["after"]["featured_image_id"]
+                elif stage == "apply":
+                    sanitized["featured_image_id"] = data["verification"]["evidence"]["featured_image_id"]
+                else:
+                    sanitized["restored_featured_image_id"] = data["rollback"]["evidence"]["restored_featured_image_id"]
             elif action_name == "content.create":
                 verified = verify_create_response(stage, data, command["payload"])
                 sanitized = sanitize_write_evidence(stage, data, token)
@@ -1626,7 +1824,10 @@ def self_test() -> int:
             or page_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "site.content_page"
             or page_rule.get("then", {}).get("properties", {}).get("payload", {}).get("required") != ["post_type", "page"]
             or page_rule.get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "content.create"
-            or page_rule.get("else", {}).get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
+            or page_rule.get("else", {}).get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "content.featured_image"
+            or page_rule.get("else", {}).get("else", {}).get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "site.public_images"
+            or page_rule.get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "content.image_alt"
+            or page_rule.get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
         raise CommandError("theme package, bootstrap and bounded reads must preserve independent closed schemas")
 
     valid = {
@@ -1638,6 +1839,86 @@ def self_test() -> int:
         "payload": {},
     }
     validate_command(valid, registry)
+    alt_cmd = {**valid, "action":"content.image_alt", "payload":{
+        "stage":"plan","attachment_id":43,"parent_id":42,"alt":"Mesa de trabajo"}}
+    validate_command(alt_cmd,registry)
+    validate_command({**alt_cmd,"payload":{**alt_cmd["payload"],"alt":""}},registry)
+    for bad_alt in ("<b>HTML</b>", " Leading", "a"*801, "line\nfeed"):
+        try:
+            validate_command({**alt_cmd,"payload":{**alt_cmd["payload"],"alt":bad_alt}},registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("unsafe image ALT accepted")
+    aplan = {"plan_id":"sm-plan-"+"c"*24,"operation":"content.image_alt","capability_id":"content.write",
+        "target":{"attachment_id":43,"parent_id":42,"post_type":"attachment"},"fields":["alt"],"status":"planned",
+        "confirmation_required":True,"reversible":True}
+    assert verify_alt_response("plan",{"plan":aplan,"changes":{"before":{"alt":None},"after":{"alt":"Mesa de trabajo"}}},alt_cmd["payload"]) is False
+    aapply = {"plan":{**aplan,"status":"applied"},"status":"verified",
+        "execution":{"success":True,"data":{"attachment_id":43}},
+        "verification":{"verified":True,"evidence":{"attachment_id":43,"alt_verified":True}}}
+    assert verify_alt_response("apply",aapply,{"plan_id":aplan["plan_id"],"confirmed":True})
+    arollback = {"plan":{**aplan,"status":"rolled-back"},"status":"rolled-back",
+        "rollback":{"success":True,"evidence":{"attachment_id":43,"alt_restored":True}}}
+    assert verify_alt_response("rollback",arollback,{"plan_id":aplan["plan_id"],"confirmed":True})
+    try:
+        verify_alt_response("apply",{**aapply,"verification":{"verified":True,"evidence":{"attachment_id":44,"alt_verified":True}}},{"plan_id":aplan["plan_id"],"confirmed":True})
+    except VerificationError:
+        pass
+    else:
+        raise CommandError("mismatched ALT identity accepted")
+    media = {**valid, "action": "site.public_images", "payload": {"page": 1}}
+    validate_command(media, registry)
+    featured = {**valid, "action": "content.featured_image", "payload": {
+        "stage": "plan", "post_id": 42, "attachment_id": 43}}
+    validate_command(featured, registry)
+    for cmd in (
+        {**media, "payload": {"page": True}},
+        {**media, "payload": {"page": 1, "include_private": True}},
+        {**featured, "payload": {**featured["payload"], "url": "https://example.test/x.png"}},
+        {**featured, "payload": {**featured["payload"], "attachment_id": True}},
+        {**featured, "payload": {"stage": "apply", "plan_id": "sm-plan-"+"a"*24, "confirmed": False}},
+    ):
+        try:
+            validate_command(cmd, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("unsafe media intent accepted")
+    image_sample = {"source":"wordpress-native-public-image-sample", "site_url":"https://example.test/",
+        "page":1,"page_size":30,"sample_only":True,"private_values_included":False,"has_more":False,
+        "items":[{"attachment_id":43,"parent_id":42,"title":"Photo","alt":"Desk","mime":"image/png",
+                  "width":100,"height":100,"url":"https://example.test/wp-content/uploads/photo.png"}]}
+    assert summarize_public_images(image_sample, 1)["items"][0]["attachment_id"] == 43
+    for bad_sample in (
+        {**image_sample,"private_values_included":True},
+        {**image_sample,"items":[{**image_sample["items"][0],"url":"https://foreign.test/photo.png"}]},
+    ):
+        try:
+            summarize_public_images(bad_sample, 1)
+        except VerificationError:
+            pass
+        else:
+            raise CommandError("unsafe image sample accepted")
+    fplan = {"plan_id":"sm-plan-"+"b"*24,"operation":"content.featured_image","capability_id":"content.write",
+        "target":{"post_id":42,"post_type":"post"},"fields":["featured_image_id"],"status":"planned",
+        "confirmation_required":True,"reversible":True}
+    fresponse = {"plan":fplan,"changes":{"before":{"featured_image_id":0},"after":{"featured_image_id":43}}}
+    assert verify_featured_response("plan", fresponse, featured["payload"]) is False
+    fapply = {"plan":{**fplan,"status":"applied"},"status":"verified",
+        "execution":{"success":True,"data":{"post_id":42,"featured_image_id":43}},
+        "verification":{"verified":True,"evidence":{"post_id":42,"featured_image_id":43}}}
+    assert verify_featured_response("apply",fapply,{"plan_id":fplan["plan_id"],"confirmed":True})
+    frollback = {"plan":{**fplan,"status":"rolled-back"},"status":"rolled-back",
+        "rollback":{"success":True,"evidence":{"post_id":42,"restored_featured_image_id":0}}}
+    assert verify_featured_response("rollback",frollback,{"plan_id":fplan["plan_id"],"confirmed":True})
+    try:
+        verify_featured_response("apply", {**fapply,"verification":{"verified":True,"evidence":{"post_id":42,"featured_image_id":44}}},
+            {"plan_id":fplan["plan_id"],"confirmed":True})
+    except VerificationError:
+        pass
+    else:
+        raise CommandError("inconsistent image evidence accepted")
     draft = {**valid, "action": "content.create", "payload": {
         "stage": "plan", "post_type": "post",
         "fields": {"title": "Article", "slug": "article", "content": "<p>Body</p>"}}}
