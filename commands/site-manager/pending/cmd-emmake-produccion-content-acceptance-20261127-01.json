@@ -1,0 +1,10 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-produccion-content-acceptance-20261127-01",
+  "site": "emmake-produccion",
+  "action": "content.acceptance",
+  "requested_by": "chatgpt",
+  "payload": {
+    "confirmed": true
+  }
+}
