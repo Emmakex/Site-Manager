@@ -1,0 +1,10 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-produccion-public-images-20261127-01",
+  "site": "emmake-produccion",
+  "action": "site.public_images",
+  "requested_by": "chatgpt",
+  "payload": {
+    "page": 1
+  }
+}
