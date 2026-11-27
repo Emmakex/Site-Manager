@@ -1,0 +1,161 @@
+{
+  "action": "site.overview",
+  "command_id": "cmd-emmake-produccion-overview-20261127-01",
+  "command_sha256": "ea4c2869fb5afe4e8d7ad1d72f27077efcb21a155dd89781e26d63c86c1992c6",
+  "data": {
+    "capabilities": [
+      {
+        "blocker_count": 0,
+        "id": "content.read",
+        "provider": "wordpress-core",
+        "required_scopes": [
+          "site.read"
+        ],
+        "scope_grant_verified": false,
+        "state": "governable"
+      },
+      {
+        "blocker_count": 0,
+        "id": "content.write",
+        "provider": "wordpress-core",
+        "required_scopes": [
+          "content.write"
+        ],
+        "scope_grant_verified": false,
+        "state": "governable"
+      },
+      {
+        "blocker_count": 0,
+        "id": "navigation.write",
+        "provider": "wordpress-core",
+        "required_scopes": [
+          "navigation.write"
+        ],
+        "scope_grant_verified": false,
+        "state": "governable"
+      },
+      {
+        "blocker_count": 0,
+        "id": "seo.write",
+        "provider": "seo-geo-theme",
+        "required_scopes": [
+          "seo.write"
+        ],
+        "scope_grant_verified": false,
+        "state": "governable"
+      },
+      {
+        "blocker_count": 0,
+        "id": "site.diagnostics",
+        "provider": "wordpress-core",
+        "required_scopes": [
+          "site.diagnostics"
+        ],
+        "scope_grant_verified": false,
+        "state": "governable"
+      },
+      {
+        "blocker_count": 0,
+        "id": "site.read",
+        "provider": "wordpress-core",
+        "required_scopes": [
+          "site.read"
+        ],
+        "scope_grant_verified": false,
+        "state": "governable"
+      },
+      {
+        "blocker_count": 1,
+        "id": "theme.package.write",
+        "provider": "wordpress-core",
+        "required_scopes": [
+          "theme.package.write"
+        ],
+        "scope_grant_verified": false,
+        "state": "understood"
+      }
+    ],
+    "connection_id": "smc_7075f65b0c88fc6052a5ac7cf66e3867",
+    "discovery_fingerprint": "540427dc61b5f16a852a5676c20e4177df2c2edbd1439f34e2edc5a2dd13f434",
+    "generated_at": "2026-11-27T15:36:59+00:00",
+    "governed_actions": [
+      {
+        "action": "content.update",
+        "apply_requires_separate_user_confirmation": true,
+        "capability_governable": true,
+        "capability_id": "content.write",
+        "planning_mutates_wordpress": false,
+        "requires_target": "existing WordPress post/page ID",
+        "rollback_requires_separate_user_confirmation": true,
+        "scope_grant_verified": false
+      },
+      {
+        "action": "navigation.update",
+        "apply_requires_separate_user_confirmation": true,
+        "capability_governable": true,
+        "capability_id": "navigation.write",
+        "planning_mutates_wordpress": false,
+        "requires_target": "existing provider-owned navigation item/post ID",
+        "rollback_requires_separate_user_confirmation": true,
+        "scope_grant_verified": false
+      },
+      {
+        "action": "seo.update",
+        "apply_requires_separate_user_confirmation": true,
+        "capability_governable": true,
+        "capability_id": "seo.write",
+        "planning_mutates_wordpress": false,
+        "requires_target": "existing WordPress post/page ID",
+        "rollback_requires_separate_user_confirmation": true,
+        "scope_grant_verified": false
+      }
+    ],
+    "navigation_providers": [
+      {
+        "actionable_by_provider": false,
+        "detected": true,
+        "id": "wordpress-block-navigation",
+        "target_count": 0
+      },
+      {
+        "actionable_by_provider": true,
+        "detected": true,
+        "id": "wordpress-classic-menu",
+        "target_count": 9
+      }
+    ],
+    "permission_notice": "Capability governable is not a grant of permission. site.read does not establish write-scope authorization; plan/apply recheck WordPress scopes and the bound administrator. No mutation has been performed.",
+    "platform": {
+      "locale": "es_ES",
+      "name": "wordpress",
+      "version": "7.1.5"
+    },
+    "search_visibility": "discourage",
+    "seo": {
+      "provider": "seo-geo-theme",
+      "provider_conflict": false,
+      "provider_resolved": true,
+      "writable_semantic_fields": [
+        "description",
+        "title"
+      ]
+    },
+    "site_url": "https://emmake.com/",
+    "source": "live-site-read",
+    "warnings": [
+      "wordpress_discourages_search_engine_indexing"
+    ],
+    "wordpress": {
+      "site_manager_version": "0.12.1",
+      "theme": "SEO GEO Starter",
+      "theme_stylesheet": "seo-geo-theme"
+    }
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "site.read",
+  "site": "emmake-produccion",
+  "stage": "read",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
