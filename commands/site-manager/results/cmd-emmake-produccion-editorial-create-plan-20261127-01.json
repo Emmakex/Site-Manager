@@ -1,0 +1,56 @@
+{
+  "action": "content.create",
+  "command_id": "cmd-emmake-produccion-editorial-create-plan-20261127-01",
+  "command_sha256": "fdee806ea2e1ec06193b493be92e1f29ea25e7f33a63a6656b34bea809a23ba1",
+  "data": {
+    "plan": {
+      "applied_at": "",
+      "capability_id": "content.write",
+      "confirmation_required": true,
+      "created_at": "2026-11-27T16:38:23+00:00",
+      "expires_at": "2026-11-27T16:53:23+00:00",
+      "fields": [
+        "post_title",
+        "post_name",
+        "post_content",
+        "post_excerpt",
+        "post_status"
+      ],
+      "operation": "content.create",
+      "plan_id": "sm-plan-784425c03f16c31b3feea1d6",
+      "reversible": true,
+      "rollback_retained_until": "2026-11-28T16:38:23+00:00",
+      "rolled_back_at": "",
+      "status": "planned",
+      "target": {
+        "post_type": "post",
+        "slug": "automatizacion-ia-pymes-como-empezar-medir-retorno"
+      }
+    },
+    "preview": {
+      "before_present": [
+        "post_title",
+        "post_name",
+        "post_content",
+        "post_excerpt",
+        "post_status"
+      ],
+      "changed_fields": [
+        "post_title",
+        "post_name",
+        "post_content",
+        "post_excerpt",
+        "post_status"
+      ],
+      "values_retained_in_github": false
+    },
+    "stage": "plan"
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "content.write",
+  "site": "emmake-produccion",
+  "stage": "plan",
+  "status": "success",
+  "verified": false,
+  "version": "1"
+}
