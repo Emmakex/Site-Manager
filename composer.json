@@ -18,6 +18,7 @@
       "@php tests/wordpress_adapter_contract_test.php",
       "@php tests/wordpress_content_governance_test.php",
       "@php tests/wordpress_draft_creation_test.php",
+      "@php tests/wordpress_image_ingress_guard_test.php",
       "@php tests/wordpress_published_content_targets_test.php",
       "@php tests/wordpress_theme_model_inventory_test.php",
       "@php tests/wordpress_theme_model_readiness_test.php",
