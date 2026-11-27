@@ -1318,27 +1318,43 @@
                                                 }
                                               },
                                               "source": {
-                                                "type": "object",
-                                                "additionalProperties": false,
-                                                "required": [
-                                                  "commit_sha",
-                                                  "run_id",
-                                                  "artifact_id"
-                                                ],
-                                                "properties": {
-                                                  "commit_sha": {
-                                                    "type": "string",
-                                                    "pattern": "^[a-f0-9]{40}$"
+                                                "oneOf": [
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                      "commit_sha",
+                                                      "run_id",
+                                                      "artifact_id"
+                                                    ],
+                                                    "properties": {
+                                                      "commit_sha": {
+                                                        "type": "string",
+                                                        "pattern": "^[a-f0-9]{40}$"
+                                                      },
+                                                      "run_id": {
+                                                        "type": "integer",
+                                                        "minimum": 1
+                                                      },
+                                                      "artifact_id": {
+                                                        "type": "integer",
+                                                        "minimum": 1
+                                                      }
+                                                    }
                                                   },
-                                                  "run_id": {
-                                                    "type": "integer",
-                                                    "minimum": 1
-                                                  },
-                                                  "artifact_id": {
-                                                    "type": "integer",
-                                                    "minimum": 1
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                      "provider"
+                                                    ],
+                                                    "properties": {
+                                                      "provider": {
+                                                        "const": "google_drive"
+                                                      }
+                                                    }
                                                   }
-                                                }
+                                                ]
                                               }
                                             }
                                           },
@@ -1418,27 +1434,43 @@
                                                 }
                                               },
                                               "source": {
-                                                "type": "object",
-                                                "additionalProperties": false,
-                                                "required": [
-                                                  "commit_sha",
-                                                  "run_id",
-                                                  "artifact_id"
-                                                ],
-                                                "properties": {
-                                                  "commit_sha": {
-                                                    "type": "string",
-                                                    "pattern": "^[a-f0-9]{40}$"
+                                                "oneOf": [
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                      "commit_sha",
+                                                      "run_id",
+                                                      "artifact_id"
+                                                    ],
+                                                    "properties": {
+                                                      "commit_sha": {
+                                                        "type": "string",
+                                                        "pattern": "^[a-f0-9]{40}$"
+                                                      },
+                                                      "run_id": {
+                                                        "type": "integer",
+                                                        "minimum": 1
+                                                      },
+                                                      "artifact_id": {
+                                                        "type": "integer",
+                                                        "minimum": 1
+                                                      }
+                                                    }
                                                   },
-                                                  "run_id": {
-                                                    "type": "integer",
-                                                    "minimum": 1
-                                                  },
-                                                  "artifact_id": {
-                                                    "type": "integer",
-                                                    "minimum": 1
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                      "provider"
+                                                    ],
+                                                    "properties": {
+                                                      "provider": {
+                                                        "const": "google_drive"
+                                                      }
+                                                    }
                                                   }
-                                                }
+                                                ]
                                               }
                                             }
                                           }
