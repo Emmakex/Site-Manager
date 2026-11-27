@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-produccion-servicios-seo-apply-20261127-01",
+  "site": "emmake-produccion",
+  "action": "seo.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-c1cd1ffadd43810ccfa69b55",
+    "confirmed": true
+  }
+}
