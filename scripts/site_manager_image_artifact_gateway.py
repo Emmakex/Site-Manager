@@ -17,7 +17,8 @@ def validate_payload(payload: Any) -> None:
         if set(payload)!={"stage","parent_id","manifest","source"} or type(payload["parent_id"]) is not int or payload["parent_id"]<1:
             raise ImageArtifactError("invalid_image_upload_plan")
     elif stage=="apply":
-        if (set(payload)!={"stage","plan_id","confirmed","manifest","source","parent_id"}
+        if (set(payload)!={"stage","plan_id","confirmed","manifest","source","parent_id","plan_command_id"}
+                or not isinstance(payload["plan_command_id"],str) or re.fullmatch(r"cmd-[a-z0-9][a-z0-9-]{7,63}",payload["plan_command_id"]) is None
                 or payload["confirmed"] is not True or not isinstance(payload["plan_id"],str)
                 or re.fullmatch(r"sm-plan-[a-f0-9]{24}",payload["plan_id"]) is None
                 or type(payload["parent_id"]) is not int or payload["parent_id"]<1):
