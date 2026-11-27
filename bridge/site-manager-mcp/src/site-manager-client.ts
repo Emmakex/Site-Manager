@@ -358,11 +358,13 @@ export class SiteManagerClient {
       authorization: `Bearer ${this.config.token}`,
       'user-agent': 'site-manager-mcp/0.5.0',
     };
+    // Native image decoding, re-encoding and thumbnail creation may outlive ordinary reads.
+    const timeout = resource === 'write/content/image-upload/apply' ? 60000 : this.config.timeoutMs;
     const init: RequestInit = {
       method,
       headers,
       redirect: 'error',
-      signal: AbortSignal.timeout(this.config.timeoutMs),
+      signal: AbortSignal.timeout(timeout),
     };
     if (method === 'POST') {
       headers['content-type'] = 'application/json';
@@ -372,7 +374,10 @@ export class SiteManagerClient {
     let response: Response;
     try {
       response = await this.fetchImpl(endpoint, init);
-    } catch {
+    } catch (error) {
+      if (resource === 'write/content/image-upload/apply' && error instanceof Error && error.name === 'TimeoutError') {
+        throw new SiteManagerClientError('image_upstream_timeout');
+      }
       throw new SiteManagerClientError('Site Manager request failed before a valid response was received.');
     }
 
