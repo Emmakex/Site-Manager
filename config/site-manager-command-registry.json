@@ -122,6 +122,20 @@
       },
       "required_scope": "content.write",
       "read_only": false
+    },
+    "content.featured_image": {
+      "tools": {
+        "plan": "featured_image_plan",
+        "apply": "featured_image_apply",
+        "rollback": "featured_image_rollback"
+      },
+      "required_scope": "content.write",
+      "read_only": false
+    },
+    "site.public_images": {
+      "tool": "site_public_images",
+      "required_scope": "site.read",
+      "read_only": true
     }
   }
 }
