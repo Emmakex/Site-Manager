@@ -517,3 +517,10 @@ test('image upload separates manifest planning and confirmed byte transport', as
   assert.deepEqual(calls[1]?.body,{plan_id,confirmed:true,image_base64:'AAAA'});
   assert.ok(calls.every(x=>x.auth==='Bearer '+secret));
 });
+
+
+test('image apply timeout is classified without leaking upstream error', async () => {
+  const fakeFetch = (async () => { throw new DOMException('private upstream details','TimeoutError'); }) as typeof fetch;
+  const client = new SiteManagerClient(baseConfig(),fakeFetch);
+  await assert.rejects(()=>client.imageUploadApply({plan_id:'sm-plan-'+'a'.repeat(24),confirmed:true,image_base64:'AAAA'}), /^SiteManagerClientError: image_upstream_timeout$/);
+});
