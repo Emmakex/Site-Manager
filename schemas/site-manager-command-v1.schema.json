@@ -45,7 +45,8 @@
         "content.create",
         "content.featured_image",
         "site.public_images",
-        "content.image_alt"
+        "content.image_alt",
+        "content.image_upload"
       ]
     },
     "requested_by": {
@@ -1241,11 +1242,217 @@
                                   }
                                 },
                                 "else": {
-                                  "properties": {
-                                    "payload": {
-                                      "type": "object",
-                                      "additionalProperties": false,
-                                      "maxProperties": 0
+                                  "if": {
+                                    "properties": {
+                                      "action": {
+                                        "const": "content.image_upload"
+                                      }
+                                    },
+                                    "required": [
+                                      "action"
+                                    ]
+                                  },
+                                  "then": {
+                                    "properties": {
+                                      "payload": {
+                                        "oneOf": [
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "stage",
+                                              "parent_id",
+                                              "manifest",
+                                              "source"
+                                            ],
+                                            "properties": {
+                                              "stage": {
+                                                "const": "plan"
+                                              },
+                                              "parent_id": {
+                                                "type": "integer",
+                                                "minimum": 1
+                                              },
+                                              "manifest": {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "filename",
+                                                  "mime",
+                                                  "sha256",
+                                                  "bytes",
+                                                  "width",
+                                                  "height"
+                                                ],
+                                                "properties": {
+                                                  "filename": {
+                                                    "type": "string",
+                                                    "pattern": "^[a-z0-9][a-z0-9_-]{0,99}\\.(jpg|png|webp)$"
+                                                  },
+                                                  "mime": {
+                                                    "enum": [
+                                                      "image/jpeg",
+                                                      "image/png",
+                                                      "image/webp"
+                                                    ]
+                                                  },
+                                                  "sha256": {
+                                                    "type": "string",
+                                                    "pattern": "^[a-f0-9]{64}$"
+                                                  },
+                                                  "bytes": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 2000000
+                                                  },
+                                                  "width": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 4096
+                                                  },
+                                                  "height": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 4096
+                                                  }
+                                                }
+                                              },
+                                              "source": {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "commit_sha",
+                                                  "run_id",
+                                                  "artifact_id"
+                                                ],
+                                                "properties": {
+                                                  "commit_sha": {
+                                                    "type": "string",
+                                                    "pattern": "^[a-f0-9]{40}$"
+                                                  },
+                                                  "run_id": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                  },
+                                                  "artifact_id": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "stage",
+                                              "plan_id",
+                                              "plan_command_id",
+                                              "confirmed",
+                                              "parent_id",
+                                              "manifest",
+                                              "source"
+                                            ],
+                                            "properties": {
+                                              "stage": {
+                                                "const": "apply"
+                                              },
+                                              "plan_id": {
+                                                "type": "string",
+                                                "pattern": "^sm-plan-[a-f0-9]{24}$"
+                                              },
+                                              "plan_command_id": {
+                                                "type": "string",
+                                                "pattern": "^cmd-[a-z0-9][a-z0-9-]{7,63}$"
+                                              },
+                                              "confirmed": {
+                                                "const": true
+                                              },
+                                              "parent_id": {
+                                                "type": "integer",
+                                                "minimum": 1
+                                              },
+                                              "manifest": {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "filename",
+                                                  "mime",
+                                                  "sha256",
+                                                  "bytes",
+                                                  "width",
+                                                  "height"
+                                                ],
+                                                "properties": {
+                                                  "filename": {
+                                                    "type": "string",
+                                                    "pattern": "^[a-z0-9][a-z0-9_-]{0,99}\\.(jpg|png|webp)$"
+                                                  },
+                                                  "mime": {
+                                                    "enum": [
+                                                      "image/jpeg",
+                                                      "image/png",
+                                                      "image/webp"
+                                                    ]
+                                                  },
+                                                  "sha256": {
+                                                    "type": "string",
+                                                    "pattern": "^[a-f0-9]{64}$"
+                                                  },
+                                                  "bytes": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 2000000
+                                                  },
+                                                  "width": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 4096
+                                                  },
+                                                  "height": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 4096
+                                                  }
+                                                }
+                                              },
+                                              "source": {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "commit_sha",
+                                                  "run_id",
+                                                  "artifact_id"
+                                                ],
+                                                "properties": {
+                                                  "commit_sha": {
+                                                    "type": "string",
+                                                    "pattern": "^[a-f0-9]{40}$"
+                                                  },
+                                                  "run_id": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                  },
+                                                  "artifact_id": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "else": {
+                                    "properties": {
+                                      "payload": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "maxProperties": 0
+                                      }
                                     }
                                   }
                                 }
