@@ -24,7 +24,7 @@ from site_manager_content_targets import ContentTargetsError, summarize_content_
 from site_manager_theme_model import ThemeModelError, summary as summarize_theme_model
 from site_manager_site_catalog import SiteCatalogError, require_registered_site
 from site_manager_image_artifact import ImageArtifactError
-from site_manager_image_artifact_gateway import validate_payload as validate_image_upload_payload, verify_plan as verify_image_upload_plan, apply_image, fetch_approved_image
+from site_manager_image_artifact_gateway import validate_payload as validate_image_upload_payload, verify_plan as verify_image_upload_plan, apply_image, prepare_image
 from site_manager_theme_package_gateway import prepare_theme_package_plan, ThemePackageGatewayError
 from site_manager_theme_large_mcp import ThemePackageMcpTransportError
 from site_manager_theme_release_download import ThemeReleaseDownloadError
@@ -1550,9 +1550,9 @@ def execute(command_path: Path, result_dir: Path) -> int:
             github_token = os.environ.get("SITE_MANAGER_MEDIA_ARTIFACT_TOKEN", "")
             try:
                 if stage == "plan":
-                    fetch_approved_image(payload["source"], payload["manifest"], github_token)
-                    data = client.call(IMAGE_UPLOAD_TOOLS["plan"], {"parent_id":payload["parent_id"],"manifest":payload["manifest"]})
-                    sanitized = verify_image_upload_plan(data,payload)
+                    _, derived = prepare_image(payload, github_token)
+                    data = client.call(IMAGE_UPLOAD_TOOLS["plan"], {"parent_id":payload["parent_id"],"manifest":derived})
+                    sanitized = verify_image_upload_plan(data,payload,derived)
                     verified = False
                 else:
                     prior_path = result_dir / (payload["plan_command_id"] + ".json")
