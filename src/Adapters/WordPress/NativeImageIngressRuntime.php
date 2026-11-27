@@ -26,7 +26,7 @@ final class NativeImageIngressRuntime
         return $post;
     }
 
-    /** @return array{attachment_id:int,verified:bool,status:string,stored_sha256?:string,width?:int,height?:int,mime?:string} */
+    /** @return array{attachment_id:int,verified:bool,status:string,stored_sha256?:string,stored_bytes?:int,width?:int,height?:int,mime?:string} */
     public function create(int $parentId,array $manifest,string $base64,string $planId,bool $confirmed): array
     {
         if (! $confirmed) { throw new LogicException('Explicit upload confirmation required.'); }
@@ -90,7 +90,8 @@ final class NativeImageIngressRuntime
             $post = get_post($id);
             $actualFile = get_attached_file($id,true);
             $actualMeta = wp_get_attachment_metadata($id);
-            $verified = $post && $post->post_type==='attachment' && $post->post_status==='inherit'
+            $storedBytes = is_string($actualFile) && is_file($actualFile) ? filesize($actualFile) : false;
+            $verified = is_int($storedBytes) && $storedBytes === $cleanManifest['bytes'] && $post && $post->post_type==='attachment' && $post->post_status==='inherit'
                 && (int) $post->post_parent===$parentId && $post->post_mime_type===$manifest['mime']
                 && get_post_meta($id,self::PLAN_META,true)===$planId
                 && is_string($actualFile) && $actualFile===$file && is_file($actualFile)
@@ -100,7 +101,7 @@ final class NativeImageIngressRuntime
                 && null !== $this->target($parentId);
             if (! $verified) { return ['attachment_id'=>$id,'verified'=>false,'status'=>'requires-reconciliation']; }
             return ['attachment_id'=>$id,'verified'=>true,'status'=>'verified',
-                'stored_sha256'=>$digest,'width'=>$manifest['width'],'height'=>$manifest['height'],'mime'=>$manifest['mime']];
+                'stored_sha256'=>$digest,'stored_bytes'=>$storedBytes,'width'=>$manifest['width'],'height'=>$manifest['height'],'mime'=>$manifest['mime']];
         } catch (\Throwable) {
             return ['attachment_id'=>$id,'verified'=>false,'status'=>'requires-reconciliation'];
         }

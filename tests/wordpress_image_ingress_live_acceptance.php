@@ -50,7 +50,7 @@ check(is_int($id) && $id>0 && $count()===$before+1,'exactly one native attachmen
 $post = get_post($id);
 check($post instanceof WP_Post && (int) $post->post_parent===$parent && $post->post_mime_type==='image/png','native attachment identity');
 $file = get_attached_file($id,true);
-check(is_string($file) && is_file($file) && hash_file('sha256',$file)===$result['stored_sha256'],'stored bytes verified');
+check(is_string($file) && is_file($file) && hash_file('sha256',$file)===$result['stored_sha256'] && filesize($file)===$result['stored_bytes'],'stored bytes verified');
 $actual = getimagesize($file);
 check($actual[0]===320 && $actual[1]===200 && $actual['mime']==='image/png','stored raster dimensions and format');
 blocked(fn()=>$runtime->create($parent,$manifest,$encoded,$plan,true),'known plan replay rejected');
@@ -96,6 +96,7 @@ check($count()===$n,'invalid bytes did not create an attachment');
 $receipt = response(ingress('apply',$apply,$token),200,'confirmed exact upload verified');
 check($receipt['verified']===true && $receipt['parent_id']===$parent && $receipt['rollback_available']===false,'truthful verified receipt');
 check($receipt['result']['attachment_id']>0 && $count()===$n+1,'exactly one new attachment');
+check($receipt['result']['stored_bytes']===filesize(get_attached_file($receipt['result']['attachment_id'],true)),'REST receipt reports actual stored bytes');
 response(ingress('apply',$apply,$token),409,'consumed plan rejected');
 check($count()===$n+1,'no duplicate on replay');
 $stale = response(ingress('plan',$intent,$token),200,'second manifest planned');

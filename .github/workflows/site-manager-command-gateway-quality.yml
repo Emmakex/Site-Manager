@@ -18,6 +18,7 @@ on:
       - 'scripts/site_manager_theme_large_mcp.py'
       - 'scripts/site_manager_image_artifact*.py'
       - 'tests/site_manager_image_artifact_test.py'
+      - 'tests/site_manager_image_artifact_optimize_test.py'
       - 'tests/site_manager_image_artifact_drive_test.py'
       - '.github/workflows/site-manager-media-artifact.yml'
       - 'scripts/site_manager_theme_package_gateway.py'
@@ -55,6 +56,7 @@ on:
       - 'scripts/site_manager_theme_large_mcp.py'
       - 'scripts/site_manager_image_artifact*.py'
       - 'tests/site_manager_image_artifact_test.py'
+      - 'tests/site_manager_image_artifact_optimize_test.py'
       - 'tests/site_manager_image_artifact_drive_test.py'
       - '.github/workflows/site-manager-media-artifact.yml'
       - 'scripts/site_manager_theme_package_gateway.py'
@@ -102,6 +104,13 @@ jobs:
 
       - name: Bounded image artifact and verified upload contract
         run: python3 tests/site_manager_image_artifact_test.py
+
+      - name: Install pinned image optimizer
+        run: |
+          python3 -m pip install --disable-pip-version-check --only-binary=:all: Pillow==13.0.0
+
+      - name: Deterministic optimized media plan and quality budget
+        run: python3 tests/site_manager_image_artifact_optimize_test.py
 
       - name: Private Drive image source safety
         run: python3 tests/site_manager_image_artifact_drive_test.py

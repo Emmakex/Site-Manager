@@ -130,6 +130,19 @@ jobs:
             '${{ needs.resolve.outputs.path }}' \
             --result-dir commands/site-manager/results
 
+      - name: Install pinned image optimizer only for optimized media commands
+        if: steps.guard.outputs.decision == 'new'
+        shell: bash
+        env:
+          COMMAND_PATH: ${{ needs.resolve.outputs.path }}
+        run: |
+          set -euo pipefail
+          if python3 -c 'import json,sys; c=json.load(open(sys.argv[1])); s=c.get("payload",{}).get("source",{}); sys.exit(0 if c.get("action")=="content.image_upload" and isinstance(s,dict) and "optimization" in s else 1)' "$COMMAND_PATH"; then
+            python3 -m venv "$RUNNER_TEMP/sm-image-python"
+            "$RUNNER_TEMP/sm-image-python/bin/python" -m pip install --disable-pip-version-check --only-binary=:all: Pillow==13.0.0
+            echo "$RUNNER_TEMP/sm-image-python/bin" >> "$GITHUB_PATH"
+          fi
+
       - name: Execute bounded production MCP operation
         id: execute
         if: steps.guard.outputs.decision == 'new'
