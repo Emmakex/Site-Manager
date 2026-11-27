@@ -1569,6 +1569,9 @@ def execute(command_path: Path, result_dir: Path) -> int:
             except ImageArtifactError as exc:
                 raise VerificationError(str(exc)) from exc
             except ThemePackageMcpTransportError as exc:
+                code = str(exc)
+                if re.fullmatch(r"(?:image_upstream_(?:timeout|unconfirmed|http_[45][0-9]{2})|mcp_http_[45][0-9]{2}|theme_package_mcp_[a-z_]+|image_mcp_[a-z_]+)",code):
+                    raise TransportError("Image apply not verified ("+code+"); reconcile before retry") from exc
                 raise TransportError("Image apply not verified; reconcile before retry") from exc
         elif action_name == "theme.package.deploy" and command["payload"]["stage"] == "plan":
             stage = "plan"
