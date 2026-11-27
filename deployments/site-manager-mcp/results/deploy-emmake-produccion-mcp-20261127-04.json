@@ -1,0 +1,20 @@
+{
+  "action": "deploy",
+  "deployment_id": "deploy-emmake-produccion-mcp-20261127-04",
+  "error": {
+    "code": "staging_failed",
+    "message": "The bounded production deployment contract could not be staged safely."
+  },
+  "image_ref": "ghcr.io/emmakex/site-manager-mcp@sha256:69686458e63df31ae1d2503de5140a717486347c26c3c886608ffd6895f92cf6",
+  "public_acceptance": "not_run",
+  "request_sha256": "aea02a0ad598dc48ce792588022f81445b6c06b7c291e69b0c4a03d1ed360b99",
+  "rollback": {
+    "attempted": false,
+    "succeeded": null
+  },
+  "site": "emmake-produccion",
+  "status": "failed",
+  "verified": false,
+  "version": "1",
+  "workflow_run_id": "46011830345"
+}
