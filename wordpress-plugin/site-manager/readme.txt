@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.12.1
+Stable tag: 0.12.2
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -57,7 +57,7 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 
 == Installation ==
 
-1. Upload the official `site-manager-0.11.13.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.12.2.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review Site Manager > Dashboard and Site Manager > Diagnostics.
@@ -67,6 +67,12 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 8. When remote access is required, generate a scoped token and copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.12.2 =
+* Adds governed native post/page draft creation through separate content.create plan/apply/verify/rollback routes under the existing content.write scope.
+* Rejects direct publication, unsupported fields, duplicate slugs and unconfirmed writes; rollback moves an unchanged draft to recoverable trash.
+* Preserves existing content, navigation and SEO governance. Publication remains an independently confirmed content.update operation.
+* Includes contract tests and disposable native WordPress post/page creation acceptance.
 
 = 0.12.1 =
 * Adds an explicitly confirmed, admin-only new-identity flow for independently installed WordPress clones whose Site Manager connection ID and bearer were copied with the database.
