@@ -145,6 +145,14 @@
       },
       "required_scope": "content.write",
       "read_only": false
+    },
+    "content.image_upload": {
+      "tools": {
+        "plan": "image_upload_plan",
+        "apply": "image_upload_apply"
+      },
+      "required_scope": "content.write",
+      "read_only": false
     }
   }
 }

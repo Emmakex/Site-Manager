@@ -768,6 +768,49 @@ export function createSiteManagerMcpServer(
     });
   }
 
+  if (scopes.has('content.write')) {
+    server.registerTool('image_upload_plan', {
+      title: 'Plan creation of a new image on a WordPress draft',
+      description: 'Manifest only, no bytes or mutation. Media URL may become public; uploaded files have no automatic deletion rollback.',
+      inputSchema: fromJsonSchema<{parent_id: number; manifest: {filename: string; mime: string; sha256: string; bytes: number; width: number; height: number}}>({
+        type: 'object', additionalProperties: false, required: ['parent_id','manifest'],
+        properties: {parent_id: {type: 'integer', minimum: 1}, manifest: {
+          type: 'object', additionalProperties: false,
+          required: ['filename','mime','sha256','bytes','width','height'],
+          properties: {
+            filename: {type: 'string', maxLength: 105, pattern: '^[a-z0-9][a-z0-9_-]{0,99}\\.(jpg|png|webp)$'},
+            mime: {type: 'string', enum: ['image/jpeg','image/png','image/webp']},
+            sha256: {type: 'string', pattern: '^[a-f0-9]{64}$'},
+            bytes: {type: 'integer', minimum: 1, maximum: 2000000},
+            width: {type: 'integer', minimum: 1, maximum: 4096},
+            height: {type: 'integer', minimum: 1, maximum: 4096},
+          },
+        }},
+      }),
+      annotations: {readOnlyHint: false, destructiveHint: false, openWorldHint: false},
+    }, async ({parent_id, manifest}) => {
+      if (manifest.width * manifest.height > 12000000) return toolError('Image pixel limit exceeded.');
+      try { return toolResult(await client.imageUploadPlan({parent_id,manifest})); }
+      catch { return toolError('Image upload plan refused.'); }
+    });
+    server.registerTool('image_upload_apply', {
+      title: 'Apply an approved exact-byte image upload plan',
+      description: 'Accept only the reviewed binary bytes, never fetch a URL. No automatic deletion rollback. Reconcile ambiguous results before retrying.',
+      inputSchema: fromJsonSchema<{plan_id: string; confirmed: boolean; image_base64: string}>({
+        type: 'object', additionalProperties: false, required: ['plan_id','confirmed','image_base64'],
+        properties: {plan_id: {type: 'string', pattern: '^sm-plan-[a-f0-9]{24}$'},
+          confirmed: {type: 'boolean', const: true},
+          image_base64: {type: 'string', minLength: 4, maxLength: 2666668, pattern: '^[A-Za-z0-9+/]+={0,2}$'},
+        },
+      }),
+      annotations: {readOnlyHint: false, destructiveHint: true, openWorldHint: false},
+    }, async ({plan_id, confirmed, image_base64}) => {
+      if (confirmed !== true) return toolError('Explicit confirmation required.');
+      try { return toolResult(await client.imageUploadApply({plan_id,confirmed:true,image_base64})); }
+      catch { return toolError('Image upload not verified. Reconcile before retrying.'); }
+    });
+  }
+
   // A confirmed, bounded fixture test backed by WordPress Acceptance Center.
   // No menu IDs, client content or routes can be selected by the caller.
   if (scopes.has('navigation.write') && scopes.has('site.read')) {

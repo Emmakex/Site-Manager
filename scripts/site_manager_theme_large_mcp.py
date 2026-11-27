@@ -10,6 +10,7 @@ server URLs from commands, redirects, private-path parameters or shell calls.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Callable, Mapping
 from urllib.parse import urlparse
 from urllib.request import Request, HTTPRedirectHandler, build_opener
@@ -104,6 +105,28 @@ class ThemePackageMcpPlanClient:
         if not isinstance(package_plan.get("package_base64"), str) or len(package_plan["package_base64"]) > 27_000_000:
             raise ThemePackageMcpTransportError("theme_package_mcp_untrusted_payload")
 
+        data = self._call_fixed("theme_package_plan", package_plan)
+        if data.get("stage") != "plan" or data.get("status") != "planned":
+            raise ThemePackageMcpTransportError("theme_package_mcp_not_planned")
+        return data
+
+    def apply_reviewed_image(self, image_apply: dict[str, Any]) -> dict[str, Any]:
+        if (set(image_apply) != {"plan_id", "confirmed", "image_base64"}
+                or image_apply.get("confirmed") is not True
+                or not isinstance(image_apply.get("plan_id"), str)
+                or re.fullmatch(r"sm-plan-[a-f0-9]{24}",image_apply["plan_id"]) is None
+                or not isinstance(image_apply.get("image_base64"),str)
+                or not 4 <= len(image_apply["image_base64"]) <= 2_666_668
+                or re.fullmatch(r"[A-Za-z0-9+/]+={0,2}",image_apply["image_base64"]) is None):
+            raise ThemePackageMcpTransportError("image_mcp_untrusted_payload")
+        data = self._call_fixed("image_upload_apply",image_apply)
+        if data.get("stage") != "apply" or data.get("status") != "verified" or data.get("verified") is not True:
+            raise ThemePackageMcpTransportError("image_mcp_not_verified")
+        return data
+
+    def _call_fixed(self, tool: str, payload: dict[str, Any]) -> dict[str, Any]:
+        if tool not in {"theme_package_plan","image_upload_apply"}:
+            raise ThemePackageMcpTransportError("unsupported_large_mcp_tool")
         base_headers = {
             "authorization": f"Bearer {self._token}",
             "content-type": "application/json",
@@ -136,7 +159,7 @@ class ThemePackageMcpPlanClient:
 
         args = {
             "jsonrpc": "2.0", "id": 2, "method": "tools/call",
-            "params": {"name": "theme_package_plan", "arguments": package_plan},
+            "params": {"name": tool, "arguments": payload},
         }
         status, response_headers, raw = self._post(headers, args)
         result = _decoded(status, response_headers, raw, 2)
@@ -147,8 +170,6 @@ class ThemePackageMcpPlanClient:
             raise ThemePackageMcpTransportError("theme_package_mcp_unverified_response")
         data = structured["data"]
         # Never copy full MCP tool content or opaque errors to GitHub.
-        if data.get("stage") != "plan" or data.get("status") != "planned":
-            raise ThemePackageMcpTransportError("theme_package_mcp_not_planned")
         return data
 
     def _post(self, headers: Mapping[str, str], document: dict[str, Any]) -> tuple[int, dict[str, str], bytes]:

@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"content.image_alt", "content.featured_image", "site.public_images", "content.create", "site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
+expected_actions = {"content.image_upload", "content.image_alt", "content.featured_image", "site.public_images", "content.create", "site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 # Regression for the real live failure: paginated read must not enter the
@@ -79,6 +79,10 @@ assert registry["actions"]["theme.bootstrap"] == {
 }
 assert registry["actions"]["site.public_images"] == {
     "tool": "site_public_images", "required_scope": "site.read", "read_only": True,
+}
+assert registry["actions"]["content.image_upload"] == {
+    "tools": {"plan": "image_upload_plan", "apply": "image_upload_apply"},
+    "required_scope": "content.write", "read_only": False,
 }
 assert registry["actions"]["content.image_alt"] == {
     "tools": {"plan": "image_alt_plan", "apply": "image_alt_apply", "rollback": "image_alt_rollback"},
@@ -255,7 +259,15 @@ assert len(alt_stages) == 3
 assert all(x["additionalProperties"] is False for x in alt_stages)
 assert set(alt_stages[0]["required"]) == {"stage", "attachment_id", "parent_id", "alt"}
 assert all(x["properties"]["confirmed"]["const"] is True for x in alt_stages[1:])
-assert alt_rule["else"]["properties"]["payload"] == {
+upload_rule = alt_rule["else"]
+assert upload_rule["if"]["properties"]["action"]["const"] == "content.image_upload"
+upload_stages = upload_rule["then"]["properties"]["payload"]["oneOf"]
+assert len(upload_stages) == 2
+assert all(x["additionalProperties"] is False for x in upload_stages)
+assert set(upload_stages[0]["required"]) == {"stage", "parent_id", "manifest", "source"}
+assert set(upload_stages[1]["required"]) == {"stage", "plan_id", "plan_command_id", "confirmed", "parent_id", "manifest", "source"}
+assert upload_stages[1]["properties"]["confirmed"]["const"] is True
+assert upload_rule["else"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False, "maxProperties": 0
 }
 stages = conditional["then"]["properties"]["payload"]["oneOf"]

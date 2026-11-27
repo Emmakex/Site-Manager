@@ -17,6 +17,7 @@ final class RemoteWriteAccess
 
     public static function registerRest(): void
     {
+        RemoteImageIngressAccess::registerRest();
         $routes = [
             ['route'=>'write/content/plan','callback'=>'planContent','scope'=>'content.write'],
             ['route'=>'write/content/apply','callback'=>'applyContent','scope'=>'content.write'],

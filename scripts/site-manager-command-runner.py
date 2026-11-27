@@ -23,6 +23,8 @@ from site_manager_site_overview import OverviewError, summarize_site_overview
 from site_manager_content_targets import ContentTargetsError, summarize_content_targets, summarize_content_page
 from site_manager_theme_model import ThemeModelError, summary as summarize_theme_model
 from site_manager_site_catalog import SiteCatalogError, require_registered_site
+from site_manager_image_artifact import fetch_image, ImageArtifactError
+from site_manager_image_artifact_gateway import validate_payload as validate_image_upload_payload, verify_plan as verify_image_upload_plan, apply_image
 from site_manager_theme_package_gateway import prepare_theme_package_plan, ThemePackageGatewayError
 from site_manager_theme_large_mcp import ThemePackageMcpTransportError
 from site_manager_theme_release_download import ThemeReleaseDownloadError
@@ -34,7 +36,7 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"content.image_alt", "content.featured_image", "site.public_images", "content.create", "site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
+SUPPORTED_ACTIONS = {"content.image_upload", "content.image_alt", "content.featured_image", "site.public_images", "content.create", "site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
 SEO_ACCEPTANCE_TOOLS = {"start": "seo_acceptance_start", "status": "seo_acceptance_status"}
 SEO_ACCEPTANCE_PROFILE = "mcp-seo-only"
 SEO_ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "seo_plan", "seo_apply_verify", "seo_rollback", "cleanup")
@@ -68,6 +70,7 @@ CREATE_TOOLS = {"plan": "content_create_plan", "apply": "content_create_apply", 
 CREATE_FIELDS = {"title": 512, "slug": 200, "content": 100_000, "excerpt": 4000}
 CONTENT_FIELD_LIMITS = {"title": 500, "slug": 200, "content": 200_000, "excerpt": 20_000, "status": 20}
 CONTENT_STATUSES = {"draft", "publish", "private", "pending"}
+IMAGE_UPLOAD_TOOLS = {"plan": "image_upload_plan", "apply": "image_upload_apply"}
 ALT_TOOLS = {"plan": "image_alt_plan", "apply": "image_alt_apply", "rollback": "image_alt_rollback"}
 FEATURED_TOOLS = {"plan": "featured_image_plan", "apply": "featured_image_apply", "rollback": "featured_image_rollback"}
 EXPECTED_TOOLS = {
@@ -166,6 +169,8 @@ def validate_registry(registry: dict[str, Any]) -> None:
     if content["read_only"] is not False:
         raise CommandError("content.update cannot be marked read-only")
 
+    if actions.get("content.image_upload") != {"tools": IMAGE_UPLOAD_TOOLS, "required_scope": "content.write", "read_only": False}:
+        raise CommandError("image upload must use fixed scoped tools")
     if actions.get("content.image_alt") != {"tools": ALT_TOOLS, "required_scope": "content.write", "read_only": False}:
         raise CommandError("image ALT must use fixed scoped tools")
     if actions.get("content.featured_image") != {"tools": FEATURED_TOOLS, "required_scope": "content.write", "read_only": False}:
@@ -260,6 +265,11 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
         validate_content_payload(payload)
     elif action == "content.create":
         validate_create_payload(payload)
+    elif action == "content.image_upload":
+        try:
+            validate_image_upload_payload(payload)
+        except ImageArtifactError as exc:
+            raise CommandError("invalid bounded image upload intent") from exc
     elif action == "content.image_alt":
         validate_alt_payload(payload)
     elif action == "content.featured_image":
@@ -1534,7 +1544,33 @@ def execute(command_path: Path, result_dir: Path) -> int:
         action = registry["actions"][action_name]
         client = McpClient(base_url, token)
         client.initialize()
-        if action_name == "theme.package.deploy" and command["payload"]["stage"] == "plan":
+        if action_name == "content.image_upload":
+            payload = command["payload"]
+            stage = payload["stage"]
+            github_token = os.environ.get("SITE_MANAGER_MEDIA_ARTIFACT_TOKEN", "")
+            try:
+                if stage == "plan":
+                    fetch_image(payload["source"], payload["manifest"], github_token)
+                    data = client.call(IMAGE_UPLOAD_TOOLS["plan"], {"parent_id":payload["parent_id"],"manifest":payload["manifest"]})
+                    sanitized = verify_image_upload_plan(data,payload)
+                    verified = False
+                else:
+                    prior_path = result_dir / (payload["plan_command_id"] + ".json")
+                    if not prior_path.is_file():
+                        raise ImageArtifactError("image_upload_prior_plan_missing")
+                    prior = load_json(prior_path)
+                    if (prior.get("site") != site or prior.get("action") != action_name
+                            or prior.get("status") != "success" or prior.get("stage") != "plan"
+                            or prior.get("verified") is not False or prior.get("command_id") != payload["plan_command_id"]):
+                        raise ImageArtifactError("image_upload_prior_plan_identity_mismatch")
+                    sanitized = apply_image(payload,prior.get("data"),github_token=github_token,
+                        mcp_url=base_url,site_token=token)
+                    verified = True
+            except ImageArtifactError as exc:
+                raise VerificationError(str(exc)) from exc
+            except ThemePackageMcpTransportError as exc:
+                raise TransportError("Image apply not verified; reconcile before retry") from exc
+        elif action_name == "theme.package.deploy" and command["payload"]["stage"] == "plan":
             stage = "plan"
             try:
                 data = prepare_theme_package_plan(
@@ -1827,7 +1863,8 @@ def self_test() -> int:
             or page_rule.get("else", {}).get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "content.featured_image"
             or page_rule.get("else", {}).get("else", {}).get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "site.public_images"
             or page_rule.get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "content.image_alt"
-            or page_rule.get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
+            or page_rule.get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "content.image_upload"
+            or page_rule.get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
         raise CommandError("theme package, bootstrap and bounded reads must preserve independent closed schemas")
 
     valid = {

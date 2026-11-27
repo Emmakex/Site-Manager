@@ -7,6 +7,9 @@ on:
       - 'src/Adapters/WordPress/*DraftCreation*.php'
       - 'src/Adapters/WordPress/*FeaturedImage*.php'
       - 'src/Adapters/WordPress/PublicImageInventory.php'
+      - 'src/Adapters/WordPress/*ImageIngress*.php'
+      - 'tests/wordpress_image_ingress_live_acceptance.php'
+      - 'tests/wordpress_image_ingress_guard_test.php'
       - 'src/Adapters/WordPress/RemoteAccess.php'
       - 'tests/wordpress_featured_image_live_acceptance.php'
       - 'src/Adapters/WordPress/RemoteWriteAccess.php'
@@ -36,7 +39,7 @@ jobs:
         with:
           php-version: '8.2'
           tools: composer:v2
-          extensions: zip
+          extensions: zip, gd
           coverage: none
 
       - name: Resolve plugin version
@@ -51,6 +54,8 @@ jobs:
           set -euo pipefail
           composer install --no-interaction --prefer-dist
           composer test
+          php -r 'exit(function_exists("imagecreatefromstring") ? 0 : 1);'
+          php tests/wordpress_image_ingress_guard_test.php
           bash scripts/build-wordpress-release.sh
           bash scripts/verify-wordpress-release.sh dist/site-manager-${{ steps.version.outputs.version }}.zip
 
@@ -107,6 +112,14 @@ jobs:
           test -n "$container"
           docker cp tests/wordpress_featured_image_live_acceptance.php "$container":/tmp/site-manager-featured-image-live-acceptance.php
           docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml exec -T --user www-data wordpress php /tmp/site-manager-featured-image-live-acceptance.php
+
+      - name: Exercise native verified image creation on an isolated draft
+        run: |
+          set -euo pipefail
+          container="$(docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml ps -q wordpress)"
+          test -n "$container"
+          docker cp tests/wordpress_image_ingress_live_acceptance.php "$container":/tmp/site-manager-image-ingress-live-acceptance.php
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml exec -T --user www-data wordpress php /tmp/site-manager-image-ingress-live-acceptance.php
 
       - name: Capture disposable WordPress failures
         if: failure()
