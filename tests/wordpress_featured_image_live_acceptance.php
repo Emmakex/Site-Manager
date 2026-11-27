@@ -95,6 +95,15 @@ function callImages(int $page, string $token): WP_REST_Response
 check(callImages(1,'')->get_status() >= 400,'public image inventory requires authentication');
 status(callImages(0,$token),400,'zero page rejected');
 status(callImages(1001,$token),400,'oversized page rejected');
+// The isolated Docker fixture is installed with an HTTP loopback identity.
+// Confirm that insecure identity fails closed, then set HTTPS metadata only.
+// This test runs local REST dispatch, not a network request or TLS simulation.
+$originalHome = (string) get_option('home');
+$originalSite = (string) get_option('siteurl');
+check($originalHome === 'http://localhost:8088' && $originalSite === 'http://localhost:8088','expected disposable loopback identity');
+status(callImages(1,$token),503,'insecure site identity rejected');
+update_option('home','https://localhost:8088');
+update_option('siteurl','https://localhost:8088');
 $inventory = status(callImages(1,$token),200,'read actual public images');
 check(($inventory['sample_only'] ?? false)===true && ($inventory['private_values_included'] ?? true)===false,'truthful bounded sample');
 $ids = array_column($inventory['items'],'attachment_id');
@@ -104,5 +113,15 @@ foreach ([$a,$b,$private,$protectedImage,$orphan] as $excluded) {
 }
 $row = array_values(array_filter($inventory['items'],static fn($item)=>$item['attachment_id']===$publicImage))[0];
 check($row['alt']==='Public fixture alt' && $row['parent_id']===$publicParent && $row['mime']==='image/png','public metadata verified');
+// An attachment URL provided by a plugin must remain inside the enrolled origin.
+$foreignUrl = static function ($url, $id) use ($publicImage) {
+    return (int) $id === $publicImage ? 'https://foreign.example.invalid/image.png' : $url;
+};
+add_filter('wp_get_attachment_url',$foreignUrl,10,2);
+$foreignInventory = status(callImages(1,$token),200,'foreign image URL omitted');
+check(!in_array($publicImage,array_column($foreignInventory['items'],'attachment_id'),true),'foreign origin excluded');
+remove_filter('wp_get_attachment_url',$foreignUrl,10);
+update_option('home',$originalHome);
+update_option('siteurl',$originalSite);
 echo "DISPOSABLE_WP_PUBLIC_IMAGE_INVENTORY=PASSED\n";
 echo "DISPOSABLE_WP_FEATURED_IMAGE_ACCEPTANCE=PASSED\n";
