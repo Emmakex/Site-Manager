@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-produccion-media-fixture-alt-apply-20261127-01",
+  "site": "emmake-produccion",
+  "action": "content.image_alt",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-813dd1c67e016e4418df6885",
+    "confirmed": true
+  }
+}
