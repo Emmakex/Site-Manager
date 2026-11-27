@@ -318,10 +318,10 @@ export class SiteManagerClient {
     return data;
   }
 
-  private async request(resource: SiteManagerReadResource | SiteManagerWriteResource, method: 'GET' | 'POST', body?: unknown, query?: { post_type: 'post' | 'page'; page: number }): Promise<unknown> {
+  private async request(resource: SiteManagerReadResource | SiteManagerWriteResource, method: 'GET' | 'POST', body?: unknown, query?: { post_type?: 'post' | 'page'; page: number }): Promise<unknown> {
     const endpoint = new URL(resource, this.config.restBase);
     if (query) {
-      endpoint.searchParams.set('post_type', query.post_type);
+      if (query.post_type !== undefined) endpoint.searchParams.set('post_type', query.post_type);
       endpoint.searchParams.set('page', String(query.page));
     }
     if (endpoint.origin !== this.config.restBase.origin) {
