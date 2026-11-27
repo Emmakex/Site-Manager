@@ -140,6 +140,8 @@ jobs:
           # current-repository GITHUB_TOKEN cannot download its cross-repo artifact.
           SITE_MANAGER_THEME_RELEASE_TOKEN: ${{ secrets.SITE_MANAGER_THEME_RELEASE_TOKEN }}
           SITE_MANAGER_MEDIA_ARTIFACT_TOKEN: ${{ github.token }}
+          SITE_MANAGER_DRIVE_IMAGE_FOLDER_ID: ${{ vars.SITE_MANAGER_DRIVE_IMAGE_FOLDER_ID }}
+          SITE_MANAGER_DRIVE_READER_JSON: ${{ secrets.SITE_MANAGER_DRIVE_READER_JSON }}
         run: |
           set +e
           python3 scripts/site-manager-command-runner.py \

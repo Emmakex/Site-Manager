@@ -18,6 +18,7 @@ on:
       - 'scripts/site_manager_theme_large_mcp.py'
       - 'scripts/site_manager_image_artifact*.py'
       - 'tests/site_manager_image_artifact_test.py'
+      - 'tests/site_manager_image_artifact_drive_test.py'
       - '.github/workflows/site-manager-media-artifact.yml'
       - 'scripts/site_manager_theme_package_gateway.py'
       - 'scripts/site_manager_theme_package_evidence.py'
@@ -54,6 +55,7 @@ on:
       - 'scripts/site_manager_theme_large_mcp.py'
       - 'scripts/site_manager_image_artifact*.py'
       - 'tests/site_manager_image_artifact_test.py'
+      - 'tests/site_manager_image_artifact_drive_test.py'
       - '.github/workflows/site-manager-media-artifact.yml'
       - 'scripts/site_manager_theme_package_gateway.py'
       - 'scripts/site_manager_theme_package_evidence.py'
@@ -100,6 +102,9 @@ jobs:
 
       - name: Bounded image artifact and verified upload contract
         run: python3 tests/site_manager_image_artifact_test.py
+
+      - name: Private Drive image source safety
+        run: python3 tests/site_manager_image_artifact_drive_test.py
 
       - name: Large Theme MCP request safety
         run: python3 tests/site_manager_theme_large_mcp_test.py
