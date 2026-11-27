@@ -113,6 +113,15 @@
       },
       "required_scope": "theme.package.write",
       "read_only": false
+    },
+    "content.create": {
+      "tools": {
+        "plan": "content_create_plan",
+        "apply": "content_create_apply",
+        "rollback": "content_create_rollback"
+      },
+      "required_scope": "content.write",
+      "read_only": false
     }
   }
 }

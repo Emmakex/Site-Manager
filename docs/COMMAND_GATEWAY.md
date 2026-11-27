@@ -973,3 +973,12 @@ When a model already exists, `theme.bootstrap` fails closed and ordinary
 `theme.update` handles supported incremental copy edits. On unrelated themes,
 this compatibility provider is optional and normal Site Manager capabilities
 continue to work independently.
+
+
+## Governed editorial creation (development)
+
+`content.create` uses the existing content.write grant and independently registered plan/apply/rollback tools. Creation is draft-only and accepts native post/page, title, explicit ASCII slug, HTML content, and optional excerpt. The plan must match the requested values after WordPress sanitization before approval. Apply returns the verified new post ID; rollback moves only an unchanged Site Manager-created draft to recoverable trash, never permanently deletes it. A changed/published draft cannot be rolled back through this creation operation. Publication is a separate explicitly approved content.update status plan.
+
+A pending command contains the proposed editorial text in Git history: use only material approved for this repository, never confidential drafts or credentials. Sanitized results retain the new post ID, not body text.
+
+This implementation is not production-ready until real disposable WordPress integration, official plugin/MCP release and deployment, and scoped end-to-end acceptance are verified. No automatic retries after ambiguous mutation failures. Existing human edits and providers remain authoritative.

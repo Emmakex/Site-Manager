@@ -21,6 +21,9 @@ final class RemoteWriteAccess
             ['route'=>'write/content/plan','callback'=>'planContent','scope'=>'content.write'],
             ['route'=>'write/content/apply','callback'=>'applyContent','scope'=>'content.write'],
             ['route'=>'write/content/rollback','callback'=>'rollbackContent','scope'=>'content.write'],
+            ['route'=>'write/content/create/plan','callback'=>'planCreateContent','scope'=>'content.write'],
+            ['route'=>'write/content/create/apply','callback'=>'applyCreateContent','scope'=>'content.write'],
+            ['route'=>'write/content/create/rollback','callback'=>'rollbackCreateContent','scope'=>'content.write'],
             ['route'=>'write/navigation/plan','callback'=>'planNavigation','scope'=>'navigation.write'],
             ['route'=>'write/navigation/apply','callback'=>'applyNavigation','scope'=>'navigation.write'],
             ['route'=>'write/navigation/rollback','callback'=>'rollbackNavigation','scope'=>'navigation.write'],
@@ -69,6 +72,40 @@ final class RemoteWriteAccess
             payload: ['post_id'=>$postId,'fields'=>$fields],
             reason: $reason,
         );
+    }
+
+    public static function planCreateContent(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $params = self::params($request);
+        if (array_diff(array_keys($params), ['post_type','fields','reason'])) {
+            return self::error(400, 'invalid_request');
+        }
+        $reason = $params['reason'] ?? 'Remote Site Manager draft creation';
+        if (! is_string($reason) || strlen($reason) > 1000) {
+            return self::error(400, 'invalid_request');
+        }
+        return self::planOperation(
+            capabilityId: 'content.write',
+            operation: 'content.create',
+            payload: ['post_type'=>$params['post_type'] ?? null,'fields'=>$params['fields'] ?? null],
+            reason: sanitize_text_field($reason),
+        );
+    }
+
+    public static function applyCreateContent(\WP_REST_Request $request): \WP_REST_Response
+    {
+        if (array_diff(array_keys(self::params($request)), ['plan_id','confirmed'])) {
+            return self::error(400, 'invalid_request');
+        }
+        return self::applyPlan($request, 'content.write', 'content.create');
+    }
+
+    public static function rollbackCreateContent(\WP_REST_Request $request): \WP_REST_Response
+    {
+        if (array_diff(array_keys(self::params($request)), ['plan_id','confirmed'])) {
+            return self::error(400, 'invalid_request');
+        }
+        return self::rollbackPlan($request, 'content.write', 'content.create');
     }
 
     public static function planNavigation(\WP_REST_Request $request): \WP_REST_Response

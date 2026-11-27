@@ -23,6 +23,7 @@ final class WordPressAdapter implements PlatformAdapter
         private readonly ?NavigationGovernanceService $navigation = null,
         private readonly ?SeoGovernanceService $seo = null,
         private readonly ?SeoProviderRegistry $seoProviders = null,
+        private readonly ?DraftCreationService $draftCreation = null,
     ) {}
 
     public function id(): string { return 'wordpress-core'; }
@@ -103,7 +104,7 @@ final class WordPressAdapter implements PlatformAdapter
                 $nativeContent,
                 $nativeContent,
                 $nativeContent,
-                ['content.update'],
+                ['content.update','content.create'],
                 ['content.write'],
                 $nativeContent ? [] : ['Native WordPress posts/pages were not detected.'],
                 ['owned_fields'=>['title','slug','content','excerpt','status'],'post_types'=>['post','page'],'confirmation'=>'explicit','reversible'=>true],
@@ -263,6 +264,9 @@ final class WordPressAdapter implements PlatformAdapter
         if ('content.write' === $request->capabilityId && 'content.update' === $request->operation) {
             return $this->content()->plan($request, $snapshot, $graph);
         }
+        if ('content.write' === $request->capabilityId && 'content.create' === $request->operation) {
+            return ($this->draftCreation ?? new DraftCreationService())->plan($request, $snapshot, $graph);
+        }
         if ('navigation.write' === $request->capabilityId && 'navigation.update' === $request->operation) {
             return $this->navigation()->plan($request, $snapshot, $graph);
         }
@@ -280,6 +284,9 @@ final class WordPressAdapter implements PlatformAdapter
     {
         if ('content.write' === $plan->request->capabilityId && 'content.update' === $plan->request->operation) {
             return $this->content()->apply($plan, $confirmed);
+        }
+        if ('content.write' === $plan->request->capabilityId && 'content.create' === $plan->request->operation) {
+            return ($this->draftCreation ?? new DraftCreationService())->apply($plan, $confirmed);
         }
         if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
             return $this->navigation()->apply($plan, $confirmed);
@@ -299,6 +306,9 @@ final class WordPressAdapter implements PlatformAdapter
         if ('content.write' === $plan->request->capabilityId && 'content.update' === $plan->request->operation) {
             return $this->content()->verify($plan, $result);
         }
+        if ('content.write' === $plan->request->capabilityId && 'content.create' === $plan->request->operation) {
+            return ($this->draftCreation ?? new DraftCreationService())->verify($plan, $result);
+        }
         if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
             return $this->navigation()->verify($plan, $result);
         }
@@ -316,6 +326,9 @@ final class WordPressAdapter implements PlatformAdapter
     {
         if ('content.write' === $plan->request->capabilityId && 'content.update' === $plan->request->operation) {
             return $this->content()->rollback($plan, $result, $confirmed);
+        }
+        if ('content.write' === $plan->request->capabilityId && 'content.create' === $plan->request->operation) {
+            return ($this->draftCreation ?? new DraftCreationService())->rollback($plan, $result, $confirmed);
         }
         if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
             return $this->navigation()->rollback($plan, $result, $confirmed);

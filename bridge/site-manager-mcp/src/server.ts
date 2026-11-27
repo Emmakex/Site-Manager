@@ -146,6 +146,27 @@ const contentPlanSchema = fromJsonSchema<ContentPlanInput>({
   required: ['post_id', 'fields'],
 });
 
+const contentCreatePlanSchema = fromJsonSchema<{
+  post_type: 'post' | 'page'; fields: Record<string, string>; reason?: string;
+}>({
+  type: 'object',
+  additionalProperties: false,
+  required: ['post_type', 'fields'],
+  properties: {
+    post_type: { type: 'string', enum: ['post', 'page'] },
+    fields: {
+      type: 'object', additionalProperties: false, required: ['title', 'slug', 'content'],
+      properties: {
+        title: { type: 'string', minLength: 1, maxLength: 512 },
+        slug: { type: 'string', maxLength: 200, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' },
+        content: { type: 'string', minLength: 1, maxLength: 100000 },
+        excerpt: { type: 'string', maxLength: 4000 },
+      },
+    },
+    reason: { type: 'string', maxLength: 500 },
+  },
+});
+
 const navigationPlanSchema = fromJsonSchema<NavigationPlanInput>({
   type: 'object',
   additionalProperties: false,
@@ -611,6 +632,51 @@ export function createSiteManagerMcpServer(
         } catch {
           return toolError('Site Manager rejected or could not roll back the content update plan.');
         }
+      },
+    );
+  }
+
+  if (scopes.has('content.write')) {
+    server.registerTool(
+      'content_create_plan',
+      {
+        title: 'Plan creation of a WordPress draft',
+        description: 'Plan one native post or page as an unpublished draft. No publication or arbitrary metadata.',
+        inputSchema: contentCreatePlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ post_type, fields, reason }) => {
+        try {
+          return toolResult(await client.contentCreatePlan({ post_type, fields, ...(reason === undefined ? {} : { reason }) }));
+        } catch { return toolError('Site Manager could not plan draft creation.'); }
+      },
+    );
+    server.registerTool(
+      'content_create_apply',
+      {
+        title: 'Create a confirmed WordPress draft',
+        description: 'Apply the exact confirmed draft plan and return verified creation evidence.',
+        inputSchema: confirmedPlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ plan_id, confirmed }) => {
+        if (confirmed !== true) return toolError('Explicit confirmation required.');
+        try { return toolResult(await client.contentCreateApply({ plan_id, confirmed: true })); }
+        catch { return toolError('Site Manager could not verify draft creation; reconcile before retrying.'); }
+      },
+    );
+    server.registerTool(
+      'content_create_rollback',
+      {
+        title: 'Trash an unchanged Site Manager-created draft',
+        description: 'Roll back only the original unchanged draft; no permanent deletion.',
+        inputSchema: confirmedPlanSchema,
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+      },
+      async ({ plan_id, confirmed }) => {
+        if (confirmed !== true) return toolError('Explicit rollback confirmation required.');
+        try { return toolResult(await client.contentCreateRollback({ plan_id, confirmed: true })); }
+        catch { return toolError('Site Manager refused or could not verify draft rollback.'); }
       },
     );
   }

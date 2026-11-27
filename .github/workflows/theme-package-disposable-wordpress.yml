@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'src/Adapters/WordPress/ThemePackage*.php'
+      - 'src/Adapters/WordPress/*DraftCreation*.php'
+      - 'src/Adapters/WordPress/RemoteWriteAccess.php'
+      - 'tests/wordpress_draft_creation_live_acceptance.php'
       - 'src/Adapters/WordPress/RemoteThemePackageAccess.php'
       - 'src/Adapters/WordPress/RemotePlanStore.php'
       - 'src/Adapters/WordPress/WordPressAdapter.php'
@@ -77,6 +80,14 @@ jobs:
           test -n "$container"
           docker cp tests/wordpress_theme_package_live_acceptance.php "$container":/tmp/site-manager-theme-live-acceptance.php
           docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml exec -T --user www-data wordpress php /tmp/site-manager-theme-live-acceptance.php
+
+      - name: Exercise native WordPress post and page draft creation
+        run: |
+          set -euo pipefail
+          container="$(docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml ps -q wordpress)"
+          test -n "$container"
+          docker cp tests/wordpress_draft_creation_live_acceptance.php "$container":/tmp/site-manager-draft-live-acceptance.php
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml exec -T --user www-data wordpress php /tmp/site-manager-draft-live-acceptance.php
 
       - name: Capture disposable WordPress failures
         if: failure()

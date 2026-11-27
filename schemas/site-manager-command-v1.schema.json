@@ -41,7 +41,8 @@
         "theme.update",
         "theme.bootstrap",
         "site.content_page",
-        "theme.package.deploy"
+        "theme.package.deploy",
+        "content.create"
       ]
     },
     "requested_by": {
@@ -913,11 +914,128 @@
                           }
                         },
                         "else": {
-                          "properties": {
-                            "payload": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "maxProperties": 0
+                          "if": {
+                            "properties": {
+                              "action": {
+                                "const": "content.create"
+                              }
+                            },
+                            "required": [
+                              "action"
+                            ]
+                          },
+                          "then": {
+                            "properties": {
+                              "payload": {
+                                "oneOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "stage",
+                                      "post_type",
+                                      "fields"
+                                    ],
+                                    "properties": {
+                                      "stage": {
+                                        "const": "plan"
+                                      },
+                                      "post_type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "post",
+                                          "page"
+                                        ]
+                                      },
+                                      "fields": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "title",
+                                          "slug",
+                                          "content"
+                                        ],
+                                        "properties": {
+                                          "title": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 512
+                                          },
+                                          "slug": {
+                                            "type": "string",
+                                            "maxLength": 200,
+                                            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                                          },
+                                          "content": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 100000
+                                          },
+                                          "excerpt": {
+                                            "type": "string",
+                                            "maxLength": 4000
+                                          }
+                                        }
+                                      },
+                                      "reason": {
+                                        "type": "string",
+                                        "maxLength": 500
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "stage",
+                                      "plan_id",
+                                      "confirmed"
+                                    ],
+                                    "properties": {
+                                      "stage": {
+                                        "const": "apply"
+                                      },
+                                      "plan_id": {
+                                        "type": "string",
+                                        "pattern": "^sm-plan-[a-f0-9]{24}$"
+                                      },
+                                      "confirmed": {
+                                        "const": true
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "stage",
+                                      "plan_id",
+                                      "confirmed"
+                                    ],
+                                    "properties": {
+                                      "stage": {
+                                        "const": "rollback"
+                                      },
+                                      "plan_id": {
+                                        "type": "string",
+                                        "pattern": "^sm-plan-[a-f0-9]{24}$"
+                                      },
+                                      "confirmed": {
+                                        "const": true
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "else": {
+                            "properties": {
+                              "payload": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "maxProperties": 0
+                              }
                             }
                           }
                         }

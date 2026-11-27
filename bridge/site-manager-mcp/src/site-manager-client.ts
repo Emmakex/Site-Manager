@@ -24,6 +24,9 @@ export type SiteManagerWriteResource =
   | 'write/content/plan'
   | 'write/content/apply'
   | 'write/content/rollback'
+  | 'write/content/create/plan'
+  | 'write/content/create/apply'
+  | 'write/content/create/rollback'
   | 'write/navigation/plan'
   | 'write/navigation/apply'
   | 'write/navigation/rollback'
@@ -181,6 +184,18 @@ export class SiteManagerClient {
 
   public async themeUpdateRollback(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
     return this.request('write/theme/rollback', 'POST', input);
+  }
+
+  public async contentCreatePlan(input: { post_type: 'post' | 'page'; fields: JsonRecord; reason?: string }): Promise<unknown> {
+    return this.request('write/content/create/plan', 'POST', input);
+  }
+
+  public async contentCreateApply(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
+    return this.request('write/content/create/apply', 'POST', input);
+  }
+
+  public async contentCreateRollback(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
+    return this.request('write/content/create/rollback', 'POST', input);
   }
 
   public async contentUpdatePlan(input: { post_id: number; fields: JsonRecord; reason?: string }): Promise<unknown> {

@@ -433,3 +433,23 @@ test('Theme bootstrap is bound to fixed scoped WordPress routes without caller-s
   assert.deepEqual(calls[2]?.body, { plan_id: 'sm-plan-bootstrap', confirmed: true });
   assert.ok(calls.every(x => x.auth === `Bearer ${secret}`));
 });
+
+test('draft lifecycle uses only fixed authenticated create routes', async () => {
+  const calls: Array<{path: string; body: unknown; auth: string | null; method: string | undefined}> = [];
+  const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const url = input instanceof URL ? input : new URL(String(input));
+    calls.push({path: url.pathname, body: JSON.parse(String(init?.body)), auth: new Headers(init?.headers).get('authorization'), method: init?.method});
+    return new Response(JSON.stringify({data: {ok: true}}), {status: 200});
+  }) as typeof fetch;
+  const client = new SiteManagerClient(baseConfig(), fakeFetch);
+  const fields = {title: 'Article', slug: 'article', content: '<p>Text</p>'};
+  const plan_id = 'sm-plan-' + 'a'.repeat(24);
+  await client.contentCreatePlan({post_type: 'post', fields});
+  await client.contentCreateApply({plan_id, confirmed: true});
+  await client.contentCreateRollback({plan_id, confirmed: true});
+  assert.deepEqual(calls.map(x=>x.path), ['plan','apply','rollback'].map(x=>'/wp-json/site-manager/v1/write/content/create/'+x));
+  assert.deepEqual(calls[0]?.body, {post_type: 'post', fields});
+  assert.deepEqual(calls[1]?.body, {plan_id, confirmed: true});
+  assert.deepEqual(calls[2]?.body, {plan_id, confirmed: true});
+  assert.ok(calls.every(x=>x.auth === 'Bearer '+secret && x.method === 'POST'));
+});
