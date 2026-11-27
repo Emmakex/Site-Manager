@@ -27,6 +27,9 @@ final class RemoteWriteAccess
             ['route'=>'write/content/featured-image/plan','callback'=>'planFeaturedImage','scope'=>'content.write'],
             ['route'=>'write/content/featured-image/apply','callback'=>'applyFeaturedImage','scope'=>'content.write'],
             ['route'=>'write/content/featured-image/rollback','callback'=>'rollbackFeaturedImage','scope'=>'content.write'],
+            ['route'=>'write/content/image-alt/plan','callback'=>'planImageAlt','scope'=>'content.write'],
+            ['route'=>'write/content/image-alt/apply','callback'=>'applyImageAlt','scope'=>'content.write'],
+            ['route'=>'write/content/image-alt/rollback','callback'=>'rollbackImageAlt','scope'=>'content.write'],
             ['route'=>'write/navigation/plan','callback'=>'planNavigation','scope'=>'navigation.write'],
             ['route'=>'write/navigation/apply','callback'=>'applyNavigation','scope'=>'navigation.write'],
             ['route'=>'write/navigation/rollback','callback'=>'rollbackNavigation','scope'=>'navigation.write'],
@@ -137,6 +140,34 @@ final class RemoteWriteAccess
     {
         if (array_diff(array_keys(self::params($request)), ['plan_id','confirmed'])) { return self::error(400, 'invalid_request'); }
         return self::rollbackPlan($request, 'content.write', 'content.featured_image');
+    }
+
+    public static function planImageAlt(\WP_REST_Request $request): \WP_REST_Response
+    {
+        $params = self::params($request);
+        if (array_diff(array_keys($params), ['attachment_id','parent_id','alt','reason'])) {
+            return self::error(400, 'invalid_request');
+        }
+        $reason = $params['reason'] ?? 'Remote Site Manager shared image ALT update';
+        if (! is_string($reason) || strlen($reason) > 500) { return self::error(400, 'invalid_request'); }
+        return self::planOperation(
+            capabilityId: 'content.write',
+            operation: 'content.image_alt',
+            payload: ['attachment_id'=>$params['attachment_id'] ?? null,'parent_id'=>$params['parent_id'] ?? null,'alt'=>$params['alt'] ?? null],
+            reason: sanitize_text_field($reason),
+        );
+    }
+
+    public static function applyImageAlt(\WP_REST_Request $request): \WP_REST_Response
+    {
+        if (array_diff(array_keys(self::params($request)), ['plan_id','confirmed'])) { return self::error(400, 'invalid_request'); }
+        return self::applyPlan($request, 'content.write', 'content.image_alt');
+    }
+
+    public static function rollbackImageAlt(\WP_REST_Request $request): \WP_REST_Response
+    {
+        if (array_diff(array_keys(self::params($request)), ['plan_id','confirmed'])) { return self::error(400, 'invalid_request'); }
+        return self::rollbackPlan($request, 'content.write', 'content.image_alt');
     }
 
     public static function planNavigation(\WP_REST_Request $request): \WP_REST_Response
