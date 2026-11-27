@@ -14,7 +14,7 @@ runner = (ROOT / "scripts/site-manager-command-runner.py").read_text(encoding="u
 guard = (ROOT / "scripts/site-manager-command-guard.py").read_text(encoding="utf-8")
 workflow = (ROOT / ".github/workflows/site-manager-command-gateway.yml").read_text(encoding="utf-8")
 
-expected_actions = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
+expected_actions = {"content.create", "site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
 assert registry["version"] == "1"
 assert set(registry["actions"]) == expected_actions
 # Regression for the real live failure: paginated read must not enter the
@@ -76,6 +76,10 @@ assert registry["actions"]["theme.bootstrap"] == {
     "tools": {"plan": "theme_bootstrap_plan", "apply": "theme_bootstrap_apply", "rollback": "theme_bootstrap_rollback"},
     "required_scope": "content.write",
     "read_only": False,
+}
+assert registry["actions"]["content.create"] == {
+    "tools": {"plan": "content_create_plan", "apply": "content_create_apply", "rollback": "content_create_rollback"},
+    "required_scope": "content.write", "read_only": False,
 }
 assert registry["actions"]["content.update"] == {
     "tools": {"plan": "content_update_plan", "apply": "content_update_apply", "rollback": "content_update_rollback"},
@@ -212,7 +216,15 @@ assert page_rule["then"]["properties"]["payload"] == {
         "page": {"type": "integer", "minimum": 1, "maximum": 10000},
     },
 }
-assert page_rule["else"]["properties"]["payload"] == {
+create_rule = page_rule["else"]
+assert create_rule["if"]["properties"]["action"]["const"] == "content.create"
+create_stages = create_rule["then"]["properties"]["payload"]["oneOf"]
+assert len(create_stages) == 3
+assert all(x["additionalProperties"] is False for x in create_stages)
+assert set(create_stages[0]["required"]) == {"stage", "post_type", "fields"}
+assert set(create_stages[0]["properties"]["fields"]["properties"]) == {"title", "slug", "content", "excerpt"}
+assert all(x["properties"]["confirmed"]["const"] is True for x in create_stages[1:])
+assert create_rule["else"]["properties"]["payload"] == {
     "type": "object", "additionalProperties": False, "maxProperties": 0
 }
 stages = conditional["then"]["properties"]["payload"]["oneOf"]
