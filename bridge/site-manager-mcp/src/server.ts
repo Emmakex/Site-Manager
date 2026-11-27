@@ -1,5 +1,5 @@
 import { McpServer, fromJsonSchema } from '@modelcontextprotocol/server';
-import type { SiteManagerClient } from './site-manager-client.js';
+import { SiteManagerClientError, type SiteManagerClient } from './site-manager-client.js';
 
 function toolResult(data: unknown) {
   return {
@@ -807,7 +807,16 @@ export function createSiteManagerMcpServer(
     }, async ({plan_id, confirmed, image_base64}) => {
       if (confirmed !== true) return toolError('Explicit confirmation required.');
       try { return toolResult(await client.imageUploadApply({plan_id,confirmed:true,image_base64})); }
-      catch { return toolError('Image upload not verified. Reconcile before retrying.'); }
+      catch (error) {
+        // Only fixed codes or numeric HTTP status; never forward a response body or secret.
+        let code = 'image_upstream_unconfirmed';
+        if (error instanceof SiteManagerClientError) {
+          if (error.message === 'image_upstream_timeout') code = error.message;
+          const status = /^Site Manager request failed with HTTP ([45][0-9]{2})\.$/.exec(error.message);
+          if (status) code = 'image_upstream_http_' + status[1];
+        }
+        return { ...toolError('Image upload not verified. Reconcile before retrying.'), structuredContent: { error_code: code } };
+      }
     });
   }
 
