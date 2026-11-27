@@ -104,6 +104,7 @@ check($originalHome === 'http://localhost:8088' && $originalSite === 'http://loc
 status(callImages(1,$token),503,'insecure site identity rejected');
 update_option('home','https://localhost:8088');
 update_option('siteurl','https://localhost:8088');
+wp_upload_dir(null,false,true);
 $inventory = status(callImages(1,$token),200,'read actual public images');
 check(($inventory['sample_only'] ?? false)===true && ($inventory['private_values_included'] ?? true)===false,'truthful bounded sample');
 $ids = array_column($inventory['items'],'attachment_id');
@@ -124,4 +125,39 @@ remove_filter('wp_get_attachment_url',$foreignUrl,10);
 update_option('home',$originalHome);
 update_option('siteurl',$originalSite);
 echo "DISPOSABLE_WP_PUBLIC_IMAGE_INVENTORY=PASSED\n";
+// Shared ALT is a distinct, explicitly approved operation.
+function callAlt(string $stage, array $params, string $token): WP_REST_Response
+{
+    $request = new WP_REST_Request('POST','/site-manager/v1/write/content/image-alt/'.$stage);
+    $request->set_header('content-type','application/json');
+    if ($token !== '') { $request->set_header('authorization','Bearer '.$token); }
+    $request->set_body(wp_json_encode($params));
+    return rest_do_request($request);
+}
+$altIntent = ['attachment_id'=>$a,'parent_id'=>$postId,'alt'=>'Mesa de trabajo con portátil'];
+check(callAlt('plan',$altIntent,'')->get_status()>=400,'ALT requires bearer');
+status(callAlt('plan',array_replace($altIntent,['parent_id'=>$otherId]),$token),409,'foreign parent blocked');
+status(callAlt('plan',array_replace($altIntent,['alt'=>'<b>HTML</b>']),$token),400,'HTML ALT blocked');
+status(callAlt('plan',$altIntent+['meta_key'=>'arbitrary'],$token),400,'arbitrary metadata rejected');
+check(!metadata_exists('post',$a,'_wp_attachment_image_alt'),'ALT initially absent');
+$altPlan = status(callAlt('plan',$altIntent,$token),200,'ALT plan accepted');
+$altId = $altPlan['plan']['plan_id'];
+check(!metadata_exists('post',$a,'_wp_attachment_image_alt'),'ALT planning is nonmutating');
+status(callAlt('apply',['plan_id'=>$altId,'confirmed'=>false],$token),409,'ALT confirmation required');
+$altApply = status(callAlt('apply',['plan_id'=>$altId,'confirmed'=>true],$token),200,'ALT apply verified');
+check(($altApply['verification']['verified'] ?? false)===true && get_post_meta($a,'_wp_attachment_image_alt',true)===$altIntent['alt'],'exact ALT readback');
+status(callAlt('rollback',['plan_id'=>$altId,'confirmed'=>true],$token),200,'ALT rollback verified');
+check(!metadata_exists('post',$a,'_wp_attachment_image_alt'),'missing ALT restored exactly');
+update_post_meta($a,'_wp_attachment_image_alt','Original');
+$altPlan2 = status(callAlt('plan',$altIntent,$token),200,'existing ALT replacement planned');
+$altId2 = $altPlan2['plan']['plan_id'];
+status(callAlt('apply',['plan_id'=>$altId2,'confirmed'=>true],$token),200,'existing ALT replacement');
+status(callAlt('rollback',['plan_id'=>$altId2,'confirmed'=>true],$token),200,'existing ALT restored');
+check(get_post_meta($a,'_wp_attachment_image_alt',true)==='Original','existing ALT exact restoration');
+$altPlan3 = status(callAlt('plan',array_replace($altIntent,['alt'=>'']),$token),200,'empty decorative ALT planned');
+update_post_meta($a,'_wp_attachment_image_alt','Human edit');
+status(callAlt('apply',['plan_id'=>$altPlan3['plan']['plan_id'],'confirmed'=>true],$token),409,'stale ALT rejected');
+check(get_post_meta($a,'_wp_attachment_image_alt',true)==='Human edit','human ALT preserved');
+check(get_post_status($postId)==='draft' && get_post_field('post_content',$postId)==='Original article','ALT leaves post unchanged');
+echo "DISPOSABLE_WP_IMAGE_ALT_ACCEPTANCE=PASSED\n";
 echo "DISPOSABLE_WP_FEATURED_IMAGE_ACCEPTANCE=PASSED\n";
