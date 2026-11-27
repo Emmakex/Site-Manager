@@ -44,7 +44,8 @@
         "theme.package.deploy",
         "content.create",
         "content.featured_image",
-        "site.public_images"
+        "site.public_images",
+        "content.image_alt"
       ]
     },
     "requested_by": {
@@ -1148,11 +1149,104 @@
                                 }
                               },
                               "else": {
-                                "properties": {
-                                  "payload": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "maxProperties": 0
+                                "if": {
+                                  "properties": {
+                                    "action": {
+                                      "const": "content.image_alt"
+                                    }
+                                  },
+                                  "required": [
+                                    "action"
+                                  ]
+                                },
+                                "then": {
+                                  "properties": {
+                                    "payload": {
+                                      "oneOf": [
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "stage",
+                                            "attachment_id",
+                                            "parent_id",
+                                            "alt"
+                                          ],
+                                          "properties": {
+                                            "stage": {
+                                              "const": "plan"
+                                            },
+                                            "attachment_id": {
+                                              "type": "integer",
+                                              "minimum": 1
+                                            },
+                                            "parent_id": {
+                                              "type": "integer",
+                                              "minimum": 1
+                                            },
+                                            "alt": {
+                                              "type": "string",
+                                              "maxLength": 800
+                                            },
+                                            "reason": {
+                                              "type": "string",
+                                              "maxLength": 500
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "stage",
+                                            "plan_id",
+                                            "confirmed"
+                                          ],
+                                          "properties": {
+                                            "stage": {
+                                              "const": "apply"
+                                            },
+                                            "plan_id": {
+                                              "type": "string",
+                                              "pattern": "^sm-plan-[a-f0-9]{24}$"
+                                            },
+                                            "confirmed": {
+                                              "const": true
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "stage",
+                                            "plan_id",
+                                            "confirmed"
+                                          ],
+                                          "properties": {
+                                            "stage": {
+                                              "const": "rollback"
+                                            },
+                                            "plan_id": {
+                                              "type": "string",
+                                              "pattern": "^sm-plan-[a-f0-9]{24}$"
+                                            },
+                                            "confirmed": {
+                                              "const": true
+                                            }
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                "else": {
+                                  "properties": {
+                                    "payload": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "maxProperties": 0
+                                    }
                                   }
                                 }
                               }
