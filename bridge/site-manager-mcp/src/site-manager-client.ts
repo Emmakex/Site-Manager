@@ -31,6 +31,9 @@ export type SiteManagerWriteResource =
   | 'write/content/featured-image/plan'
   | 'write/content/featured-image/apply'
   | 'write/content/featured-image/rollback'
+  | 'write/content/image-alt/plan'
+  | 'write/content/image-alt/apply'
+  | 'write/content/image-alt/rollback'
   | 'write/navigation/plan'
   | 'write/navigation/apply'
   | 'write/navigation/rollback'
@@ -197,6 +200,16 @@ export class SiteManagerClient {
 
   public async themeUpdateRollback(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
     return this.request('write/theme/rollback', 'POST', input);
+  }
+
+  public async imageAltPlan(input: {attachment_id: number; parent_id: number; alt: string; reason?: string}): Promise<unknown> {
+    return this.request('write/content/image-alt/plan', 'POST', input);
+  }
+  public async imageAltApply(input: {plan_id: string; confirmed: boolean}): Promise<unknown> {
+    return this.request('write/content/image-alt/apply', 'POST', input);
+  }
+  public async imageAltRollback(input: {plan_id: string; confirmed: boolean}): Promise<unknown> {
+    return this.request('write/content/image-alt/rollback', 'POST', input);
   }
 
   public async featuredImagePlan(input: {post_id: number; attachment_id: number; reason?: string}): Promise<unknown> {
