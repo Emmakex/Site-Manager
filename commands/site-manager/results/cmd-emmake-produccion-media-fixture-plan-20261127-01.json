@@ -1,0 +1,35 @@
+{
+  "action": "content.image_upload",
+  "command_id": "cmd-emmake-produccion-media-fixture-plan-20261127-01",
+  "command_sha256": "c6b797c713ef8e50dd5aae05670753b3794f2e352b16beae96552d550d9d0982",
+  "data": {
+    "byte_validation_pending": true,
+    "expires_at": "2026-11-27T17:48:03+00:00",
+    "manifest": {
+      "bytes": 837,
+      "filename": "media-fixture.png",
+      "height": 200,
+      "mime": "image/png",
+      "sha256": "22f371e35eb46fb8a0ffdf27270ac2c4ebe4721a22f53c818d7f971a3af31101",
+      "width": 320
+    },
+    "parent_id": 54410,
+    "plan_id": "sm-plan-e2ccf1f2c1a5aab07e9198de",
+    "public_url_possible": true,
+    "rollback_available": false,
+    "source": {
+      "artifact_id": 15218769438,
+      "commit_sha": "dea228570ef092130c126bc7bf7395a2afa03938",
+      "run_id": 46040410805
+    },
+    "stage": "plan",
+    "status": "planned"
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "content.write",
+  "site": "emmake-produccion",
+  "stage": "plan",
+  "status": "success",
+  "verified": false,
+  "version": "1"
+}
