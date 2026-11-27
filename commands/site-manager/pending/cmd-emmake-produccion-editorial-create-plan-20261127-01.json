@@ -1,0 +1,18 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-produccion-editorial-create-plan-20261127-01",
+  "site": "emmake-produccion",
+  "action": "content.create",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_type": "post",
+    "fields": {
+      "title": "Automatización con IA para pymes: cómo empezar y medir el retorno",
+      "slug": "automatizacion-ia-pymes-como-empezar-medir-retorno",
+      "excerpt": "Descubre cómo automatizar procesos de tu pyme con inteligencia artificial, seleccionar un primer proyecto y medir su rentabilidad con indicadores concretos.",
+      "content": "<p>La automatización con inteligencia artificial permite a una pyme reducir tareas repetitivas y dedicar más tiempo a sus clientes. El punto de partida no es elegir una herramienta, sino identificar un proceso que pueda mejorar de forma medible.</p>\n<h2>Qué procesos conviene automatizar primero</h2>\n<p>Prioriza actividades frecuentes, con reglas claras y datos disponibles. La clasificación de consultas comerciales, la preparación de informes y la organización de solicitudes de clientes son buenos candidatos cuando existe un procedimiento definido.</p>\n<ul><li>Registra el tiempo que dedica el equipo a cada tarea.</li><li>Identifica errores recurrentes y esperas innecesarias.</li><li>Comprueba qué datos y sistemas intervienen en el proceso.</li><li>Define qué decisiones requieren revisión humana.</li></ul>\n<h2>Un piloto de automatización en cuatro pasos</h2>\n<ol><li><strong>Diagnóstico:</strong> selecciona un proceso concreto y documenta su funcionamiento actual.</li><li><strong>Diseño:</strong> establece entradas, reglas, resultados esperados y límites de actuación.</li><li><strong>Prueba:</strong> utiliza datos de ensayo o un conjunto controlado de casos, sin sustituir el procedimiento habitual hasta comprobar los resultados.</li><li><strong>Evaluación:</strong> compara los tiempos, los errores y la calidad del servicio antes de ampliar el alcance.</li></ol>\n<h2>Cómo calcular el retorno de la automatización</h2>\n<p>Una forma sencilla de estimar el ahorro mensual es multiplicar las horas realmente recuperadas por el coste laboral por hora y restar los costes recurrentes de la solución. Conviene distinguir el tiempo liberado del ahorro monetario efectivo: disponer de más capacidad no implica necesariamente reducir gastos.</p>\n<p>Por ejemplo, si un proceso libera 20 horas al mes, valoradas en 25 euros por hora, y la solución cuesta 150 euros mensuales, el valor neto estimado de esa capacidad es de 350 euros al mes, antes de considerar la inversión inicial, la supervisión y otros costes. Es un supuesto ilustrativo, no una garantía de rentabilidad.</p>\n<h2>Qué riesgos debes controlar</h2>\n<p>Limita el acceso a los datos necesarios, protege la información personal y establece una revisión humana para respuestas sensibles, decisiones comerciales relevantes y errores del sistema. Documenta cómo detener o revertir la automatización cuando no cumpla los criterios establecidos.</p>\n<h2>De un piloto a una estrategia digital</h2>\n<p>Una vez validado el primer proceso, puedes integrar otras tareas con tus sistemas de gestión, marketing y analítica. La prioridad es construir mejoras mantenibles que respondan a objetivos empresariales concretos.</p>\n<p>En Emmake puedes explorar nuestros <a href=\"https://emmake.com/servicios/\">servicios de estrategia y transformación digital</a> o <a href=\"https://emmake.com/contacto/\">contactar con nosotros</a> para valorar qué procesos de tu negocio conviene mejorar primero.</p>"
+    },
+    "reason": "Prepare first useful Emmake editorial draft about practical AI automation, for explicit review before creation."
+  }
+}
