@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-produccion-servicios-seo-plan-20261127-01",
+  "site": "emmake-produccion",
+  "action": "seo.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_id": 54267,
+    "fields": {
+      "description": "Impulsa tu negocio con Emmake: estrategia y transformación digital, desarrollo de soluciones, automatización, marketing y analítica de datos."
+    },
+    "reason": "Improve the Services page search description to reflect its verified public content."
+  }
+}
