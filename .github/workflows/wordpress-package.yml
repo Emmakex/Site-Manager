@@ -10,6 +10,10 @@ on:
       - 'composer.json'
       - '.github/workflows/wordpress-package.yml'
   push:
+    branches: [main]
+    paths:
+      - 'wordpress-plugin/site-manager/site-manager.php'
+      - '.github/workflows/wordpress-package.yml'
     tags:
       - 'v*'
   workflow_dispatch:

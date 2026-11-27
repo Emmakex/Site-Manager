@@ -112,7 +112,8 @@ def extract_pinned_theme_zip(
         raise ThemePackageProvenanceError("invalid_expected_package_digest")
     if not isinstance(outer_artifact_bytes, bytes) or not (100 < len(outer_artifact_bytes) <= 25_000_000):
         raise ThemePackageProvenanceError("artifact_wrapper_size_limit")
-    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,79}\.zip", inner_name):
+    if not (re.fullmatch(r"[a-z0-9][a-z0-9-]{1,79}\.zip", inner_name)
+            or re.fullmatch(r"site-manager-[0-9]{1,9}\.[0-9]{1,9}\.[0-9]{1,9}\.zip", inner_name)):
         raise ThemePackageProvenanceError("invalid_inner_package_name")
     try:
         archive = zipfile.ZipFile(BytesIO(outer_artifact_bytes), "r")
