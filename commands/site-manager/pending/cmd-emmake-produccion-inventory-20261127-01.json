@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-produccion-inventory-20261127-01",
+  "site": "emmake-produccion",
+  "action": "site.content_targets",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
