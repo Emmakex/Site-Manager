@@ -1,0 +1,26 @@
+{
+  "action": "content.image_upload",
+  "command_id": "cmd-emmake-produccion-drive-webp-apply-20261127-01",
+  "command_sha256": "c1a12d79c1079c4f6afb53ac0a7a500263cb4ff53d3bef52951faf907f31662e",
+  "data": {
+    "attachment_id": 54413,
+    "height": 1024,
+    "mime": "image/webp",
+    "parent_id": 54410,
+    "plan_id": "sm-plan-ae0c2e9fea93690d4e285009",
+    "rollback_available": false,
+    "source_sha256": "94899e7897c10aa5b88203589fe265b03b85265d33d70c68b5256fec139135a9",
+    "stage": "apply",
+    "status": "verified",
+    "stored_sha256": "65e5c9baa6cd8294032eb68865bb7f1b690f63eab7ba1641563f039320ef1470",
+    "verified": true,
+    "width": 1536
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "content.write",
+  "site": "emmake-produccion",
+  "stage": "apply",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
