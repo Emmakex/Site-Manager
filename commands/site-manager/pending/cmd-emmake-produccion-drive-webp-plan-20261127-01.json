@@ -1,0 +1,22 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-produccion-drive-webp-plan-20261127-01",
+  "site": "emmake-produccion",
+  "action": "content.image_upload",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "parent_id": 54410,
+    "manifest": {
+      "filename": "site-manager-drive-test-optimized.webp",
+      "mime": "image/webp",
+      "sha256": "94899e7897c10aa5b88203589fe265b03b85265d33d70c68b5256fec139135a9",
+      "bytes": 149736,
+      "width": 1536,
+      "height": 1024
+    },
+    "source": {
+      "provider": "google_drive"
+    }
+  }
+}
