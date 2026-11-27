@@ -92,7 +92,11 @@ jobs:
           set -euo pipefail
           result="commands/site-manager/results/cmd-bootstrap-${BOOTSTRAP_RUN_ID}.json"
           test -s "$result"
-          cp "$result" /tmp/site-manager-bootstrap-result.json
+          # Move the locally generated proof out of the checkout before checking
+          # the latest main for an already-persisted result with the same ID.
+          proof_tmp="$(mktemp)"
+          trap 'rm -f "$proof_tmp"' EXIT
+          mv "$result" "$proof_tmp"
           git fetch origin main
           git checkout -B main origin/main
           if [[ -e "$result" ]]; then
@@ -100,7 +104,7 @@ jobs:
             exit 1
           fi
           mkdir -p "$(dirname "$result")"
-          cp /tmp/site-manager-bootstrap-result.json "$result"
+          cp "$proof_tmp" "$result"
           git config user.name 'site-manager-bootstrap[bot]'
           git config user.email 'site-manager-bootstrap[bot]@users.noreply.github.com'
           git add "$result"
