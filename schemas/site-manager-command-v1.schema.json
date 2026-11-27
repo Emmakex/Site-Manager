@@ -1353,6 +1353,28 @@
                                                         "const": "google_drive"
                                                       }
                                                     }
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                      "provider",
+                                                      "optimization"
+                                                    ],
+                                                    "properties": {
+                                                      "provider": {
+                                                        "const": "google_drive"
+                                                      },
+                                                      "optimization": {
+                                                        "enum": [
+                                                          "hero_webp_v1",
+                                                          "featured_webp_v1",
+                                                          "interior_webp_v1",
+                                                          "card_webp_v1",
+                                                          "thumbnail_webp_v1"
+                                                        ]
+                                                      }
+                                                    }
                                                   }
                                                 ]
                                               }
@@ -1467,6 +1489,28 @@
                                                     "properties": {
                                                       "provider": {
                                                         "const": "google_drive"
+                                                      }
+                                                    }
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "required": [
+                                                      "provider",
+                                                      "optimization"
+                                                    ],
+                                                    "properties": {
+                                                      "provider": {
+                                                        "const": "google_drive"
+                                                      },
+                                                      "optimization": {
+                                                        "enum": [
+                                                          "hero_webp_v1",
+                                                          "featured_webp_v1",
+                                                          "interior_webp_v1",
+                                                          "card_webp_v1",
+                                                          "thumbnail_webp_v1"
+                                                        ]
                                                       }
                                                     }
                                                   }
