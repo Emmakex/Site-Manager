@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.12.2
+Stable tag: 0.12.3
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -57,7 +57,7 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 
 == Installation ==
 
-1. Upload the official `site-manager-0.12.2.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.12.3.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review Site Manager > Dashboard and Site Manager > Diagnostics.
@@ -67,6 +67,12 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 8. When remote access is required, generate a scoped token and copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.12.3 =
+* Adds bounded public image discovery, governed native featured image assignment and explicit shared attachment ALT updates, with verification and guarded rollback.
+* Adds manifest-only image upload planning and separately confirmed exact-byte upload for editable drafts, limited to JPEG, PNG and WebP (2 MB, 4096 pixels per side, 12 megapixels). Requires GD raster validation; verifies the re-encoded native attachment and stored digest.
+* Image upload cannot automatically roll back by deleting an attachment; uncertain operations require reconciliation. A media URL may be public even when its parent is a draft.
+* The Gateway supports a pinned, synthetic-only CI artifact source. Direct ChatGPT attachment intake and production multimedia acceptance remain pending. No new scopes, theme dependency or publication authorization.
 
 = 0.12.2 =
 * Adds governed native post/page draft creation through separate content.create plan/apply/verify/rollback routes under the existing content.write scope.
