@@ -38,7 +38,8 @@ PACKAGE = {
     "source_artifact_id":789,
 }
 
-state = {"connection_reads":0,"package_plans":0,"package_size":0,"valid_source":False}
+IMAGE = {"plan_id":"sm-plan-"+"e"*24,"confirmed":True,"image_base64":"QUJD"*657790}
+state = {"connection_reads":0,"package_plans":0,"package_size":0,"valid_source":False,"image_calls":0,"image_bytes":0,"refuse_image":False}
 
 
 class DisposableWordPress(BaseHTTPRequestHandler):
@@ -69,11 +70,25 @@ class DisposableWordPress(BaseHTTPRequestHandler):
         self.send_json(200,{"data":{
             "connection_id":CONNECTION,
             "enabled":True,
-            "scopes":["site.read","theme.package.write"],
+            "scopes":["site.read","theme.package.write","content.write"],
         }})
 
     def do_POST(self) -> None:
         if not self.authenticated():
+            return
+        if self.path == "/wp-json/site-manager/v1/write/content/image-upload/apply":
+            length=int(self.headers.get("content-length","0"))
+            if not 2_600_000 < length < 2_700_000:
+                self.send_json(413,{"error":{"code":"wrong_image_size"}})
+                return
+            body=json.loads(self.rfile.read(length))
+            assert body == IMAGE
+            state["image_calls"] += 1
+            state["image_bytes"] = length
+            if state["refuse_image"]:
+                self.send_json(413,{"error":{"code":"private_fixture_error_not_for_gateway"}})
+                return
+            self.send_json(200,{"data":{"stage":"apply","status":"verified","verified":True}})
             return
         if self.path != "/wp-json/site-manager/v1/write/theme/package/plan":
             self.send_json(404,{"error":{"code":"not_found"}})
@@ -175,6 +190,20 @@ try:
     print("REAL_MCP_LARGE_THEME_PLAN=PASSED")
     print(f"REAL_MCP_PACKAGE_BYTES={state['package_size']}")
     print("REAL_MCP_FIXED_TOOL_AND_BEARER=VERIFIED")
+    from site_manager_theme_large_mcp import ThemePackageMcpTransportError
+    client=ThemePackageMcpPlanClient(f"http://127.0.0.1:{node_port}/mcp",TOKEN)
+    assert client.apply_reviewed_image(IMAGE)["verified"] is True
+    assert state["image_calls"] == 1
+    print(f"REAL_MCP_LARGE_IMAGE_BYTES={state['image_bytes']}")
+    state["refuse_image"]=True
+    try:
+        client.apply_reviewed_image(IMAGE)
+    except ThemePackageMcpTransportError as exc:
+        assert str(exc)=="image_upstream_http_413", str(exc)
+    else:
+        raise AssertionError("Refused image was reported as verified")
+    assert state["image_calls"] == 2, "Unexpected automatic retry"
+    print("REAL_MCP_LARGE_IMAGE_AND_SANITIZED_ERROR=PASSED")
 finally:
     process.terminate()
     try:

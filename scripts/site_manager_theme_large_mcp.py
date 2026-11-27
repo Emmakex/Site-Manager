@@ -13,6 +13,7 @@ import json
 import re
 from typing import Any, Callable, Mapping
 from urllib.parse import urlparse
+from urllib.error import HTTPError
 from urllib.request import Request, HTTPRedirectHandler, build_opener
 
 MAX_TOOL_REQUEST_BYTES = 28_000_000
@@ -42,6 +43,11 @@ def _wire(url: str, headers: Mapping[str, str], body: bytes) -> tuple[int, dict[
             return int(response.status), dict(response.headers.items()), raw
     except ThemePackageMcpTransportError:
         raise
+    except HTTPError as exc:
+        # Fixed HTTP status only, no response body or URL.
+        if 400 <= exc.code <= 599:
+            raise ThemePackageMcpTransportError(f"mcp_http_{exc.code}") from None
+        raise ThemePackageMcpTransportError("theme_package_mcp_transport_failed") from None
     except Exception as exc:
         # Never persist bearer, package bytes, header contents or URL.
         raise ThemePackageMcpTransportError("theme_package_mcp_transport_failed") from exc
@@ -164,6 +170,10 @@ class ThemePackageMcpPlanClient:
         status, response_headers, raw = self._post(headers, args)
         result = _decoded(status, response_headers, raw, 2)
         if result.get("isError") is True:
+            structured_error = result.get("structuredContent")
+            code = structured_error.get("error_code") if isinstance(structured_error, dict) else None
+            if tool == "image_upload_apply" and isinstance(code,str) and re.fullmatch(r"image_upstream_(?:timeout|unconfirmed|http_[45][0-9]{2})",code):
+                raise ThemePackageMcpTransportError(code)
             raise ThemePackageMcpTransportError("theme_package_mcp_tool_refused")
         structured = result.get("structuredContent")
         if not isinstance(structured, dict) or not isinstance(structured.get("data"), dict):
