@@ -7,6 +7,7 @@ import re
 from typing import Any
 
 from site_manager_image_artifact import fetch_image,validate_manifest,validate_source,ImageArtifactError
+from site_manager_image_artifact_drive import fetch_configured_drive_image
 from site_manager_theme_large_mcp import ThemePackageMcpPlanClient
 
 def validate_payload(payload: Any) -> None:
@@ -26,7 +27,13 @@ def validate_payload(payload: Any) -> None:
     else:
         raise ImageArtifactError("invalid_image_upload_stage")
     validate_manifest(payload["manifest"])
-    validate_source(payload["source"])
+    if payload["source"] != {"provider":"google_drive"}:
+        validate_source(payload["source"])
+
+def fetch_approved_image(source: dict[str,Any],manifest: dict[str,Any],github_token: str) -> bytes:
+    if source == {"provider":"google_drive"}:
+        return fetch_configured_drive_image(manifest)
+    return fetch_image(source,manifest,github_token)
 
 def verify_plan(data: Any,payload: dict[str,Any]) -> dict[str,Any]:
     validate_payload(payload)
@@ -78,7 +85,7 @@ def apply_image(payload: dict[str,Any],approved: dict[str,Any],*,github_token: s
         raise ImageArtifactError("image_upload_prior_plan_missing")
     if any(approved.get(k)!=payload[k] for k in ("plan_id","parent_id","manifest","source")):
         raise ImageArtifactError("image_upload_prior_plan_mismatch")
-    image=fetch_image(payload["source"],payload["manifest"],github_token)
+    image=fetch_approved_image(payload["source"],payload["manifest"],github_token)
     # Bytes never enter argv, the result, or the Git repository.
     result=ThemePackageMcpPlanClient(mcp_url,site_token).apply_reviewed_image({
         "plan_id":payload["plan_id"],"confirmed":True,"image_base64":base64.b64encode(image).decode("ascii")})
