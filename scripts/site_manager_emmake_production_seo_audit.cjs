@@ -66,7 +66,7 @@ async function request(route){
 }
 function selfTest(){
   assert.equal(ROUTES.length,10);assert.equal(new Set([...ROUTES,...DISCOVERY]).size,14);
-  assert([...ROUTES,...DISCOVERY].every(r=>/^\/[a-z0-9/.-]*$/.test(r)));
+  assert([...ROUTES,...DISCOVERY].every(r=>/^\/[a-z0-9/._-]*$/.test(r)));
   const html='<title>Servicios</title><meta name="description" content="'+APPROVED.replace('ó','&#243;')+'"><link rel="canonical" href="'+ORIGIN+'/servicios/"><h1>Servicios</h1>';
   const good=inspectHtml(html,'/servicios/','');assert(good.approved_description_exact&&good.canonical_exact&&!good.noindex&&good.h1_count===1);
   assert(!inspectHtml(html.replace('Impulsa','Otro'),'/servicios/','').approved_description_exact);
