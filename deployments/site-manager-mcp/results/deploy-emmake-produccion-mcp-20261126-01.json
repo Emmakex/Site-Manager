@@ -1,0 +1,20 @@
+{
+  "action": "deploy",
+  "deployment_id": "deploy-emmake-produccion-mcp-20261126-01",
+  "error": {
+    "code": "validation_failed",
+    "message": "The protected deployment configuration did not satisfy the bounded contract."
+  },
+  "image_ref": "ghcr.io/emmakex/site-manager-mcp@sha256:69686458e63df31ae1d2503de5140a717486347c26c3c886608ffd6895f92cf6",
+  "public_acceptance": "not_run",
+  "request_sha256": "55e033b9c725fd6ea86b0fedff361fa509d0fc5d559e96e2f7f80c745b5988bd",
+  "rollback": {
+    "attempted": false,
+    "succeeded": null
+  },
+  "site": "emmake-produccion",
+  "status": "failed",
+  "verified": false,
+  "version": "1",
+  "workflow_run_id": "46007942097"
+}
