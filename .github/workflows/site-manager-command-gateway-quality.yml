@@ -17,6 +17,8 @@ on:
       - 'scripts/site_manager_theme_release_download.py'
       - 'scripts/site_manager_theme_large_mcp.py'
       - 'scripts/site_manager_image_artifact*.py'
+      - 'scripts/site_manager_plugin_release_download.py'
+      - 'tests/site_manager_plugin_release_download_test.py'
       - 'tests/site_manager_image_artifact_test.py'
       - 'tests/site_manager_image_artifact_optimize_test.py'
       - 'tests/site_manager_image_artifact_drive_test.py'
@@ -55,6 +57,8 @@ on:
       - 'scripts/site_manager_theme_release_download.py'
       - 'scripts/site_manager_theme_large_mcp.py'
       - 'scripts/site_manager_image_artifact*.py'
+      - 'scripts/site_manager_plugin_release_download.py'
+      - 'tests/site_manager_plugin_release_download_test.py'
       - 'tests/site_manager_image_artifact_test.py'
       - 'tests/site_manager_image_artifact_optimize_test.py'
       - 'tests/site_manager_image_artifact_drive_test.py'
@@ -98,6 +102,9 @@ jobs:
 
       - name: Gateway static contract
         run: python3 tests/site_manager_command_gateway_test.py
+
+      - name: Official Site Manager plugin release source safety
+        run: python3 tests/site_manager_plugin_release_download_test.py
 
       - name: Official Theme release fetch safety
         run: python3 tests/site_manager_theme_release_downloader_test.py
