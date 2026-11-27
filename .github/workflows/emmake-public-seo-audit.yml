@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'scripts/site_manager_emmake_public_seo_audit.cjs'
+      - 'scripts/site_manager_emmake_production_seo_audit.cjs'
       - '.github/workflows/emmake-public-seo-audit.yml'
 
 permissions:
@@ -26,5 +27,25 @@ jobs:
         with:
           name: emmake-public-seo-11-pages
           path: artifacts/emmake-seo/public-pages-seo.json
+          retention-days: 7
+          if-no-files-found: error
+
+  production-seo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify fixed-origin production contract
+        run: node scripts/site_manager_emmake_production_seo_audit.cjs --self-test
+      - name: Read public production SEO and discovery outputs
+        run: node scripts/site_manager_emmake_production_seo_audit.cjs --run
+      - name: Preserve bounded production evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-production-public-seo
+          path: artifacts/emmake-seo/production-public-seo.json
           retention-days: 7
           if-no-files-found: error
