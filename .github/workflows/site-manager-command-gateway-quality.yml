@@ -16,6 +16,9 @@ on:
       - 'scripts/site_manager_theme_model.py'
       - 'scripts/site_manager_theme_release_download.py'
       - 'scripts/site_manager_theme_large_mcp.py'
+      - 'scripts/site_manager_image_artifact*.py'
+      - 'tests/site_manager_image_artifact_test.py'
+      - '.github/workflows/site-manager-media-artifact.yml'
       - 'scripts/site_manager_theme_package_gateway.py'
       - 'scripts/site_manager_theme_package_evidence.py'
       - 'tests/site_manager_theme_package_gateway_test.py'
@@ -49,6 +52,9 @@ on:
       - 'scripts/site_manager_theme_model.py'
       - 'scripts/site_manager_theme_release_download.py'
       - 'scripts/site_manager_theme_large_mcp.py'
+      - 'scripts/site_manager_image_artifact*.py'
+      - 'tests/site_manager_image_artifact_test.py'
+      - '.github/workflows/site-manager-media-artifact.yml'
       - 'scripts/site_manager_theme_package_gateway.py'
       - 'scripts/site_manager_theme_package_evidence.py'
       - 'tests/site_manager_theme_package_gateway_test.py'
@@ -91,6 +97,9 @@ jobs:
 
       - name: Official Theme release fetch safety
         run: python3 tests/site_manager_theme_release_downloader_test.py
+
+      - name: Bounded image artifact and verified upload contract
+        run: python3 tests/site_manager_image_artifact_test.py
 
       - name: Large Theme MCP request safety
         run: python3 tests/site_manager_theme_large_mcp_test.py
