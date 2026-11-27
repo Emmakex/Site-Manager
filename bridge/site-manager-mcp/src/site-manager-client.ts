@@ -34,6 +34,8 @@ export type SiteManagerWriteResource =
   | 'write/content/image-alt/plan'
   | 'write/content/image-alt/apply'
   | 'write/content/image-alt/rollback'
+  | 'write/content/image-upload/plan'
+  | 'write/content/image-upload/apply'
   | 'write/navigation/plan'
   | 'write/navigation/apply'
   | 'write/navigation/rollback'
@@ -200,6 +202,16 @@ export class SiteManagerClient {
 
   public async themeUpdateRollback(input: { plan_id: string; confirmed: boolean }): Promise<unknown> {
     return this.request('write/theme/rollback', 'POST', input);
+  }
+
+  public async imageUploadPlan(input: {parent_id: number; manifest: JsonRecord}): Promise<unknown> {
+    return this.request('write/content/image-upload/plan','POST',input);
+  }
+  public async imageUploadApply(input: {plan_id: string; confirmed: boolean; image_base64: string}): Promise<unknown> {
+    if (input.confirmed !== true || input.image_base64.length > 2666668) {
+      throw new SiteManagerClientError('Unapproved or oversized image upload.');
+    }
+    return this.request('write/content/image-upload/apply','POST',input);
   }
 
   public async imageAltPlan(input: {attachment_id: number; parent_id: number; alt: string; reason?: string}): Promise<unknown> {
