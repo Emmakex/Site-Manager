@@ -34,8 +34,10 @@ final class PluginPackageInstallEngine
         $id=bin2hex(random_bytes(16));
         $journal=['id'=>$id,'status'=>'preparing','before_tree'=>$beforeTree,'after_tree'=>$afterTree,'version'=>$version];
         if (! add_option(self::JOURNAL,$journal,'',false)) { throw new DomainException('plugin_update_reconciliation_required'); }
+        $archiveLock=null;
         try {
             $backup=$store->capture($root,$current,$beforeTree);
+            $archiveLock=$this->lockArchive($backup['path']);
             $journal['backup']=$backup;
             $journal['status']='installing';
             $this->persist($journal);
@@ -57,6 +59,8 @@ final class PluginPackageInstallEngine
         } catch (\Throwable) {
             // The retained journal is authoritative; do not erase it on error.
             return ['status'=>'recovery_required','verified'=>false,'operation_id'=>$id];
+        } finally {
+            if (is_resource($archiveLock)) { fclose($archiveLock); }
         }
     }
 
@@ -83,9 +87,10 @@ final class PluginPackageInstallEngine
             && $store->fingerprint($root)['tree_sha256']!==$journal['after_tree']) {
             throw new DomainException('plugin_update_rollback_drift');
         }
-        $lock='site_manager_self_update_restore_lock';
-        if (! add_option($lock,$operationId,'',false)) { throw new DomainException('plugin_update_reconciliation_required'); }
+        $archiveLock=$this->lockArchive($backup['path']);
         try {
+            if (get_option(self::JOURNAL)!==$journal) { throw new DomainException('plugin_update_reconciliation_required'); }
+            $store->verify($backup);
             if (! $this->install($backup['path']) || $store->fingerprint($root)['tree_sha256']!==$backup['tree_sha256']
                 || $this->installedVersion($root)!==$backup['version'] || ! is_plugin_active(self::PLUGIN)) {
                 return ['status'=>'manual_recovery_required','verified'=>false];
@@ -97,7 +102,7 @@ final class PluginPackageInstallEngine
             return ['status'=>'manual_recovery_required','verified'=>false];
         } finally {
             // Retain journal and archive for subsequent fresh runtime readback.
-            delete_option($lock);
+            fclose($archiveLock);
         }
     }
 
@@ -137,6 +142,17 @@ final class PluginPackageInstallEngine
         if (get_option(self::JOURNAL)!==$journal) {
             throw new DomainException('plugin_update_journal_unavailable');
         }
+    }
+
+    /** Kernel lock on the private recovery archive; released if PHP terminates. */
+    private function lockArchive(string $path)
+    {
+        $handle=fopen($path,'rb');
+        if ($handle===false || ! flock($handle,LOCK_EX|LOCK_NB)) {
+            if (is_resource($handle)) { fclose($handle); }
+            throw new DomainException('plugin_update_reconciliation_required');
+        }
+        return $handle;
     }
 
     private function install(string $trustedLocalZip): bool
