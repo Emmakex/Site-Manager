@@ -1,0 +1,17 @@
+{
+  "action": "deploy",
+  "deployment_id": "deploy-emmake-produccion-mcp-20261127-07",
+  "error": null,
+  "image_ref": "ghcr.io/emmakex/site-manager-mcp@sha256:35dbc32f88023204f5eb868cfa017aa3291c69d0d04665df34df935d4b08f2bc",
+  "public_acceptance": "passed",
+  "request_sha256": "4914f6a109426b3d3abaf55462f2a14b205e177728dabfea31c5907dae18999f",
+  "rollback": {
+    "attempted": false,
+    "succeeded": null
+  },
+  "site": "emmake-produccion",
+  "status": "success",
+  "verified": true,
+  "version": "1",
+  "workflow_run_id": "46035048331"
+}
