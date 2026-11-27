@@ -100,11 +100,18 @@ status(callImages(1001,$token),400,'oversized page rejected');
 // This test runs local REST dispatch, not a network request or TLS simulation.
 $originalHome = (string) get_option('home');
 $originalSite = (string) get_option('siteurl');
+$originalUploadUrl = get_option('upload_url_path', '');
+$originalUploadBase = wp_get_upload_dir()['baseurl'];
 check($originalHome === 'http://localhost:8088' && $originalSite === 'http://localhost:8088','expected disposable loopback identity');
 status(callImages(1,$token),503,'insecure site identity rejected');
 update_option('home','https://localhost:8088');
 update_option('siteurl','https://localhost:8088');
+// WP_CONTENT_URL is a bootstrap constant, so changing siteurl alone does
+// not change the default upload URL in this same PHP process.
+check(is_string($originalUploadBase) && str_starts_with($originalUploadBase,'http://localhost:8088/'),'expected loopback upload origin');
+update_option('upload_url_path', 'https://'.substr($originalUploadBase,strlen('http://')));
 wp_upload_dir(null,false,true);
+check(str_starts_with((string) wp_get_attachment_url($publicImage),'https://localhost:8088/'),'fixture attachment has HTTPS origin');
 $inventory = status(callImages(1,$token),200,'read actual public images');
 check(($inventory['sample_only'] ?? false)===true && ($inventory['private_values_included'] ?? true)===false,'truthful bounded sample');
 $ids = array_column($inventory['items'],'attachment_id');
@@ -124,6 +131,8 @@ check(!in_array($publicImage,array_column($foreignInventory['items'],'attachment
 remove_filter('wp_get_attachment_url',$foreignUrl,10);
 update_option('home',$originalHome);
 update_option('siteurl',$originalSite);
+update_option('upload_url_path',$originalUploadUrl);
+wp_upload_dir(null,false,true);
 echo "DISPOSABLE_WP_PUBLIC_IMAGE_INVENTORY=PASSED\n";
 // Shared ALT is a distinct, explicitly approved operation.
 function callAlt(string $stage, array $params, string $token): WP_REST_Response
