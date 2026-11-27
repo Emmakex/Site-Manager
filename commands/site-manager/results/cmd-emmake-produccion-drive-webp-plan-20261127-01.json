@@ -1,0 +1,33 @@
+{
+  "action": "content.image_upload",
+  "command_id": "cmd-emmake-produccion-drive-webp-plan-20261127-01",
+  "command_sha256": "076844872163cc52560c34ebd501628929ae6d3d0b5eb0b6702e7ad57a04e254",
+  "data": {
+    "byte_validation_pending": true,
+    "expires_at": "2026-11-27T20:04:12+00:00",
+    "manifest": {
+      "bytes": 149736,
+      "filename": "site-manager-drive-test-optimized.webp",
+      "height": 1024,
+      "mime": "image/webp",
+      "sha256": "94899e7897c10aa5b88203589fe265b03b85265d33d70c68b5256fec139135a9",
+      "width": 1536
+    },
+    "parent_id": 54410,
+    "plan_id": "sm-plan-ae0c2e9fea93690d4e285009",
+    "public_url_possible": true,
+    "rollback_available": false,
+    "source": {
+      "provider": "google_drive"
+    },
+    "stage": "plan",
+    "status": "planned"
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "content.write",
+  "site": "emmake-produccion",
+  "stage": "plan",
+  "status": "success",
+  "verified": false,
+  "version": "1"
+}
