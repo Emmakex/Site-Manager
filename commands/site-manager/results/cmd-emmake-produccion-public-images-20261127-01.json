@@ -1,0 +1,43 @@
+{
+  "action": "site.public_images",
+  "command_id": "cmd-emmake-produccion-public-images-20261127-01",
+  "command_sha256": "3564a45a991e0479cfe30f578d2c3e46410b9264b522d8531ea73a12909166c6",
+  "data": {
+    "has_more": true,
+    "items": [
+      {
+        "alt": "Innovación Digital: Estrategias Creativas Online",
+        "attachment_id": 53914,
+        "height": 808,
+        "mime": "image/jpeg",
+        "parent_id": 53913,
+        "title": "innovacion-digital-estrategias-creativas-online.jpg",
+        "url": "https://emmake.com/wp-content/uploads/2026/04/53913-innovacion-digital-estrategias-creativas-online.jpg",
+        "width": 1280
+      },
+      {
+        "alt": "Domina el Arte de la Mercadotecnia Online",
+        "attachment_id": 53910,
+        "height": 850,
+        "mime": "image/jpeg",
+        "parent_id": 53909,
+        "title": "domina-el-arte-de-la-mercadotecnia-online.jpg",
+        "url": "https://emmake.com/wp-content/uploads/2026/04/53909-domina-el-arte-de-la-mercadotecnia-online.jpg",
+        "width": 1280
+      }
+    ],
+    "page": 1,
+    "page_size": 30,
+    "private_values_included": false,
+    "sample_only": true,
+    "site_url": "https://emmake.com/",
+    "source": "wordpress-native-public-image-sample"
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "site.read",
+  "site": "emmake-produccion",
+  "stage": "read",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
