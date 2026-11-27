@@ -136,6 +136,15 @@
       "tool": "site_public_images",
       "required_scope": "site.read",
       "read_only": true
+    },
+    "content.image_alt": {
+      "tools": {
+        "plan": "image_alt_plan",
+        "apply": "image_alt_apply",
+        "rollback": "image_alt_rollback"
+      },
+      "required_scope": "content.write",
+      "read_only": false
     }
   }
 }
