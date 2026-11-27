@@ -498,3 +498,22 @@ test('shared image ALT uses only fixed authenticated routes', async () => {
   assert.deepEqual(calls[1]?.body,{plan_id,confirmed:true});
   assert.ok(calls.every(x=>x.auth==='Bearer '+secret));
 });
+
+test('image upload separates manifest planning and confirmed byte transport', async () => {
+  const calls: Array<{path: string; body: unknown; auth: string | null}> = [];
+  const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const url = input instanceof URL ? input : new URL(String(input));
+    calls.push({path:url.pathname, body:JSON.parse(String(init?.body)), auth:new Headers(init?.headers).get('authorization')});
+    return new Response(JSON.stringify({data:{ok:true}}),{status:200});
+  }) as typeof fetch;
+  const client = new SiteManagerClient(baseConfig(),fakeFetch);
+  const manifest = {filename:'photo.png',mime:'image/png',sha256:'a'.repeat(64),bytes:3,width:1,height:1};
+  const plan_id = 'sm-plan-'+'a'.repeat(24);
+  await client.imageUploadPlan({parent_id:42,manifest});
+  await assert.rejects(()=>client.imageUploadApply({plan_id,confirmed:false,image_base64:'AAAA'}),/Unapproved/);
+  await client.imageUploadApply({plan_id,confirmed:true,image_base64:'AAAA'});
+  assert.deepEqual(calls.map(x=>x.path),['plan','apply'].map(x=>'/wp-json/site-manager/v1/write/content/image-upload/'+x));
+  assert.deepEqual(calls[0]?.body,{parent_id:42,manifest});
+  assert.deepEqual(calls[1]?.body,{plan_id,confirmed:true,image_base64:'AAAA'});
+  assert.ok(calls.every(x=>x.auth==='Bearer '+secret));
+});
