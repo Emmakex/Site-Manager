@@ -34,7 +34,7 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
+SUPPORTED_ACTIONS = {"content.create", "site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
 SEO_ACCEPTANCE_TOOLS = {"start": "seo_acceptance_start", "status": "seo_acceptance_status"}
 SEO_ACCEPTANCE_PROFILE = "mcp-seo-only"
 SEO_ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "seo_plan", "seo_apply_verify", "seo_rollback", "cleanup")
@@ -64,6 +64,8 @@ CONTENT_TOOLS = {
     "apply": "content_update_apply",
     "rollback": "content_update_rollback",
 }
+CREATE_TOOLS = {"plan": "content_create_plan", "apply": "content_create_apply", "rollback": "content_create_rollback"}
+CREATE_FIELDS = {"title": 512, "slug": 200, "content": 100_000, "excerpt": 4000}
 CONTENT_FIELD_LIMITS = {"title": 500, "slug": 200, "content": 200_000, "excerpt": 20_000, "status": 20}
 CONTENT_STATUSES = {"draft", "publish", "private", "pending"}
 EXPECTED_TOOLS = {
@@ -161,6 +163,10 @@ def validate_registry(registry: dict[str, Any]) -> None:
     if content["read_only"] is not False:
         raise CommandError("content.update cannot be marked read-only")
 
+    creation = actions.get("content.create")
+    if creation != {"tools": CREATE_TOOLS, "required_scope": "content.write", "read_only": False}:
+        raise CommandError("content.create must use the fixed draft lifecycle tools")
+
     acceptance = actions.get("content.acceptance")
     if not isinstance(acceptance, dict) or set(acceptance) != {"tools", "required_scope", "read_only"}:
         raise CommandError("content.acceptance must be a closed governed business action")
@@ -242,6 +248,8 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
             raise CommandError("read-only Site Manager commands require an empty payload object")
     elif action == "content.update":
         validate_content_payload(payload)
+    elif action == "content.create":
+        validate_create_payload(payload)
     elif action == "theme.update":
         validate_theme_payload(payload)
     elif action == "theme.bootstrap":
@@ -296,6 +304,36 @@ def validate_theme_package_payload(payload: dict[str, Any]) -> None:
             raise CommandError("Theme package plan ID is invalid")
     else:
         raise CommandError("Theme package stage is not authorized")
+
+
+def validate_create_payload(payload: dict[str, Any]) -> None:
+    stage = payload.get("stage")
+    if stage == "plan":
+        required = {"stage", "post_type", "fields"}
+        if not required <= set(payload) or set(payload) - (required | {"reason"}):
+            raise CommandError("draft plan requires only type and bounded fields")
+        if payload["post_type"] not in ("post", "page"):
+            raise CommandError("unsupported draft type")
+        fields = payload["fields"]
+        if not isinstance(fields, dict) or not {"title", "slug", "content"} <= set(fields) or set(fields) - CREATE_FIELDS.keys():
+            raise CommandError("draft fields are outside the allowlist")
+        for key, value in fields.items():
+            if not isinstance(value, str) or len(value.encode("utf-8")) > CREATE_FIELDS[key]:
+                raise CommandError("invalid bounded draft field")
+            if key != "excerpt" and not value.strip():
+                raise CommandError("empty required draft field")
+        if re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", fields["slug"]) is None:
+            raise CommandError("invalid explicit draft slug")
+        if "reason" in payload and (not isinstance(payload["reason"], str) or len(payload["reason"]) > 500):
+            raise CommandError("invalid draft reason")
+    elif stage in ("apply", "rollback"):
+        if (set(payload) != {"stage", "plan_id", "confirmed"}
+                or not isinstance(payload["plan_id"], str)
+                or re.fullmatch(r"sm-plan-[a-f0-9]{24}", payload["plan_id"]) is None
+                or payload["confirmed"] is not True):
+            raise CommandError("draft apply/rollback needs an exact confirmed plan")
+    else:
+        raise CommandError("unknown creation stage")
 
 
 def validate_content_payload(payload: dict[str, Any]) -> None:
@@ -752,6 +790,51 @@ class McpClient:
                         except json.JSONDecodeError:
                             continue
         raise TransportError(f"MCP tool {tool} returned no structured result")
+
+
+def verify_create_response(stage: str, data: Any, request: dict[str, Any]) -> bool:
+    if not isinstance(data, dict) or not isinstance(data.get("plan"), dict):
+        raise VerificationError("draft lifecycle lacks plan")
+    plan = data["plan"]
+    plan_id = plan.get("plan_id")
+    if (plan.get("operation") != "content.create" or plan.get("capability_id") != "content.write"
+            or not isinstance(plan_id, str) or re.fullmatch(r"sm-plan-[a-f0-9]{24}", plan_id) is None
+            or plan.get("reversible") is not True or plan.get("confirmation_required") is not True):
+        raise VerificationError("draft plan identity or authority mismatch")
+    if stage == "plan":
+        target = plan.get("target")
+        changes = data.get("changes")
+        after = changes.get("after") if isinstance(changes, dict) else None
+        fields = request["fields"]
+        expected = {"post_title": fields["title"], "post_name": fields["slug"],
+                    "post_content": fields["content"], "post_excerpt": fields.get("excerpt", ""),
+                    "post_status": "draft"}
+        if (plan.get("status") != "planned" or target != {"post_type": request["post_type"], "slug": fields["slug"]}
+                or after != expected or set(plan.get("fields", [])) != set(expected)):
+            raise VerificationError("draft preview differs from exact requested content; revise before confirmation")
+        return False
+    if plan_id != request["plan_id"]:
+        raise VerificationError("draft plan identity changed")
+    if stage == "apply":
+        ex = data.get("execution")
+        verification = data.get("verification")
+        ev = ex.get("data") if isinstance(ex, dict) else None
+        proof = verification.get("evidence") if isinstance(verification, dict) else None
+        if (data.get("status") != "verified" or plan.get("status") != "applied"
+                or not isinstance(ex, dict) or ex.get("success") is not True
+                or not isinstance(ev, dict) or type(ev.get("post_id")) is not int or ev["post_id"] < 1
+                or not isinstance(verification, dict) or verification.get("verified") is not True
+                or not isinstance(proof, dict) or proof.get("post_id") != ev["post_id"]):
+            raise VerificationError("draft creation lacks verified post identity")
+        return True
+    rollback = data.get("rollback")
+    proof = rollback.get("evidence") if isinstance(rollback, dict) else None
+    if (stage != "rollback" or data.get("status") != "rolled-back" or plan.get("status") != "rolled-back"
+            or not isinstance(rollback, dict) or rollback.get("success") is not True
+            or not isinstance(proof, dict) or proof.get("trashed") is not True
+            or type(proof.get("post_id")) is not int or proof["post_id"] < 1):
+        raise VerificationError("draft rollback lacks verified trash evidence")
+    return True
 
 
 def verify_content_response(stage: str, data: Any, request: dict[str, Any]) -> bool:
@@ -1378,6 +1461,14 @@ def execute(command_path: Path, result_dir: Path) -> int:
             elif stage == "read":
                 verified = True
                 sanitized = sanitize_value(data, token)
+            elif action_name == "content.create":
+                verified = verify_create_response(stage, data, command["payload"])
+                sanitized = sanitize_write_evidence(stage, data, token)
+                if stage == "apply":
+                    sanitized["created_post_id"] = data["execution"]["data"]["post_id"]
+                    sanitized["post_status"] = "draft"
+                elif stage == "rollback":
+                    sanitized["trashed_post_id"] = data["rollback"]["evidence"]["post_id"]
             elif action_name == "content.update":
                 verified = verify_content_response(stage, data, command["payload"])
                 sanitized = sanitize_write_evidence(stage, data, token)
@@ -1534,7 +1625,8 @@ def self_test() -> int:
                 "source_run_id", "source_artifact_id", "package_sha256"}
             or page_rule.get("if", {}).get("properties", {}).get("action", {}).get("const") != "site.content_page"
             or page_rule.get("then", {}).get("properties", {}).get("payload", {}).get("required") != ["post_type", "page"]
-            or page_rule.get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
+            or page_rule.get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "content.create"
+            or page_rule.get("else", {}).get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
         raise CommandError("theme package, bootstrap and bounded reads must preserve independent closed schemas")
 
     valid = {
@@ -1546,6 +1638,22 @@ def self_test() -> int:
         "payload": {},
     }
     validate_command(valid, registry)
+    draft = {**valid, "action": "content.create", "payload": {
+        "stage": "plan", "post_type": "post",
+        "fields": {"title": "Article", "slug": "article", "content": "<p>Body</p>"}}}
+    validate_command(draft, registry)
+    for bad in (
+        {**draft["payload"], "post_type": "attachment"},
+        {**draft["payload"], "fields": {**draft["payload"]["fields"], "status": "publish"}},
+        {**draft["payload"], "fields": {**draft["payload"]["fields"], "slug": "../path"}},
+        {"stage": "apply", "plan_id": "sm-plan-" + "a"*24, "confirmed": False},
+    ):
+        try:
+            validate_command({**draft, "payload": bad}, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("unsafe draft creation accepted")
     package_valid = {**valid, "action":"theme.package.deploy", "payload":{
         "stage":"plan", "theme_slug":"seo-geo-theme", "source_commit_sha":"a"*40,
         "source_run_id":12, "source_artifact_id":43, "package_sha256":"b"*64,
