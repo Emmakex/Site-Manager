@@ -1759,6 +1759,58 @@ def self_test() -> int:
         "payload": {},
     }
     validate_command(valid, registry)
+    media = {**valid, "action": "site.public_images", "payload": {"page": 1}}
+    validate_command(media, registry)
+    featured = {**valid, "action": "content.featured_image", "payload": {
+        "stage": "plan", "post_id": 42, "attachment_id": 43}}
+    validate_command(featured, registry)
+    for cmd in (
+        {**media, "payload": {"page": True}},
+        {**media, "payload": {"page": 1, "include_private": True}},
+        {**featured, "payload": {**featured["payload"], "url": "https://example.test/x.png"}},
+        {**featured, "payload": {**featured["payload"], "attachment_id": True}},
+        {**featured, "payload": {"stage": "apply", "plan_id": "sm-plan-"+"a"*24, "confirmed": False}},
+    ):
+        try:
+            validate_command(cmd, registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("unsafe media intent accepted")
+    image_sample = {"source":"wordpress-native-public-image-sample", "site_url":"https://example.test/",
+        "page":1,"page_size":30,"sample_only":True,"private_values_included":False,"has_more":False,
+        "items":[{"attachment_id":43,"parent_id":42,"title":"Photo","alt":"Desk","mime":"image/png",
+                  "width":100,"height":100,"url":"https://example.test/wp-content/uploads/photo.png"}]}
+    assert summarize_public_images(image_sample, 1)["items"][0]["attachment_id"] == 43
+    for bad_sample in (
+        {**image_sample,"private_values_included":True},
+        {**image_sample,"items":[{**image_sample["items"][0],"url":"https://foreign.test/photo.png"}]},
+    ):
+        try:
+            summarize_public_images(bad_sample, 1)
+        except VerificationError:
+            pass
+        else:
+            raise CommandError("unsafe image sample accepted")
+    fplan = {"plan_id":"sm-plan-"+"b"*24,"operation":"content.featured_image","capability_id":"content.write",
+        "target":{"post_id":42,"post_type":"post"},"fields":["featured_image_id"],"status":"planned",
+        "confirmation_required":True,"reversible":True}
+    fresponse = {"plan":fplan,"changes":{"before":{"featured_image_id":0},"after":{"featured_image_id":43}}}
+    assert verify_featured_response("plan", fresponse, featured["payload"]) is False
+    fapply = {"plan":{**fplan,"status":"applied"},"status":"verified",
+        "execution":{"success":True,"data":{"post_id":42,"featured_image_id":43}},
+        "verification":{"verified":True,"evidence":{"post_id":42,"featured_image_id":43}}}
+    assert verify_featured_response("apply",fapply,{"plan_id":fplan["plan_id"],"confirmed":True})
+    frollback = {"plan":{**fplan,"status":"rolled-back"},"status":"rolled-back",
+        "rollback":{"success":True,"evidence":{"post_id":42,"restored_featured_image_id":0}}}
+    assert verify_featured_response("rollback",frollback,{"plan_id":fplan["plan_id"],"confirmed":True})
+    try:
+        verify_featured_response("apply", {**fapply,"verification":{"verified":True,"evidence":{"post_id":42,"featured_image_id":44}}},
+            {"plan_id":fplan["plan_id"],"confirmed":True})
+    except VerificationError:
+        pass
+    else:
+        raise CommandError("inconsistent image evidence accepted")
     draft = {**valid, "action": "content.create", "payload": {
         "stage": "plan", "post_type": "post",
         "fields": {"title": "Article", "slug": "article", "content": "<p>Body</p>"}}}
