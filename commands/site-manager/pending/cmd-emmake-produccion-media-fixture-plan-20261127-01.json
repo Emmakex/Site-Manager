@@ -1,0 +1,24 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-produccion-media-fixture-plan-20261127-01",
+  "site": "emmake-produccion",
+  "action": "content.image_upload",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "parent_id": 54410,
+    "manifest": {
+      "filename": "media-fixture.png",
+      "mime": "image/png",
+      "sha256": "22f371e35eb46fb8a0ffdf27270ac2c4ebe4721a22f53c818d7f971a3af31101",
+      "bytes": 837,
+      "width": 320,
+      "height": 200
+    },
+    "source": {
+      "commit_sha": "dea228570ef092130c126bc7bf7395a2afa03938",
+      "run_id": 46040410805,
+      "artifact_id": 15218769438
+    }
+  }
+}
