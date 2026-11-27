@@ -1,0 +1,25 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-produccion-drive-image-apply-20261127-01",
+  "site": "emmake-produccion",
+  "action": "content.image_upload",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-8232f4ee3bdb3c8524ff1952",
+    "plan_command_id": "cmd-emmake-produccion-drive-image-plan-20261127-02",
+    "confirmed": true,
+    "parent_id": 54410,
+    "manifest": {
+      "bytes": 1973370,
+      "filename": "site-manager-drive-test.png",
+      "height": 1024,
+      "mime": "image/png",
+      "sha256": "3c2a8fb3cd1679f39f55d9d3b26138a9b8be4258356f65985cd6be10accc3168",
+      "width": 1536
+    },
+    "source": {
+      "provider": "google_drive"
+    }
+  }
+}
