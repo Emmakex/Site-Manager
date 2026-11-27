@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "deployment_id": "deploy-emmake-produccion-mcp-20261127-08",
+  "site": "emmake-produccion",
+  "action": "deploy",
+  "image_ref": "ghcr.io/emmakex/site-manager-mcp@sha256:d8a988bb42d0da2685965797d6227162f2d969fc54301072bf2a77ce086bbf6b",
+  "requested_by": "chatgpt"
+}
