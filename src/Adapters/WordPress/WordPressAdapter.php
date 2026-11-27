@@ -48,6 +48,17 @@ final class WordPressAdapter implements PlatformAdapter
             }
         }
 
+        $featuredImageTypes = [];
+        foreach ((array) ($snapshot->inventory['content_types'] ?? []) as $type) {
+            $name = (string) ($type['name'] ?? '');
+            if (in_array($name, ['post','page'], true) && in_array('thumbnail', (array) ($type['supports'] ?? []), true)
+                && function_exists('current_theme_supports') && current_theme_supports('post-thumbnails', $name)) {
+                $featuredImageTypes[] = $name;
+            }
+        }
+        $contentOperations = ['content.update','content.create'];
+        if ([] !== $featuredImageTypes) { $contentOperations[] = 'content.featured_image'; }
+
         $navigationProviders = [];
         $navigationDetected = false;
         $navigationGovernable = false;
@@ -104,10 +115,10 @@ final class WordPressAdapter implements PlatformAdapter
                 $nativeContent,
                 $nativeContent,
                 $nativeContent,
-                ['content.update','content.create'],
+                $contentOperations,
                 ['content.write'],
                 $nativeContent ? [] : ['Native WordPress posts/pages were not detected.'],
-                ['owned_fields'=>['title','slug','content','excerpt','status'],'post_types'=>['post','page'],'confirmation'=>'explicit','reversible'=>true],
+                ['owned_fields'=>['title','slug','content','excerpt','status'],'post_types'=>['post','page'],'featured_image_post_types'=>$featuredImageTypes,'confirmation'=>'explicit','reversible'=>true],
             ),
             new Capability(
                 'navigation.write',
@@ -267,6 +278,9 @@ final class WordPressAdapter implements PlatformAdapter
         if ('content.write' === $request->capabilityId && 'content.create' === $request->operation) {
             return ($this->draftCreation ?? new DraftCreationService())->plan($request, $snapshot, $graph);
         }
+        if ('content.write' === $request->capabilityId && 'content.featured_image' === $request->operation) {
+            return (new FeaturedImageGovernanceService())->plan($request, $snapshot, $graph);
+        }
         if ('navigation.write' === $request->capabilityId && 'navigation.update' === $request->operation) {
             return $this->navigation()->plan($request, $snapshot, $graph);
         }
@@ -287,6 +301,9 @@ final class WordPressAdapter implements PlatformAdapter
         }
         if ('content.write' === $plan->request->capabilityId && 'content.create' === $plan->request->operation) {
             return ($this->draftCreation ?? new DraftCreationService())->apply($plan, $confirmed);
+        }
+        if ('content.write' === $plan->request->capabilityId && 'content.featured_image' === $plan->request->operation) {
+            return (new FeaturedImageGovernanceService())->apply($plan, $confirmed);
         }
         if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
             return $this->navigation()->apply($plan, $confirmed);
@@ -309,6 +326,9 @@ final class WordPressAdapter implements PlatformAdapter
         if ('content.write' === $plan->request->capabilityId && 'content.create' === $plan->request->operation) {
             return ($this->draftCreation ?? new DraftCreationService())->verify($plan, $result);
         }
+        if ('content.write' === $plan->request->capabilityId && 'content.featured_image' === $plan->request->operation) {
+            return (new FeaturedImageGovernanceService())->verify($plan, $result);
+        }
         if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
             return $this->navigation()->verify($plan, $result);
         }
@@ -329,6 +349,9 @@ final class WordPressAdapter implements PlatformAdapter
         }
         if ('content.write' === $plan->request->capabilityId && 'content.create' === $plan->request->operation) {
             return ($this->draftCreation ?? new DraftCreationService())->rollback($plan, $result, $confirmed);
+        }
+        if ('content.write' === $plan->request->capabilityId && 'content.featured_image' === $plan->request->operation) {
+            return (new FeaturedImageGovernanceService())->rollback($plan, $result, $confirmed);
         }
         if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
             return $this->navigation()->rollback($plan, $result, $confirmed);
