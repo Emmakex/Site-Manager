@@ -5,6 +5,10 @@ on:
     paths:
       - 'src/Adapters/WordPress/ThemePackage*.php'
       - 'src/Adapters/WordPress/*DraftCreation*.php'
+      - 'src/Adapters/WordPress/*FeaturedImage*.php'
+      - 'src/Adapters/WordPress/PublicImageInventory.php'
+      - 'src/Adapters/WordPress/RemoteAccess.php'
+      - 'tests/wordpress_featured_image_live_acceptance.php'
       - 'src/Adapters/WordPress/RemoteWriteAccess.php'
       - 'tests/wordpress_draft_creation_live_acceptance.php'
       - 'src/Adapters/WordPress/RemoteThemePackageAccess.php'
@@ -95,6 +99,14 @@ jobs:
           test -n "$container"
           docker cp tests/wordpress_draft_creation_live_acceptance.php "$container":/tmp/site-manager-draft-live-acceptance.php
           docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml exec -T --user www-data wordpress php /tmp/site-manager-draft-live-acceptance.php
+
+      - name: Exercise native WordPress featured image assignment and rollback
+        run: |
+          set -euo pipefail
+          container="$(docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml ps -q wordpress)"
+          test -n "$container"
+          docker cp tests/wordpress_featured_image_live_acceptance.php "$container":/tmp/site-manager-featured-image-live-acceptance.php
+          docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml exec -T --user www-data wordpress php /tmp/site-manager-featured-image-live-acceptance.php
 
       - name: Capture disposable WordPress failures
         if: failure()
