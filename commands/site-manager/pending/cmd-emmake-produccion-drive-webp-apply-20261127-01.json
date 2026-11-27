@@ -1,0 +1,25 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-produccion-drive-webp-apply-20261127-01",
+  "site": "emmake-produccion",
+  "action": "content.image_upload",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-ae0c2e9fea93690d4e285009",
+    "plan_command_id": "cmd-emmake-produccion-drive-webp-plan-20261127-01",
+    "confirmed": true,
+    "parent_id": 54410,
+    "manifest": {
+      "bytes": 149736,
+      "filename": "site-manager-drive-test-optimized.webp",
+      "height": 1024,
+      "mime": "image/webp",
+      "sha256": "94899e7897c10aa5b88203589fe265b03b85265d33d70c68b5256fec139135a9",
+      "width": 1536
+    },
+    "source": {
+      "provider": "google_drive"
+    }
+  }
+}
