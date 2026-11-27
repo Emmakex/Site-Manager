@@ -1,0 +1,14 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-produccion-media-fixture-alt-plan-20261127-01",
+  "site": "emmake-produccion",
+  "action": "content.image_alt",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "attachment_id": 54412,
+    "parent_id": 54410,
+    "alt": "Imagen sintética de prueba de transferencia multimedia de Site Manager",
+    "reason": "Verify native ALT governance on the newly created synthetic fixture only; no change to shared production images, no publication."
+  }
+}
