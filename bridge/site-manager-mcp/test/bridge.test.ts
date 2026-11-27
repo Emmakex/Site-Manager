@@ -453,3 +453,29 @@ test('draft lifecycle uses only fixed authenticated create routes', async () => 
   assert.deepEqual(calls[2]?.body, {plan_id, confirmed: true});
   assert.ok(calls.every(x=>x.auth === 'Bearer '+secret && x.method === 'POST'));
 });
+
+test('native image sample and featured image lifecycle use fixed routes', async () => {
+  const calls: Array<{url: string; method: string | undefined; body: unknown}> = [];
+  const fakeFetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const url = input instanceof URL ? input : new URL(String(input));
+    calls.push({url: url.pathname+url.search, method: init?.method,
+      body: typeof init?.body === 'string' ? JSON.parse(init.body) : null});
+    return new Response(JSON.stringify({data: {ok: true}}), {status: 200});
+  }) as typeof fetch;
+  const client = new SiteManagerClient(baseConfig(), fakeFetch);
+  await client.publicImages({page: 2});
+  await client.featuredImagePlan({post_id: 42, attachment_id: 43});
+  const plan_id = 'sm-plan-'+'a'.repeat(24);
+  await client.featuredImageApply({plan_id, confirmed: true});
+  await client.featuredImageRollback({plan_id, confirmed: true});
+  assert.deepEqual(calls.map(x=>x.url), [
+    '/wp-json/site-manager/v1/media/images?page=2',
+    '/wp-json/site-manager/v1/write/content/featured-image/plan',
+    '/wp-json/site-manager/v1/write/content/featured-image/apply',
+    '/wp-json/site-manager/v1/write/content/featured-image/rollback',
+  ]);
+  assert.equal(calls[0]?.method, 'GET');
+  assert.deepEqual(calls[1]?.body, {post_id:42, attachment_id:43});
+  assert.deepEqual(calls[2]?.body, {plan_id, confirmed:true});
+  await assert.rejects(()=>client.publicImages({page: 1001}), /Unsafe/);
+});
