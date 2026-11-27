@@ -34,7 +34,7 @@ SCHEMA_PATH = ROOT / "schemas" / "site-manager-command-v1.schema.json"
 DEFAULT_RESULT_DIR = ROOT / "commands" / "site-manager" / "results"
 COMMAND_ID_RE = re.compile(r"^cmd-[a-z0-9][a-z0-9-]{7,63}$")
 SITE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
-SUPPORTED_ACTIONS = {"content.featured_image", "site.public_images", "content.create", "site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
+SUPPORTED_ACTIONS = {"content.image_alt", "content.featured_image", "site.public_images", "content.create", "site.read", "site.diagnostics", "content.update", "content.acceptance", "navigation.update", "seo.update", "navigation.acceptance", "seo.acceptance", "site.overview", "site.content_targets", "site.content_page", "site.theme_model", "site.theme_package_state", "theme.update", "theme.bootstrap", "theme.package.deploy"}
 SEO_ACCEPTANCE_TOOLS = {"start": "seo_acceptance_start", "status": "seo_acceptance_status"}
 SEO_ACCEPTANCE_PROFILE = "mcp-seo-only"
 SEO_ACCEPTANCE_STEPS = ("precheck", "fixture_content_create", "seo_plan", "seo_apply_verify", "seo_rollback", "cleanup")
@@ -68,6 +68,7 @@ CREATE_TOOLS = {"plan": "content_create_plan", "apply": "content_create_apply", 
 CREATE_FIELDS = {"title": 512, "slug": 200, "content": 100_000, "excerpt": 4000}
 CONTENT_FIELD_LIMITS = {"title": 500, "slug": 200, "content": 200_000, "excerpt": 20_000, "status": 20}
 CONTENT_STATUSES = {"draft", "publish", "private", "pending"}
+ALT_TOOLS = {"plan": "image_alt_plan", "apply": "image_alt_apply", "rollback": "image_alt_rollback"}
 FEATURED_TOOLS = {"plan": "featured_image_plan", "apply": "featured_image_apply", "rollback": "featured_image_rollback"}
 EXPECTED_TOOLS = {
     "site.public_images": ("site_public_images", "site.read"),
@@ -165,6 +166,8 @@ def validate_registry(registry: dict[str, Any]) -> None:
     if content["read_only"] is not False:
         raise CommandError("content.update cannot be marked read-only")
 
+    if actions.get("content.image_alt") != {"tools": ALT_TOOLS, "required_scope": "content.write", "read_only": False}:
+        raise CommandError("image ALT must use fixed scoped tools")
     if actions.get("content.featured_image") != {"tools": FEATURED_TOOLS, "required_scope": "content.write", "read_only": False}:
         raise CommandError("featured image must use fixed scoped tools")
     creation = actions.get("content.create")
@@ -257,6 +260,8 @@ def validate_command(command: dict[str, Any], registry: dict[str, Any]) -> None:
         validate_content_payload(payload)
     elif action == "content.create":
         validate_create_payload(payload)
+    elif action == "content.image_alt":
+        validate_alt_payload(payload)
     elif action == "content.featured_image":
         validate_featured_payload(payload)
     elif action == "theme.update":
@@ -313,6 +318,23 @@ def validate_theme_package_payload(payload: dict[str, Any]) -> None:
             raise CommandError("Theme package plan ID is invalid")
     else:
         raise CommandError("Theme package stage is not authorized")
+
+
+def validate_alt_payload(payload: dict[str, Any]) -> None:
+    if payload.get("stage") != "plan":
+        validate_featured_payload(payload)
+        return
+    required = {"stage", "attachment_id", "parent_id", "alt"}
+    if not required <= set(payload) or set(payload) - (required | {"reason"}):
+        raise CommandError("ALT requires exact attachment and parent IDs")
+    if any(type(payload[k]) is not int or payload[k] < 1 for k in ("attachment_id", "parent_id")):
+        raise CommandError("invalid native ALT selector")
+    alt = payload["alt"]
+    if (not isinstance(alt, str) or len(alt.encode("utf-8")) > 800 or alt != alt.strip()
+            or re.search(r"[<>\x00-\x1f\x7f]", alt)):
+        raise CommandError("ALT must be bounded plain text")
+    if "reason" in payload and (not isinstance(payload["reason"], str) or len(payload["reason"].encode("utf-8")) > 500):
+        raise CommandError("invalid ALT reason")
 
 
 def validate_featured_payload(payload: dict[str, Any]) -> None:
@@ -848,6 +870,53 @@ def summarize_public_images(data: Any, requested_page: int) -> dict[str, Any]:
     return {"source": data["source"], "site_url": data["site_url"], "page": requested_page,
             "page_size": 30, "has_more": data["has_more"], "sample_only": True,
             "private_values_included": False, "items": safe}
+
+
+def verify_alt_response(stage: str, data: Any, request: dict[str, Any]) -> bool:
+    if not isinstance(data, dict) or not isinstance(data.get("plan"), dict):
+        raise VerificationError("ALT plan missing")
+    plan = data["plan"]
+    target = plan.get("target")
+    plan_id = plan.get("plan_id")
+    if (plan.get("operation") != "content.image_alt" or plan.get("capability_id") != "content.write"
+            or not isinstance(plan_id, str) or re.fullmatch(r"sm-plan-[a-f0-9]{24}", plan_id) is None
+            or plan.get("confirmation_required") is not True or plan.get("reversible") is not True
+            or not isinstance(target, dict) or set(target) != {"attachment_id", "parent_id", "post_type"}
+            or any(type(target[k]) is not int or target[k] < 1 for k in ("attachment_id", "parent_id"))
+            or target["post_type"] != "attachment" or plan.get("fields") != ["alt"]):
+        raise VerificationError("ALT plan authority mismatch")
+    if stage == "plan":
+        changes = data.get("changes")
+        before = changes.get("before") if isinstance(changes, dict) else None
+        after = changes.get("after") if isinstance(changes, dict) else None
+        if (plan.get("status") != "planned" or target["attachment_id"] != request["attachment_id"]
+                or target["parent_id"] != request["parent_id"] or after != {"alt": request["alt"]}
+                or not isinstance(before, dict) or set(before) != {"alt"}
+                or (before["alt"] is not None and not isinstance(before["alt"], str))):
+            raise VerificationError("ALT preview mismatch")
+        return False
+    if plan_id != request["plan_id"]:
+        raise VerificationError("ALT plan identity changed")
+    if stage == "apply":
+        ex = data.get("execution")
+        v = data.get("verification")
+        ev = ex.get("data") if isinstance(ex, dict) else None
+        proof = v.get("evidence") if isinstance(v, dict) else None
+        if (data.get("status") != "verified" or plan.get("status") != "applied"
+                or not isinstance(ex, dict) or ex.get("success") is not True or not isinstance(ev, dict)
+                or not isinstance(v, dict) or v.get("verified") is not True or not isinstance(proof, dict)
+                or proof.get("attachment_id") != target["attachment_id"] or ev.get("attachment_id") != target["attachment_id"]
+                or proof.get("alt_verified") is not True):
+            raise VerificationError("ALT assignment lacks verified identity")
+        return True
+    rollback = data.get("rollback")
+    proof = rollback.get("evidence") if isinstance(rollback, dict) else None
+    if (stage != "rollback" or data.get("status") != "rolled-back" or plan.get("status") != "rolled-back"
+            or not isinstance(rollback, dict) or rollback.get("success") is not True
+            or not isinstance(proof, dict) or proof.get("attachment_id") != target["attachment_id"]
+            or proof.get("alt_restored") is not True):
+        raise VerificationError("ALT restoration lacks evidence")
+    return True
 
 
 def verify_featured_response(stage: str, data: Any, request: dict[str, Any]) -> bool:
@@ -1570,6 +1639,16 @@ def execute(command_path: Path, result_dir: Path) -> int:
             elif stage == "read":
                 verified = True
                 sanitized = sanitize_value(data, token)
+            elif action_name == "content.image_alt":
+                verified = verify_alt_response(stage, data, command["payload"])
+                sanitized = sanitize_write_evidence(stage, data, token)
+                sanitized["attachment_id"] = data["plan"]["target"]["attachment_id"]
+                sanitized["parent_id"] = data["plan"]["target"]["parent_id"]
+                sanitized["shared_attachment_property"] = True
+                if stage == "apply":
+                    sanitized["alt_verified"] = True
+                elif stage == "rollback":
+                    sanitized["alt_restored"] = True
             elif action_name == "content.featured_image":
                 verified = verify_featured_response(stage, data, command["payload"])
                 sanitized = sanitize_write_evidence(stage, data, token)
@@ -1747,7 +1826,8 @@ def self_test() -> int:
             or page_rule.get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "content.create"
             or page_rule.get("else", {}).get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "content.featured_image"
             or page_rule.get("else", {}).get("else", {}).get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "site.public_images"
-            or page_rule.get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
+            or page_rule.get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("if", {}).get("properties", {}).get("action", {}).get("const") != "content.image_alt"
+            or page_rule.get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("else", {}).get("properties", {}).get("payload", {}).get("maxProperties") != 0):
         raise CommandError("theme package, bootstrap and bounded reads must preserve independent closed schemas")
 
     valid = {
@@ -1759,6 +1839,34 @@ def self_test() -> int:
         "payload": {},
     }
     validate_command(valid, registry)
+    alt_cmd = {**valid, "action":"content.image_alt", "payload":{
+        "stage":"plan","attachment_id":43,"parent_id":42,"alt":"Mesa de trabajo"}}
+    validate_command(alt_cmd,registry)
+    validate_command({**alt_cmd,"payload":{**alt_cmd["payload"],"alt":""}},registry)
+    for bad_alt in ("<b>HTML</b>", " Leading", "a"*801, "line\nfeed"):
+        try:
+            validate_command({**alt_cmd,"payload":{**alt_cmd["payload"],"alt":bad_alt}},registry)
+        except CommandError:
+            pass
+        else:
+            raise CommandError("unsafe image ALT accepted")
+    aplan = {"plan_id":"sm-plan-"+"c"*24,"operation":"content.image_alt","capability_id":"content.write",
+        "target":{"attachment_id":43,"parent_id":42,"post_type":"attachment"},"fields":["alt"],"status":"planned",
+        "confirmation_required":True,"reversible":True}
+    assert verify_alt_response("plan",{"plan":aplan,"changes":{"before":{"alt":None},"after":{"alt":"Mesa de trabajo"}}},alt_cmd["payload"]) is False
+    aapply = {"plan":{**aplan,"status":"applied"},"status":"verified",
+        "execution":{"success":True,"data":{"attachment_id":43}},
+        "verification":{"verified":True,"evidence":{"attachment_id":43,"alt_verified":True}}}
+    assert verify_alt_response("apply",aapply,{"plan_id":aplan["plan_id"],"confirmed":True})
+    arollback = {"plan":{**aplan,"status":"rolled-back"},"status":"rolled-back",
+        "rollback":{"success":True,"evidence":{"attachment_id":43,"alt_restored":True}}}
+    assert verify_alt_response("rollback",arollback,{"plan_id":aplan["plan_id"],"confirmed":True})
+    try:
+        verify_alt_response("apply",{**aapply,"verification":{"verified":True,"evidence":{"attachment_id":44,"alt_verified":True}}},{"plan_id":aplan["plan_id"],"confirmed":True})
+    except VerificationError:
+        pass
+    else:
+        raise CommandError("mismatched ALT identity accepted")
     media = {**valid, "action": "site.public_images", "payload": {"page": 1}}
     validate_command(media, registry)
     featured = {**valid, "action": "content.featured_image", "payload": {
