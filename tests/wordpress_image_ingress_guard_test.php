@@ -51,8 +51,10 @@ if (function_exists('imagecreatefromstring')) {
     check($guard->decode($manifest,base64_encode($bytes))===$bytes,'genuine raster decoded and verified');
     echo "IMAGE_INGRESS_RASTER_VALIDATION=PASSED\n";
 } else {
+    $blocked = false;
     try { $guard->decode($manifest,base64_encode($bytes)); }
-    catch (RuntimeException $e) { check($e->getMessage()==='Image decoder unavailable.','unexpected decoder failure'); }
+    catch (RuntimeException $e) { $blocked = $e->getMessage()==='Image decoder unavailable.'; }
+    check($blocked,'missing decoder must fail closed');
     echo "IMAGE_INGRESS_DECODER_REQUIRED=PASSED\n";
 }
 echo "IMAGE_INGRESS_MANIFEST_CONTRACT=PASSED\n";
