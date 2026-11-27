@@ -57,3 +57,51 @@ blocked(fn()=>$runtime->create($parent,$manifest,$encoded,$plan,true),'known pla
 check($count()===$before+1,'repeat did not duplicate attachment');
 check(get_post_status($parent)==='draft' && get_post_field('post_content',$parent)==='Preserve original' && (int) get_post_thumbnail_id($parent)===0,'draft content and thumbnail unchanged');
 echo "DISPOSABLE_WP_NATIVE_IMAGE_INGRESS=PASSED\n";
+
+// The normal upload entrypoint must validate actual connection, approved
+// manifest and exact draft revision before invoking the internal writer.
+$token = (string) ((new \SiteManager\Adapters\WordPress\RemoteConnectionStore())->issue(['site.read','content.write'],$admin->ID)['token'] ?? '');
+check(strlen($token)===64,'scoped connection created');
+function ingress(string $stage,array $params,string $token): WP_REST_Response
+{
+    $r = new WP_REST_Request('POST','/site-manager/v1/write/content/image-upload/'.$stage);
+    $r->set_header('content-type','application/json');
+    if ($token!=='') { $r->set_header('authorization','Bearer '.$token); }
+    $r->set_body(wp_json_encode($params));
+    return rest_do_request($r);
+}
+function response(WP_REST_Response $r,int $code,string $message): array
+{
+    $body = $r->get_data();
+    if ($r->get_status()!==$code) {
+        fwrite(STDERR,'REST_STATUS='.$r->get_status().' code='.($body['error']['code'] ?? $body['data']['status'] ?? 'unknown')."\n");
+    }
+    check($r->get_status()===$code,$message);
+    return $body['data'] ?? [];
+}
+$intent = ['parent_id'=>$parent,'manifest'=>$manifest];
+$n = $count();
+check(ingress('plan',$intent,'')->get_status()>=400,'upload plan bearer required');
+response(ingress('plan',$intent+['image_base64'=>$encoded],$token),400,'no binary in planning');
+response(ingress('plan',array_replace($intent,['parent_id'=>$published]),$token),409,'only draft parent allowed');
+$planned = response(ingress('plan',$intent,$token),200,'manifest-only plan');
+$planId = $planned['plan']['plan_id'];
+check($planned['preview']['manifest']===$manifest && $planned['preview']['public_url_possible']===true
+    && $planned['plan']['reversible']===false && $planned['preview']['byte_validation_pending']===true,'exact manifest and clear nonrollback preview');
+check($count()===$n,'planning created no media');
+$apply = ['plan_id'=>$planId,'confirmed'=>true,'image_base64'=>$encoded];
+response(ingress('apply',array_replace($apply,['confirmed'=>false]),$token),400,'explicit approval required');
+response(ingress('apply',array_replace($apply,['image_base64'=>base64_encode(str_repeat('x',strlen($bytes)))]),$token),400,'wrong bytes rejected before mutation');
+check($count()===$n,'invalid bytes did not create an attachment');
+$receipt = response(ingress('apply',$apply,$token),200,'confirmed exact upload verified');
+check($receipt['verified']===true && $receipt['parent_id']===$parent && $receipt['rollback_available']===false,'truthful verified receipt');
+check($receipt['result']['attachment_id']>0 && $count()===$n+1,'exactly one new attachment');
+response(ingress('apply',$apply,$token),409,'consumed plan rejected');
+check($count()===$n+1,'no duplicate on replay');
+$stale = response(ingress('plan',$intent,$token),200,'second manifest planned');
+wp_update_post(['ID'=>$parent,'post_title'=>'Human change']);
+response(ingress('apply',array_replace($apply,['plan_id'=>$stale['plan']['plan_id']]),$token),409,'changed draft revision blocked');
+check($count()===$n+1 && get_post_status($parent)==='draft','stale plan did not upload or publish');
+$stored = get_option(\SiteManager\Adapters\WordPress\RemotePlanStore::OPTION,[]);
+check(!str_contains(wp_json_encode($stored),$encoded),'image bytes absent from remote plan store');
+echo "DISPOSABLE_WP_REMOTE_IMAGE_INGRESS=PASSED\n";
