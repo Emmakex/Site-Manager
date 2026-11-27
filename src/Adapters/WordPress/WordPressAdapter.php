@@ -57,6 +57,7 @@ final class WordPressAdapter implements PlatformAdapter
             }
         }
         $contentOperations = ['content.update','content.create'];
+        if (function_exists('wp_attachment_is_image') && function_exists('update_post_meta')) { $contentOperations[] = 'content.image_alt'; }
         if ([] !== $featuredImageTypes) { $contentOperations[] = 'content.featured_image'; }
 
         $navigationProviders = [];
@@ -281,6 +282,9 @@ final class WordPressAdapter implements PlatformAdapter
         if ('content.write' === $request->capabilityId && 'content.featured_image' === $request->operation) {
             return (new FeaturedImageGovernanceService())->plan($request, $snapshot, $graph);
         }
+        if ('content.write' === $request->capabilityId && 'content.image_alt' === $request->operation) {
+            return (new ImageAltGovernanceService())->plan($request, $snapshot, $graph);
+        }
         if ('navigation.write' === $request->capabilityId && 'navigation.update' === $request->operation) {
             return $this->navigation()->plan($request, $snapshot, $graph);
         }
@@ -304,6 +308,9 @@ final class WordPressAdapter implements PlatformAdapter
         }
         if ('content.write' === $plan->request->capabilityId && 'content.featured_image' === $plan->request->operation) {
             return (new FeaturedImageGovernanceService())->apply($plan, $confirmed);
+        }
+        if ('content.write' === $plan->request->capabilityId && 'content.image_alt' === $plan->request->operation) {
+            return (new ImageAltGovernanceService())->apply($plan, $confirmed);
         }
         if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
             return $this->navigation()->apply($plan, $confirmed);
@@ -329,6 +336,9 @@ final class WordPressAdapter implements PlatformAdapter
         if ('content.write' === $plan->request->capabilityId && 'content.featured_image' === $plan->request->operation) {
             return (new FeaturedImageGovernanceService())->verify($plan, $result);
         }
+        if ('content.write' === $plan->request->capabilityId && 'content.image_alt' === $plan->request->operation) {
+            return (new ImageAltGovernanceService())->verify($plan, $result);
+        }
         if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
             return $this->navigation()->verify($plan, $result);
         }
@@ -352,6 +362,9 @@ final class WordPressAdapter implements PlatformAdapter
         }
         if ('content.write' === $plan->request->capabilityId && 'content.featured_image' === $plan->request->operation) {
             return (new FeaturedImageGovernanceService())->rollback($plan, $result, $confirmed);
+        }
+        if ('content.write' === $plan->request->capabilityId && 'content.image_alt' === $plan->request->operation) {
+            return (new ImageAltGovernanceService())->rollback($plan, $result, $confirmed);
         }
         if ('navigation.write' === $plan->request->capabilityId && 'navigation.update' === $plan->request->operation) {
             return $this->navigation()->rollback($plan, $result, $confirmed);
