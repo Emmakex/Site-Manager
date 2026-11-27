@@ -1,0 +1,14 @@
+{
+  "action": "seo.update",
+  "command_id": "cmd-emmake-produccion-servicios-seo-plan-20261127-01",
+  "command_sha256": "5ac575646003d911c4edc7e71842a49f4532f86b62903cfd2c17049b5fbc06c8",
+  "error": {
+    "code": "transport_failed",
+    "detail": "MCP inspector failed (5): {\"error\":{\"code\":\"tool_not_found\",\"message\":\"Tool 'seo_update_plan' not found on server.\"}}\n",
+    "message": "The production MCP transport did not complete successfully."
+  },
+  "site": "emmake-produccion",
+  "status": "failed",
+  "verified": false,
+  "version": "1"
+}
