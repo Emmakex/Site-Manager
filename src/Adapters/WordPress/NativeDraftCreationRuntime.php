@@ -36,7 +36,7 @@ final class NativeDraftCreationRuntime implements DraftCreationRuntime
         // Atomic option claim serializes Site Manager draft creation for this slug.
         // A crash leaves a fail-closed claim, requiring administrator reconciliation.
         $lock = 'site_manager_create_lock_' . hash('sha256', $slug);
-        if (! add_option($lock, $planId, '', false)) { return $fail('creation-in-progress'); }
+        if (! add_option($lock, 'locked', '', false)) { return $fail('creation-in-progress'); }
         try {
             if (! $this->slugAvailable($slug)) { return $fail('slug-unavailable'); }
             $payload = array_intersect_key($fields, array_flip(['post_title','post_name','post_content','post_excerpt']));
