@@ -5,8 +5,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const ORIGIN = 'https://emmake.com';
-const ROUTES = ['/', '/servicios/', '/sobre-nosotros/', '/nuestras-marcas/', '/blog/', '/blog-transformacion-digital/', '/contacto/', '/trabaja-con-nosotros/', '/asistentes-virtuales-de-voz/', '/politica-de-privacidad/'];
-const DISCOVERY = ['/robots.txt', '/wp-sitemap.xml', '/sitemap_index.xml', '/llms.txt'];
+const EDITORIAL = '/blog/automatizacion-ia-pymes-como-empezar-medir-retorno/';
+const EDITORIAL_ALT = 'Tres profesionales revisan gráficos y procesos de trabajo junto a un ordenador portátil.';
+const ROUTES = [EDITORIAL, '/', '/servicios/', '/sobre-nosotros/', '/nuestras-marcas/', '/blog/', '/blog-transformacion-digital/', '/contacto/', '/trabaja-con-nosotros/', '/asistentes-virtuales-de-voz/', '/politica-de-privacidad/'];
+const DISCOVERY = ['/robots.txt', '/wp-sitemap.xml', '/sitemap_index.xml', '/llms.txt', '/wp-sitemap-posts-post-1.xml', '/post-sitemap.xml'];
 const APPROVED = 'Impulsa tu negocio con Emmake: estrategia y transformación digital, desarrollo de soluciones, automatización, marketing y analítica de datos.';
 const OUT = 'artifacts/emmake-seo/production-public-seo.json';
 function decode(s) {
@@ -20,13 +22,41 @@ function decode(s) {
 function attrs(tag) {
   return Object.fromEntries([...tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)].map(a=>[a[1].toLowerCase(),decode(a[2]??a[3]??a[4])]));
 }
+function inspectEditorial(html, route) {
+  const hasClass = (tag, name) => (attrs(tag).class||'').split(/\s+/).includes(name);
+  if (route === '/blog/') {
+    const card = [...html.matchAll(/<li\b[^>]*>[\s\S]*?<\/li>/gi)]
+      .find(x => hasClass(x[0].match(/^<li\b[^>]*>/i)[0], 'post-54410'));
+    return {editorial_card_identified:!!card,
+      editorial_card_link:!!card && [...card[0].matchAll(/<a\b[^>]*>/gi)].some(x=>[ORIGIN+EDITORIAL,EDITORIAL].includes(attrs(x[0]).href)),
+      editorial_card_img_count:card ? (card[0].match(/<img\b/gi)||[]).length : null,
+      editorial_card_featured_block:card ? [...card[0].matchAll(/<figure\b[^>]*>/gi)].some(x=>hasClass(x[0],'wp-block-post-featured-image')) : null};
+  }
+  if (route === EDITORIAL) {
+    const images = [...html.matchAll(/<img\b[^>]*>/gi)].map(x=>attrs(x[0]));
+    const matching = images.filter(x=>x.alt===EDITORIAL_ALT);
+    const schema = [...html.matchAll(/<script\b[^>]*type\s*=\s*['"]application\/ld\+json['"][^>]*>([\s\S]*?)<\/script>/gi)];
+    const parsed = schema.map(x=>{try{return JSON.parse(x[1]);}catch{return null;}});
+    function articleType(x) {
+      if (Array.isArray(x)) return x.some(articleType);
+      if (!x || typeof x !== 'object') return false;
+      const types = Array.isArray(x['@type'])?x['@type']:[x['@type']];
+      return types.some(t=>['Article','BlogPosting','NewsArticle','https://schema.org/Article','https://schema.org/BlogPosting'].includes(t)) || articleType(x['@graph']);
+    }
+    return {editorial_alt_match_count:matching.length,editorial_image_src_present:matching.some(x=>!!x.src),
+      editorial_image_srcset_present:matching.some(x=>!!x.srcset),
+      editorial_og_image_present:[...html.matchAll(/<meta\b[^>]*>/gi)].map(x=>attrs(x[0])).some(x=>x.property==='og:image'&&!!x.content),
+      valid_jsonld_count:parsed.filter(x=>x!==null).length,article_schema_present:parsed.some(articleType)};
+  }
+  return {};
+}
 function inspectHtml(html, route, header) {
   const metas=[...html.matchAll(/<meta\b[^>]*>/gi)].map(x=>attrs(x[0]));
   const links=[...html.matchAll(/<link\b[^>]*>/gi)].map(x=>attrs(x[0]));
   const desc=metas.filter(x=>x.name?.toLowerCase()==='description');
   const canonical=links.filter(x=>x.rel?.toLowerCase()==='canonical');
   const robots=metas.filter(x=>['robots','googlebot','bingbot'].includes(x.name?.toLowerCase()));
-  return {title_present:!!html.match(/<title\b[^>]*>\s*[^<\s]/i),
+  return {...inspectEditorial(html,route),title_present:!!html.match(/<title\b[^>]*>\s*[^<\s]/i),
     description_count:desc.length,description_length:desc[0]?.content?.length??0,
     ...(route==='/servicios/'?{approved_description_exact:desc.length===1&&desc[0].content===APPROVED}:{}),
     canonical_count:canonical.length,canonical_exact:canonical.length===1&&canonical[0].href===ORIGIN+route,
@@ -49,7 +79,7 @@ function inspectDiscovery(body,route) {
     return {wildcard_disallow_root:blocked,sitemap_directive_present:/^sitemap:\s*https:\/\/emmake\.com\//im.test(body)};
   }
   if(route==='/llms.txt')return {nonempty:!!body.trim(),markdown_like:/^#{1,3}\s+/m.test(body),contains_staging_link:/https:\/\/emmake\.com\/nuevaweb\//i.test(body)};
-  return {sitemap_like:/<(?:sitemapindex|urlset)\b/i.test(body),contains_staging_link:/https:\/\/emmake\.com\/nuevaweb\//i.test(body)};
+  return {editorial_url_present:[...body.matchAll(/<loc\b[^>]*>\s*([^<]+?)\s*<\/loc>/gi)].some(x=>decode(x[1])===ORIGIN+EDITORIAL),sitemap_like:/<(?:sitemapindex|urlset)\b/i.test(body),contains_staging_link:/https:\/\/emmake\.com\/nuevaweb\//i.test(body)};
 }
 async function request(route){
   const c=new AbortController(),timer=setTimeout(()=>c.abort(),18000);
@@ -65,7 +95,7 @@ async function request(route){
   finally{clearTimeout(timer);}
 }
 function selfTest(){
-  assert.equal(ROUTES.length,10);assert.equal(new Set([...ROUTES,...DISCOVERY]).size,14);
+  assert.equal(ROUTES.length,11);assert.equal(new Set([...ROUTES,...DISCOVERY]).size,17);
   assert([...ROUTES,...DISCOVERY].every(r=>/^\/[a-z0-9/._-]*$/.test(r)));
   const html='<title>Servicios</title><meta name="description" content="'+APPROVED.replace('ó','&#243;')+'"><link rel="canonical" href="'+ORIGIN+'/servicios/"><h1>Servicios</h1>';
   const good=inspectHtml(html,'/servicios/','');assert(good.approved_description_exact&&good.canonical_exact&&!good.noindex&&good.h1_count===1);
@@ -74,6 +104,15 @@ function selfTest(){
   assert(inspectDiscovery('User-agent: *\nDisallow: /','/robots.txt').wildcard_disallow_root);
   assert(!inspectDiscovery('User-agent: GPTBot\nDisallow: /\nUser-agent: *\nDisallow: /wp-admin/','/robots.txt').wildcard_disallow_root);
   assert(inspectDiscovery('<urlset></urlset>','/wp-sitemap.xml').sitemap_like);
+  const card='<li class="wp-block-post post-54410"><figure class="wp-block-post-featured-image"><a href="'+ORIGIN+EDITORIAL+'"><img src="a.webp"></a></figure></li>';
+  assert(inspectEditorial(card,'/blog/').editorial_card_featured_block);
+  assert(inspectEditorial(card,'/blog/').editorial_card_link);
+  assert.equal(inspectEditorial(card,'/blog/').editorial_card_img_count,1);
+  assert.equal(inspectEditorial('<li class="post-54410"><h3>Title</h3></li>','/blog/').editorial_card_img_count,0);
+  assert.equal(inspectEditorial('<li class="post-10"><img src="a.webp"></li>','/blog/').editorial_card_img_count,null);
+  assert(inspectEditorial('<img src="a.webp" alt="'+EDITORIAL_ALT+'"><script type="application/ld+json">{"@graph":[{"@type":"BlogPosting"}]}</script>',EDITORIAL).article_schema_present);
+  assert(inspectDiscovery('<urlset><url><loc>'+ORIGIN+EDITORIAL+'</loc></url></urlset>','/wp-sitemap-posts-post-1.xml').editorial_url_present);
+  assert(!inspectDiscovery('<urlset><url><loc>'+ORIGIN+EDITORIAL+'extra</loc></url></urlset>','/wp-sitemap-posts-post-1.xml').editorial_url_present);
   console.log('PASS production fixed-origin SEO/GEO readback contract');
 }
 async function run(){
