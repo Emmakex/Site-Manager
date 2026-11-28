@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/site_manager_emmake_public_seo_audit.cjs'
       - 'scripts/site_manager_emmake_production_seo_audit.cjs'
+      - 'scripts/emmake_final_production_browser.cjs'
       - '.github/workflows/emmake-public-seo-audit.yml'
 
 permissions:
@@ -32,7 +33,7 @@ jobs:
 
   production-seo:
     runs-on: ubuntu-24.04
-    timeout-minutes: 7
+    timeout-minutes: 16
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -49,3 +50,17 @@ jobs:
           path: artifacts/emmake-seo/production-public-seo.json
           retention-days: 7
           if-no-files-found: error
+      - name: Run final desktop and mobile production QA
+        run: |
+          mkdir -p .qa-deps
+          npm install --prefix .qa-deps --ignore-scripts --no-save --no-audit --no-fund playwright@1.65.0
+          .qa-deps/node_modules/.bin/playwright install chromium
+          NODE_PATH="$PWD/.qa-deps/node_modules" node scripts/emmake_final_production_browser.cjs
+      - name: Preserve final public browser report and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emmake-final-production-browser
+          path: artifacts/emmake-final-browser/
+          retention-days: 7
+          if-no-files-found: warn
