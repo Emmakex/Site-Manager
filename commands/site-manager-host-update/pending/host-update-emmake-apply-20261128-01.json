@@ -1,0 +1,10 @@
+{
+  "site": "emmake-produccion",
+  "stage": "apply",
+  "request_id": "host-update-emmake-apply-20261128-01",
+  "payload": {
+    "plan_id": "404ed7609a61d2183d0ef0fac9e78921",
+    "package_sha256": "f2e88cb2c440d56b41a2b4695dc95421d75c944190b5fc94ba56f348515e0117",
+    "confirmed": true
+  }
+}
