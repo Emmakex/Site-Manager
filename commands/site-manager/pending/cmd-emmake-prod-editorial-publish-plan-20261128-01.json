@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-prod-editorial-publish-plan-20261128-01",
+  "site": "emmake-produccion",
+  "action": "content.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_id": 54410,
+    "fields": {
+      "status": "publish"
+    },
+    "reason": "Plan only: prepare reviewed editorial draft for separate explicit publication approval after visual review; do not apply."
+  }
+}
