@@ -141,6 +141,8 @@ jobs:
           echo DISPOSABLE_WP_PLUGIN_BOOT_FAILURE=PROVEN
           docker exec --user www-data "$container" php /tmp/site-manager-plugin-live-acceptance.php restore
           docker exec --user www-data "$container" php /tmp/site-manager-plugin-live-acceptance.php verify
+          docker exec --user www-data "$container" php /tmp/site-manager-plugin-live-acceptance.php apply-healthy
+          docker exec --user www-data "$container" php /tmp/site-manager-plugin-live-acceptance.php verify-healthy
 
       - name: Capture disposable WordPress failures
         if: failure()

@@ -31,8 +31,16 @@ wp_set_current_user($admin->ID);
 $root=WP_PLUGIN_DIR.'/site-manager';
 $journalKey='site_manager_self_update_journal';
 
-if ($stage==='apply') {
-    check(defined('SITE_MANAGER_VERSION') && SITE_MANAGER_VERSION==='0.12.3','original runtime loaded');
+if (in_array($stage,['apply','apply-healthy'],true)) {
+    check(defined('SITE_MANAGER_VERSION'),'original runtime loaded');
+    $original=SITE_MANAGER_VERSION;
+    $parts=explode('.',$original);
+    $candidate=$parts[0].'.'.$parts[1].'.'.((int)$parts[2]+1);
+    $broken=$stage==='apply';
+    $connection=new \SiteManager\Adapters\WordPress\RemoteConnectionStore();
+    if ($broken) {
+        $connection->issue(['site.read','site.diagnostics'],$admin->ID);
+    }
     check(! get_option($journalKey),'no prior journal');
     $store=new PluginPackageRecoveryStore();
     $before=$store->fingerprint($root);
@@ -46,29 +54,31 @@ if ($stage==='apply') {
         $relative=substr($entry->getPathname(),strlen($root)+1);
         $bytes=file_get_contents($entry->getPathname());
         if ($relative==='site-manager.php') {
-            $bytes=str_replace('0.12.3','0.12.4',$bytes);
+            $bytes=str_replace($original,$candidate,$bytes);
             $needle="if (! defined('ABSPATH')) { exit; }";
             check(str_contains($bytes,$needle),'fixture bootstrap marker');
-            $bytes=str_replace($needle,$needle."\nthrow new RuntimeException('DISPOSABLE_PLUGIN_FATAL_FIXTURE');",$bytes);
+            if ($broken) {
+                $bytes=str_replace($needle,$needle."\nthrow new RuntimeException('DISPOSABLE_PLUGIN_FATAL_FIXTURE');",$bytes);
+            }
         }
         check($zip->addFromString('site-manager/'.$relative,$bytes),'candidate entry');
     }
     check($zip->close(),'candidate finalized');
     $sha=hash_file('sha256',$zipPath);
-    $proof=(new PluginPackageArchiveGuard())->inspect($zipPath,'0.12.4',$sha);
+    $proof=(new PluginPackageArchiveGuard())->inspect($zipPath,$candidate,$sha);
     $engine=new PluginPackageInstallEngine();
     $active=get_option('active_plugins');
     $content=wp_insert_post(['post_type'=>'post','post_status'=>'draft','post_title'=>'Self-update fixture','post_content'=>'Preserve me'],true);
     check(is_int($content) && $content>0,'content fixture');
-    update_option('site_manager_disposable_self_update_baseline',['content'=>$content,'active'=>$active,'tree'=>$before['tree_sha256']],false);
-    blocked(fn()=>$engine->apply($zipPath,'0.12.4',$sha,$before['tree_sha256'],$proof['tree_sha256'],false));
-    blocked(fn()=>$engine->apply($zipPath,'0.12.4',$sha,str_repeat('0',64),$proof['tree_sha256'],true));
+    update_option('site_manager_disposable_self_update_baseline',['content'=>$content,'active'=>$active,'tree'=>$before['tree_sha256'],'original'=>$original,'candidate'=>$candidate,'candidate_tree'=>$proof['tree_sha256']],false);
+    blocked(fn()=>$engine->apply($zipPath,$candidate,$sha,$before['tree_sha256'],$proof['tree_sha256'],false));
+    blocked(fn()=>$engine->apply($zipPath,$candidate,$sha,str_repeat('0',64),$proof['tree_sha256'],true));
     check(! get_option($journalKey),'invalid attempts created no journal');
-    $result=$engine->apply($zipPath,'0.12.4',$sha,$before['tree_sha256'],$proof['tree_sha256'],true);
+    $result=$engine->apply($zipPath,$candidate,$sha,$before['tree_sha256'],$proof['tree_sha256'],true);
     @unlink($zipPath);
     check($result['status']==='installed_pending_runtime' && $result['verified']===false && $result['tree_verified']===true,'installed but runtime NOT yet verified');
     check(get_option('active_plugins')===$active,'activation options preserved');
-    echo "DISPOSABLE_WP_PLUGIN_INSTALL_TREE=PASSED\n";
+    echo $broken ? "DISPOSABLE_WP_PLUGIN_INSTALL_TREE=PASSED\n" : "DISPOSABLE_WP_PLUGIN_HEALTHY_INSTALL_TREE=PASSED\n";
 } elseif ($stage==='restore') {
     check(! defined('SITE_MANAGER_VERSION'),'broken plugin did not load in independent recovery');
     remove_all_filters('pre_option_active_plugins');
@@ -83,15 +93,30 @@ if ($stage==='apply') {
     $result=$engine->restore($journal['id'],true);
     check($result['status']==='restored_pending_runtime' && $result['verified']===false && $result['tree_verified']===true,'independent restore verified tree');
     echo "DISPOSABLE_WP_PLUGIN_INDEPENDENT_RESTORE=PASSED\n";
-} elseif ($stage==='verify') {
-    check(defined('SITE_MANAGER_VERSION') && SITE_MANAGER_VERSION==='0.12.3','fresh old runtime loaded');
+} elseif (in_array($stage,['verify','verify-healthy'],true)) {
     $baseline=get_option('site_manager_disposable_self_update_baseline');
+    $restored=$stage==='verify';
+    check(defined('SITE_MANAGER_VERSION') && SITE_MANAGER_VERSION===($restored?$baseline['original']:$baseline['candidate']),'fresh expected runtime loaded');
     $journal=get_option($journalKey);
-    check($journal['status']==='restored_pending_runtime','restored journal');
-    check((new PluginPackageRecoveryStore())->fingerprint($root)['tree_sha256']===$baseline['tree'],'original exact tree restored');
+    check($journal['status']===($restored?'restored_pending_runtime':'installed_pending_runtime'),'expected journal');
+    check((new PluginPackageRecoveryStore())->fingerprint($root)['tree_sha256']===($restored?$baseline['tree']:$baseline['candidate_tree']),'expected exact tree readback');
     check(get_option('active_plugins')===$baseline['active'] && get_post_status($baseline['content'])==='draft'
         && get_post_field('post_content',$baseline['content'])==='Preserve me','content and active plugins unchanged');
-    echo "DISPOSABLE_WP_PLUGIN_FRESH_RUNTIME_RESTORED=PASSED\n";
+    $engine=new PluginPackageInstallEngine();
+    $receipt=$engine->runtimeReceipt($journal['id']);
+    check($receipt['local_verified']===true && $receipt['remote_verified']===false && $receipt['rollback_available']===true,'local proof is not external MCP proof');
+    blocked(fn()=>$engine->runtimeReceipt(str_repeat('f',32)));
+    blocked(fn()=>$engine->finalize($journal['id'],false));
+    $state=get_option(\SiteManager\Adapters\WordPress\RemoteConnectionStore::OPTION);
+    $drift=$state;
+    $drift['generation']++;
+    update_option(\SiteManager\Adapters\WordPress\RemoteConnectionStore::OPTION,$drift,false);
+    blocked(fn()=>$engine->runtimeReceipt($journal['id']));
+    update_option(\SiteManager\Adapters\WordPress\RemoteConnectionStore::OPTION,$state,false);
+    $final=$engine->finalize($journal['id'],true);
+    check($final['status']==='finalized_local' && $final['archive_removed']===true && $final['rollback_available']===false && ! get_option($journalKey),'explicit finalization releases journal and archive');
+    echo $restored ? "DISPOSABLE_WP_PLUGIN_FRESH_RUNTIME_RESTORED=PASSED\n" : "DISPOSABLE_WP_PLUGIN_FRESH_RUNTIME_UPDATED=PASSED\n";
+    echo "DISPOSABLE_WP_PLUGIN_JOURNAL_FINALIZED=PASSED\n";
 } else {
     throw new RuntimeException('Unknown fixture stage');
 }
