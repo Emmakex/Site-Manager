@@ -11,10 +11,16 @@ const DEVICES=[['desktop',1440,900,false],['mobile',390,844,true]];
   fs.mkdirSync(OUT,{recursive:true});
   const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
   const results=[];
+  let rateLimited=false;
+  let retryAfter=null;
   try {
     for(const [device,width,height,mobile] of DEVICES){
+      if(rateLimited)break;
       const ctx=await browser.newContext({viewport:{width,height},isMobile:mobile,hasTouch:mobile,deviceScaleFactor:1,reducedMotion:'reduce',locale:'es-ES',serviceWorkers:'block'});
       for(let i=0;i<ROUTES.length;i++){
+        if(rateLimited)break;
+        // Avoid bursts on a shared production host. Never retry a 429 in this run.
+        if(results.length)await new Promise(r=>setTimeout(r,8000));
         const route=ROUTES[i],page=await ctx.newPage();
         let http=0,jsErrors=0;
         page.on('pageerror',()=>jsErrors++);
@@ -27,6 +33,14 @@ const DEVICES=[['desktop',1440,900,false],['mobile',390,844,true]];
             try{new PerformanceObserver(list=>{for(const e of list.getEntries())if(!e.hadRecentInput)window.__smLab.cls+=e.value}).observe({type:'layout-shift',buffered:true})}catch{}
           });
           const response=await page.goto(ORIGIN+route,{waitUntil:'load',timeout:30000});http=response?.status()||0;
+          if(http===429){
+            rateLimited=true;
+            const header=response?.headers()['retry-after']||'';
+            retryAfter=/^[0-9]{1,9}$/.test(header)?Number(header):null;
+            results.push({route,device,http,error:'rate_limited'});
+            continue;
+          }
+          if(http!==200){results.push({route,device,http,error:'http_not_ok'});continue;}
           await page.waitForTimeout(1000);
           const data=await page.evaluate(()=>{
             const images=[...document.images],nav=performance.getEntriesByType('navigation')[0];
@@ -37,7 +51,7 @@ const DEVICES=[['desktop',1440,900,false],['mobile',390,844,true]];
             const staging=links.filter(a=>{try{let u=new URL(a.href);return u.origin===location.origin&&(u.pathname==='/nuevaweb'||u.pathname.startsWith('/nuevaweb/'))}catch{return false}}).length;
             const buttons=[...document.querySelectorAll('header button,header [role="button"],nav button')].filter(visible);
             const form=[...document.querySelectorAll('main form')].map(f=>({required:f.querySelectorAll('[required]').length,submit:!!f.querySelector('button[type="submit"],input[type="submit"]')}));
-            return {viewport:innerWidth,document_width:document.documentElement.scrollWidth,main_present:!!document.querySelector('main'),lang:document.documentElement.lang||null,h1_count:document.querySelectorAll('h1').length,invalid_jsonld:validJsonLd.filter(x=>!x).length,jsonld_count:validJsonLd.length,staging_links:staging,malformed_links:bad,images:images.length,broken_loaded_images:images.filter(x=>x.complete&&x.currentSrc&&x.naturalWidth===0).length,missing_alt:images.filter(x=>!x.hasAttribute('alt')).length,visible_navigation_links:[...document.querySelectorAll('header nav a,header [role="navigation"] a')].filter(visible).length,visible_header_buttons:buttons.length,form_controls:form,lab:{ttfb_ms:nav?Math.round(nav.responseStart):null,load_ms:nav?Math.round(nav.loadEventEnd):null,lcp_ms:window.__smLab?.lcp??null,cls:Math.round((window.__smLab?.cls||0)*1000)/1000,resource_transfer_bytes:Math.round(performance.getEntriesByType('resource').reduce((s,e)=>s+(e.transferSize||0),0))}};
+            return {viewport:innerWidth,document_width:document.documentElement.scrollWidth,main_present:!!document.querySelector('main'),lang:document.documentElement.lang||null,h1_count:document.querySelectorAll('h1').length,invalid_jsonld:validJsonLd.filter(x=>!x).length,jsonld_count:validJsonLd.length,staging_links:staging,malformed_links:bad,images:images.length,broken_loaded_images:images.filter(x=>x.complete&&x.currentSrc&&x.naturalWidth===0).length,broken_image_paths:images.filter(x=>x.complete&&x.currentSrc&&x.naturalWidth===0).map(x=>{try{const u=new URL(x.currentSrc);return u.origin===location.origin&&u.pathname.startsWith('/wp-content/uploads/')?u.pathname:'external_or_non_media'}catch{return 'unresolved'}}).slice(0,20),missing_alt:images.filter(x=>!x.hasAttribute('alt')).length,visible_navigation_links:[...document.querySelectorAll('header nav a,header [role="navigation"] a')].filter(visible).length,visible_header_buttons:buttons.length,form_controls:form,lab:{ttfb_ms:nav?Math.round(nav.responseStart):null,load_ms:nav?Math.round(nav.loadEventEnd):null,lcp_ms:window.__smLab?.lcp??null,cls:Math.round((window.__smLab?.cls||0)*1000)/1000,resource_transfer_bytes:Math.round(performance.getEntriesByType('resource').reduce((s,e)=>s+(e.transferSize||0),0))}};
           });
           const actual=new URL(page.url());
           results.push({route,device,http,exact_url:actual.origin===ORIGIN&&actual.pathname===route&&!actual.search,js_errors:jsErrors,...data});
@@ -48,7 +62,7 @@ const DEVICES=[['desktop',1440,900,false],['mobile',390,844,true]];
       await ctx.close();
     }
   }finally{await browser.close();}
-  const report={site:'emmake-produccion',observed_at:new Date().toISOString(),wordpress_mutations:0,measurement:'unthrottled Chromium single navigation; lab only, not field Core Web Vitals',results};
+  const report={site:'emmake-produccion',observed_at:new Date().toISOString(),wordpress_mutations:0,complete:!rateLimited&&results.length===ROUTES.length*DEVICES.length,rate_limited:rateLimited,retry_after_seconds:retryAfter,measurement:'unthrottled Chromium single navigation; lab only, not field Core Web Vitals',results};
   fs.writeFileSync(OUT+'/report.json',JSON.stringify(report,null,2)+'\n');
   console.log(JSON.stringify(report));
 })().catch(()=>{process.exitCode=1;});
