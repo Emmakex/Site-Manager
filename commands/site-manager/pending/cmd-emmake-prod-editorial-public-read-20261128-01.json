@@ -1,0 +1,11 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-prod-editorial-public-read-20261128-01",
+  "site": "emmake-produccion",
+  "action": "site.content_page",
+  "requested_by": "chatgpt",
+  "payload": {
+    "post_type": "post",
+    "page": 1
+  }
+}
