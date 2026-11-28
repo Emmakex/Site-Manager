@@ -6,7 +6,7 @@ namespace SiteManager\Adapters\WordPress;
 use DomainException;
 
 /**
- * Staging-only native installer and recovery primitive. No REST registration.
+ * Native installer and recovery primitive, staging by default; production only via an explicitly provisioned independent CLI host worker. No REST registration.
  * Recovery must run from trusted code outside the plugin being overwritten.
  * Local package and expected digests must originate in the reviewed release
  * pipeline, never from a caller-selected URL or filesystem path.
@@ -16,7 +16,7 @@ final class PluginPackageInstallEngine
     private const PLUGIN='site-manager/site-manager.php';
     private const JOURNAL='site_manager_self_update_journal';
 
-    public function __construct(private readonly ?string $privateRecoveryDirectory=null) {}
+    public function __construct(private readonly ?string $privateRecoveryDirectory=null, private readonly bool $hostProductionAuthority=false) {}
 
     private function recoveryStore(): PluginPackageRecoveryStore
     {
@@ -205,7 +205,8 @@ final class PluginPackageInstallEngine
 
     private function eligible(bool $recovery=false): string
     {
-        if (! function_exists('wp_get_environment_type') || ! in_array(wp_get_environment_type(),['local','development','staging'],true)
+        if (! function_exists('wp_get_environment_type') || (! in_array(wp_get_environment_type(),['local','development','staging'],true)
+            && ! ($this->hostProductionAuthority && PHP_SAPI==='cli' && $this->privateRecoveryDirectory!==null))
             || is_multisite() || (defined('DISALLOW_FILE_MODS') && DISALLOW_FILE_MODS)
             || ! wp_is_file_mod_allowed('site_manager_self_update') || ! current_user_can('manage_options')
             || ! current_user_can('install_plugins') || ! current_user_can('update_plugins')) {

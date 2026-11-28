@@ -7,6 +7,9 @@ on:
       - 'src/Adapters/WordPress/PluginPackage*.php'
       - 'tests/wordpress_plugin_package_live_acceptance.php'
       - 'scripts/site-manager-host-worker-preflight.php'
+      - 'scripts/site-manager-host-worker-update.php'
+      - 'scripts/site_manager_host_update.py'
+      - 'tests/site_manager_host_update_live_test.py'
       - 'scripts/site_manager_host_preflight.py'
       - 'src/Adapters/WordPress/*DraftCreation*.php'
       - 'src/Adapters/WordPress/*FeaturedImage*.php'
@@ -171,6 +174,16 @@ jobs:
             echo 'Unexpected arbitrary command acceptance' >&2
             exit 1
           fi
+
+      - name: Prove actual governed host update and independent recovery
+        run: |
+          set -euo pipefail
+          container="$(docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml ps -q wordpress)"
+          docker cp scripts/site-manager-host-worker-update.php "$container:/tmp/sm-host-preflight/update.php"
+          for class in PluginPackageArchiveGuard PluginPackageInstallEngine; do
+            docker cp "src/Adapters/WordPress/$class.php" "$container:/tmp/sm-host-preflight/$class.php"
+          done
+          python3 tests/site_manager_host_update_live_test.py "$container"
 
       - name: Capture disposable WordPress failures
         if: failure()

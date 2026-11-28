@@ -7,6 +7,14 @@ declare(strict_types=1);
  * No update, restore, shell execution, URL fetch or database mutation.
  */
 if (PHP_SAPI!=='cli') { http_response_code(404); exit; }
+// The same restricted key can invoke only this enumerated protocol.
+if (in_array(getenv('SSH_ORIGINAL_COMMAND'),[
+    'site-manager-update-plan-v1','site-manager-update-apply-v1','site-manager-update-status-v1',
+    'site-manager-update-verify-v1','site-manager-update-restore-v1','site-manager-update-finalize-v1',
+],true)) {
+    require __DIR__.'/update.php';
+    exit;
+}
 ini_set('display_errors','0');
 ob_start();
 try {
