@@ -19,6 +19,9 @@ on:
       - 'scripts/site_manager_image_artifact*.py'
       - 'scripts/site_manager_plugin_release_download.py'
       - 'scripts/site_manager_host_preflight.py'
+      - 'scripts/site_manager_host_update.py'
+      - 'tests/site_manager_host_update_test.py'
+      - '.github/workflows/site-manager-governed-host-update.yml'
       - 'tests/site_manager_host_preflight_test.py'
       - '.github/workflows/site-manager-hostinger-preflight.yml'
       - 'tests/site_manager_plugin_release_download_test.py'
@@ -62,6 +65,9 @@ on:
       - 'scripts/site_manager_image_artifact*.py'
       - 'scripts/site_manager_plugin_release_download.py'
       - 'scripts/site_manager_host_preflight.py'
+      - 'scripts/site_manager_host_update.py'
+      - 'tests/site_manager_host_update_test.py'
+      - '.github/workflows/site-manager-governed-host-update.yml'
       - 'tests/site_manager_host_preflight_test.py'
       - '.github/workflows/site-manager-hostinger-preflight.yml'
       - 'tests/site_manager_plugin_release_download_test.py'
@@ -108,6 +114,9 @@ jobs:
 
       - name: Gateway static contract
         run: python3 tests/site_manager_command_gateway_test.py
+
+      - name: Governed host update protocol contract
+        run: python3 tests/site_manager_host_update_test.py
 
       - name: Independent host receipt identity contract
         run: python3 tests/site_manager_host_preflight_test.py
