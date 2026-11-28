@@ -37,7 +37,7 @@ if (in_array($stage,['apply','apply-healthy'],true)) {
     $parts=explode('.',$original);
     $candidate=$parts[0].'.'.$parts[1].'.'.((int)$parts[2]+1);
     $broken=$stage==='apply';
-    $connection=new \\SiteManager\\Adapters\\WordPress\\RemoteConnectionStore();
+    $connection=new \SiteManager\Adapters\WordPress\RemoteConnectionStore();
     if ($broken) {
         $connection->issue(['site.read','site.diagnostics'],$admin->ID);
     }
@@ -107,12 +107,12 @@ if (in_array($stage,['apply','apply-healthy'],true)) {
     check($receipt['local_verified']===true && $receipt['remote_verified']===false && $receipt['rollback_available']===true,'local proof is not external MCP proof');
     blocked(fn()=>$engine->runtimeReceipt(str_repeat('f',32)));
     blocked(fn()=>$engine->finalize($journal['id'],false));
-    $state=get_option(\\SiteManager\\Adapters\\WordPress\\RemoteConnectionStore::OPTION);
+    $state=get_option(\SiteManager\Adapters\WordPress\RemoteConnectionStore::OPTION);
     $drift=$state;
     $drift['generation']++;
-    update_option(\\SiteManager\\Adapters\\WordPress\\RemoteConnectionStore::OPTION,$drift,false);
+    update_option(\SiteManager\Adapters\WordPress\RemoteConnectionStore::OPTION,$drift,false);
     blocked(fn()=>$engine->runtimeReceipt($journal['id']));
-    update_option(\\SiteManager\\Adapters\\WordPress\\RemoteConnectionStore::OPTION,$state,false);
+    update_option(\SiteManager\Adapters\WordPress\RemoteConnectionStore::OPTION,$state,false);
     $final=$engine->finalize($journal['id'],true);
     check($final['status']==='finalized_local' && $final['archive_removed']===true && $final['rollback_available']===false && ! get_option($journalKey),'explicit finalization releases journal and archive');
     echo $restored ? "DISPOSABLE_WP_PLUGIN_FRESH_RUNTIME_RESTORED=PASSED\n" : "DISPOSABLE_WP_PLUGIN_FRESH_RUNTIME_UPDATED=PASSED\n";
