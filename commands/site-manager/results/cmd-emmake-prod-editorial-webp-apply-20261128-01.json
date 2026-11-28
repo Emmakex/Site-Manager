@@ -1,0 +1,35 @@
+{
+  "action": "content.image_upload",
+  "command_id": "cmd-emmake-prod-editorial-webp-apply-20261128-01",
+  "command_sha256": "b02e5d8741452ab9aa0559f1e4ecdd0a872651c2ac769a1cb7e28ed850bd9c5c",
+  "data": {
+    "attachment_id": 54414,
+    "height": 1024,
+    "mime": "image/webp",
+    "optimized_manifest": {
+      "bytes": 161492,
+      "filename": "emmake-automatizacion-ia-pymes-optimized.webp",
+      "height": 1024,
+      "mime": "image/webp",
+      "sha256": "68ad98233e6e4337a87134e2e2b6a969df85699aff2d6763f70a6d0ea4c0ebfc",
+      "width": 1536
+    },
+    "parent_id": 54410,
+    "plan_id": "sm-plan-11a7c5b23e3df13ea6437f8e",
+    "rollback_available": false,
+    "source_sha256": "bbc331848b39cf7db103711efe0c292ce774e328e3431dd21481f34e7ec60e13",
+    "stage": "apply",
+    "status": "verified",
+    "stored_bytes": 151382,
+    "stored_sha256": "b4ccd1c54660f197517a1da3fa7e69c6aad65c7aa6135eec2d06fd1d4a11e17b",
+    "verified": true,
+    "width": 1536
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "content.write",
+  "site": "emmake-produccion",
+  "stage": "apply",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
