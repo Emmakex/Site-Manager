@@ -1,0 +1,42 @@
+{
+  "action": "content.featured_image",
+  "command_id": "cmd-emmake-prod-editorial-featured-apply-20261128-02",
+  "command_sha256": "5c9a613dafc1a1cf6db64af0610cc978cc4b964271be514471d0aa87bfe8eab7",
+  "data": {
+    "featured_image_id": 54414,
+    "plan": {
+      "applied_at": "2026-11-28T10:28:40+00:00",
+      "capability_id": "content.write",
+      "confirmation_required": true,
+      "created_at": "2026-11-28T10:26:36+00:00",
+      "expires_at": "2026-11-28T10:41:36+00:00",
+      "fields": [
+        "featured_image_id"
+      ],
+      "operation": "content.featured_image",
+      "plan_id": "sm-plan-aedfc430b11dd7e2293c05ae",
+      "reversible": true,
+      "rollback_retained_until": "2026-11-29T10:26:36+00:00",
+      "rolled_back_at": "",
+      "status": "applied",
+      "target": {
+        "post_id": 54410,
+        "post_type": "post"
+      }
+    },
+    "rollback_available": true,
+    "stage": "apply",
+    "status": "verified",
+    "verification": {
+      "status": "verified",
+      "verified": true
+    }
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "content.write",
+  "site": "emmake-produccion",
+  "stage": "apply",
+  "status": "success",
+  "verified": true,
+  "version": "1"
+}
