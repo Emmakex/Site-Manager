@@ -1,0 +1,42 @@
+{
+  "action": "content.image_upload",
+  "command_id": "cmd-emmake-prod-editorial-webp-plan-20261128-01",
+  "command_sha256": "e0b1d41929e5f931b6da14405e1721cbadc0a0c3190edef5c24ddcd29ae0d3fe",
+  "data": {
+    "byte_validation_pending": true,
+    "expires_at": "2026-11-28T10:32:00+00:00",
+    "manifest": {
+      "bytes": 623780,
+      "filename": "emmake-automatizacion-ia-pymes.jpg",
+      "height": 1024,
+      "mime": "image/jpeg",
+      "sha256": "bbc331848b39cf7db103711efe0c292ce774e328e3431dd21481f34e7ec60e13",
+      "width": 1536
+    },
+    "optimized_manifest": {
+      "bytes": 161492,
+      "filename": "emmake-automatizacion-ia-pymes-optimized.webp",
+      "height": 1024,
+      "mime": "image/webp",
+      "sha256": "68ad98233e6e4337a87134e2e2b6a969df85699aff2d6763f70a6d0ea4c0ebfc",
+      "width": 1536
+    },
+    "parent_id": 54410,
+    "plan_id": "sm-plan-11a7c5b23e3df13ea6437f8e",
+    "public_url_possible": true,
+    "rollback_available": false,
+    "source": {
+      "optimization": "featured_webp_v1",
+      "provider": "google_drive"
+    },
+    "stage": "plan",
+    "status": "planned"
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "content.write",
+  "site": "emmake-produccion",
+  "stage": "plan",
+  "status": "success",
+  "verified": false,
+  "version": "1"
+}
