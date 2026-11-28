@@ -8,7 +8,8 @@ const ORIGIN = 'https://emmake.com';
 const EDITORIAL = '/blog/automatizacion-ia-pymes-como-empezar-medir-retorno/';
 const EDITORIAL_ALT = 'Tres profesionales revisan gráficos y procesos de trabajo junto a un ordenador portátil.';
 const ROUTES = [EDITORIAL, '/', '/servicios/', '/sobre-nosotros/', '/nuestras-marcas/', '/blog/', '/blog-transformacion-digital/', '/contacto/', '/trabaja-con-nosotros/', '/asistentes-virtuales-de-voz/', '/politica-de-privacidad/'];
-const DISCOVERY = ['/robots.txt', '/wp-sitemap.xml', '/sitemap_index.xml', '/llms.txt', '/wp-sitemap-posts-post-1.xml', '/post-sitemap.xml'];
+const ROBOTS_PROBES = ['/robots.txt', '/?robots=1', '/index.php?robots=1'];
+const DISCOVERY = [...ROBOTS_PROBES, '/wp-sitemap.xml', '/sitemap_index.xml', '/llms.txt', '/wp-sitemap-posts-post-1.xml', '/post-sitemap.xml'];
 const APPROVED = 'Impulsa tu negocio con Emmake: estrategia y transformación digital, desarrollo de soluciones, automatización, marketing y analítica de datos.';
 const OUT = 'artifacts/emmake-seo/production-public-seo.json';
 function decode(s) {
@@ -67,7 +68,7 @@ function inspectHtml(html, route, header) {
     og_description_present:metas.some(x=>x.property==='og:description'&&!!x.content)};
 }
 function inspectDiscovery(body,route) {
-  if(route==='/robots.txt'){
+  if(ROBOTS_PROBES.includes(route)){
     let agents=[],rules=false,blocked=false;
     for(const line of body.split(/\r?\n/)){
       const m=line.replace(/#.*/,'').trim().match(/^([^:]+):\s*(.*)$/);
@@ -76,7 +77,7 @@ function inspectDiscovery(body,route) {
       if(key==='user-agent'){if(rules){agents=[];rules=false;}agents.push(v);}
       if(['allow','disallow'].includes(key)){rules=true;if(key==='disallow'&&v==='/'&&agents.includes('*'))blocked=true;}
     }
-    return {wildcard_disallow_root:blocked,sitemap_directive_present:/^sitemap:\s*https:\/\/emmake\.com\//im.test(body)};
+    return {robots_directives_present:/^\s*user-agent\s*:/im.test(body),wildcard_disallow_root:blocked,sitemap_directive_present:/^sitemap:\s*https:\/\/emmake\.com\//im.test(body)};
   }
   if(route==='/llms.txt')return {nonempty:!!body.trim(),markdown_like:/^#{1,3}\s+/m.test(body),contains_staging_link:/https:\/\/emmake\.com\/nuevaweb\//i.test(body)};
   return {editorial_url_present:[...body.matchAll(/<loc\b[^>]*>\s*([^<]+?)\s*<\/loc>/gi)].some(x=>decode(x[1])===ORIGIN+EDITORIAL),sitemap_like:/<(?:sitemapindex|urlset)\b/i.test(body),contains_staging_link:/https:\/\/emmake\.com\/nuevaweb\//i.test(body)};
@@ -86,7 +87,7 @@ async function request(route){
   try{
     const r=await fetch(ORIGIN+route,{method:'GET',redirect:'manual',signal:c.signal,headers:{accept:'text/html,application/xml,text/plain;q=0.9'}});
     const result={route,http_status:r.status,content_type:(r.headers.get('content-type')||'').split(';')[0]};
-    if(r.status!==200){await r.body?.cancel();return result;}
+    if(r.status!==200){const loc=r.headers.get('location');if(loc){try{const u=new URL(loc,ORIGIN);result.redirect_same_origin=u.origin===ORIGIN;result.redirect_to_robots=u.origin===ORIGIN&&u.pathname==='/robots.txt';}catch{result.redirect_same_origin=false;}}await r.body?.cancel();return result;}
     const reader=r.body.getReader(),chunks=[];let total=0;
     for(;;){const {done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>3000000){await reader.cancel();return {...result,error:'body_limit'};}chunks.push(Buffer.from(value));}
     const body=Buffer.concat(chunks).toString('utf8');
@@ -95,13 +96,15 @@ async function request(route){
   finally{clearTimeout(timer);}
 }
 function selfTest(){
-  assert.equal(ROUTES.length,11);assert.equal(new Set([...ROUTES,...DISCOVERY]).size,17);
-  assert([...ROUTES,...DISCOVERY].every(r=>/^\/[a-z0-9/._-]*$/.test(r)));
+  assert.equal(ROUTES.length,11);assert.equal(new Set([...ROUTES,...DISCOVERY]).size,19);
+  assert([...ROUTES,...DISCOVERY].every(r=>/^\/[a-z0-9/._-]*$/.test(r)||ROBOTS_PROBES.includes(r)));
   const html='<title>Servicios</title><meta name="description" content="'+APPROVED.replace('ó','&#243;')+'"><link rel="canonical" href="'+ORIGIN+'/servicios/"><h1>Servicios</h1>';
   const good=inspectHtml(html,'/servicios/','');assert(good.approved_description_exact&&good.canonical_exact&&!good.noindex&&good.h1_count===1);
   assert(!inspectHtml(html.replace('Impulsa','Otro'),'/servicios/','').approved_description_exact);
   assert(inspectHtml(html,'/servicios/','noindex').noindex);
   assert(inspectDiscovery('User-agent: *\nDisallow: /','/robots.txt').wildcard_disallow_root);
+  assert(inspectDiscovery('User-agent: *\nDisallow: /wp-admin/','/?robots=1').robots_directives_present);
+  assert(!inspectDiscovery('<html>Not found</html>','/index.php?robots=1').robots_directives_present);
   assert(!inspectDiscovery('User-agent: GPTBot\nDisallow: /\nUser-agent: *\nDisallow: /wp-admin/','/robots.txt').wildcard_disallow_root);
   assert(inspectDiscovery('<urlset></urlset>','/wp-sitemap.xml').sitemap_like);
   const card='<li class="wp-block-post post-54410"><figure class="wp-block-post-featured-image"><a href="'+ORIGIN+EDITORIAL+'"><img src="a.webp"></a></figure></li>';
