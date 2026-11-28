@@ -49,7 +49,8 @@ try {
     require $root.'/wp-load.php';
     remove_all_filters('pre_option_active_plugins');
     if (defined('SITE_MANAGER_VERSION') || is_multisite()
-        || home_url('/')!==$request['home'] || site_url('/')!==$request['home']) {
+        || trailingslashit((string)get_option('home'))!==$request['home']
+        || trailingslashit((string)get_option('siteurl'))!==$request['home']) {
         throw new RuntimeException('worker_site_identity_mismatch');
     }
     $connection=get_option('site_manager_remote_connection',[]);
@@ -91,8 +92,13 @@ try {
         'environment'=>wp_get_environment_type(),'mutation_performed'=>false];
     ob_end_clean();
     echo json_encode($receipt,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES),PHP_EOL;
-} catch (\Throwable) {
+ } catch (\Throwable $error) {
     if (ob_get_level()>0) { ob_end_clean(); }
-    fwrite(STDERR,"HOST_PREFLIGHT_REFUSED\n");
+    $code=$error->getMessage();
+    $allowed=['worker_command_refused','worker_input_invalid','worker_config_invalid',
+        'worker_private_directory_required','worker_site_identity_mismatch','worker_connection_mismatch',
+        'worker_plugin_identity_mismatch','plugin_recovery_invalid_root','plugin_recovery_unsafe_entry',
+        'plugin_recovery_unexpected_entry','plugin_recovery_unsafe_file','plugin_recovery_incomplete_tree'];
+    fwrite(STDERR,"HOST_PREFLIGHT_REFUSED:".(in_array($code,$allowed,true)?$code:'worker_internal_failure')."\n");
     exit(1);
 }
