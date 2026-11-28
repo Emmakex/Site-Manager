@@ -63,21 +63,17 @@ try {
     require_once ABSPATH.'wp-admin/includes/plugin.php';
     $plugin=WP_PLUGIN_DIR.'/site-manager';
     require __DIR__.'/PluginPackageRecoveryStore.php';
-    $tree=(new \SiteManager\Adapters\WordPress\PluginPackageRecoveryStore())->fingerprint($plugin);
+    $store=new \SiteManager\Adapters\WordPress\PluginPackageRecoveryStore($worker);
+    $tree=$store->fingerprint($plugin);
     $data=get_plugin_data($plugin.'/site-manager.php',false,false);
     $version=$data['Version'] ?? '';
     if (($data['Name'] ?? '')!=='Site Manager' || ! preg_match('/^[0-9]+\.[0-9]+\.[0-9]+$/D',$version)
         || ! is_plugin_active('site-manager/site-manager.php')) {
         throw new RuntimeException('worker_plugin_identity_mismatch');
     }
-    $temp=realpath(get_temp_dir());
+    // Same private root that the independent update worker will use.
     $content=realpath(WP_CONTENT_DIR);
-    $privateTemp=$temp!==false && $content!==false && is_dir($temp) && is_writable($temp);
-    foreach ([$root,$content] as $webRoot) {
-        if (is_string($webRoot) && $temp!==false && ($temp===$webRoot || str_starts_with($temp,rtrim($webRoot,'/').'/'))) {
-            $privateTemp=false;
-        }
-    }
+    $privateTemp=$store->storageReady();
     if ($content===false || $worker===$content || str_starts_with($worker,rtrim($content,'/').'/')) {
         throw new RuntimeException('worker_private_directory_required');
     }

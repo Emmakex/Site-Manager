@@ -3,7 +3,7 @@ Contributors: emmake
 Tags: site management, discovery, diagnostics, governance
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 0.12.3
+Stable tag: 0.12.4
 License: Proprietary
 
 Site Manager discovers the real structure of a WordPress installation and reports what is detected, understood, governable, authorized or blocked.
@@ -57,7 +57,7 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 
 == Installation ==
 
-1. Upload the official `site-manager-0.12.3.zip` from Plugins > Add New > Upload Plugin.
+1. Upload the official `site-manager-0.12.4.zip` from Plugins > Add New > Upload Plugin.
 2. Activate Site Manager.
 3. Open the top-level Site Manager menu in WordPress admin.
 4. Review Site Manager > Dashboard and Site Manager > Diagnostics.
@@ -67,6 +67,11 @@ Native WordPress content, navigation and provider-aware SEO governance use the s
 8. When remote access is required, generate a scoped token and copy it immediately into the external client's secret store; Site Manager never stores the plaintext token.
 
 == Changelog ==
+
+= 0.12.4 =
+* Reports exact stored image byte count for verified native image uploads, after WordPress re-encoding. Existing image upload safeguards remain unchanged.
+* Includes internal staging-only native self-update, package validation, private code-only recovery and fresh-runtime verification primitives. Supports a dedicated private host recovery directory outside the web root.
+* Production self-update transport remains disabled pending independent hosting acceptance and explicit authorization. No additional public write endpoints, new grants, automatic updates, or changes to existing content.
 
 = 0.12.3 =
 * Adds bounded public image discovery, governed native featured image assignment and explicit shared attachment ALT updates, with verification and guarded rollback.

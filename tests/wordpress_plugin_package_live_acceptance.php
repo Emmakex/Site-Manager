@@ -30,6 +30,8 @@ check($admin instanceof WP_User,'fixture administrator');
 wp_set_current_user($admin->ID);
 $root=WP_PLUGIN_DIR.'/site-manager';
 $journalKey='site_manager_self_update_journal';
+$privateDirectory='/tmp/sm-plugin-recovery-worker/storage';
+check(is_dir($privateDirectory),'fixed private recovery directory');
 
 if (in_array($stage,['apply','apply-healthy'],true)) {
     check(defined('SITE_MANAGER_VERSION'),'original runtime loaded');
@@ -66,7 +68,7 @@ if (in_array($stage,['apply','apply-healthy'],true)) {
     check($zip->close(),'candidate finalized');
     $sha=hash_file('sha256',$zipPath);
     $proof=(new PluginPackageArchiveGuard())->inspect($zipPath,$candidate,$sha);
-    $engine=new PluginPackageInstallEngine();
+    $engine=new PluginPackageInstallEngine($privateDirectory);
     $active=get_option('active_plugins');
     $content=wp_insert_post(['post_type'=>'post','post_status'=>'draft','post_title'=>'Self-update fixture','post_content'=>'Preserve me'],true);
     check(is_int($content) && $content>0,'content fixture');
@@ -87,7 +89,7 @@ if (in_array($stage,['apply','apply-healthy'],true)) {
     }
     $journal=get_option($journalKey);
     check(is_array($journal) && $journal['status']==='installed_pending_runtime','retained installation journal');
-    $engine=new PluginPackageInstallEngine();
+    $engine=new PluginPackageInstallEngine($privateDirectory);
     blocked(fn()=>$engine->restore(str_repeat('f',32),true));
     blocked(fn()=>$engine->restore($journal['id'],false));
     $result=$engine->restore($journal['id'],true);
@@ -102,7 +104,7 @@ if (in_array($stage,['apply','apply-healthy'],true)) {
     check((new PluginPackageRecoveryStore())->fingerprint($root)['tree_sha256']===($restored?$baseline['tree']:$baseline['candidate_tree']),'expected exact tree readback');
     check(get_option('active_plugins')===$baseline['active'] && get_post_status($baseline['content'])==='draft'
         && get_post_field('post_content',$baseline['content'])==='Preserve me','content and active plugins unchanged');
-    $engine=new PluginPackageInstallEngine();
+    $engine=new PluginPackageInstallEngine($privateDirectory);
     $receipt=$engine->runtimeReceipt($journal['id']);
     check($receipt['local_verified']===true && $receipt['remote_verified']===false && $receipt['rollback_available']===true,'local proof is not external MCP proof');
     blocked(fn()=>$engine->runtimeReceipt(str_repeat('f',32)));

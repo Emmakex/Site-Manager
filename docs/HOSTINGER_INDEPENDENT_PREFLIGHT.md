@@ -70,7 +70,7 @@ WordPress without loading the normal active plugins, check the exact installed
 Site Manager code tree and compare the registered connection ID. It does NOT
 prove successful installation, restore, update permission, or isolation from
 MU plugins/theme/host bootstrap code. Readiness flags report ZIP support,
-private temporary storage, apparent filesystem write permissions and file
+the pinned private worker directory for durable code recovery (not shared WordPress temp), apparent filesystem write permissions and file
 modification policy; these are checks, not a destructive write probe.
 production_update_authorized is always false.
 

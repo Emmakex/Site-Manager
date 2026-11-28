@@ -17,6 +17,20 @@ use ZipArchive;
  */
 final class PluginPackageRecoveryStore
 {
+    // The host worker may pin a durable private directory rather than relying
+    // on WordPress's shared temporary directory (which may be public).
+    public function __construct(private readonly ?string $privateDirectory = null) {}
+
+    public function storageReady(): bool
+    {
+        try {
+            $this->privateRoot();
+            return true;
+        } catch (DomainException) {
+            return false;
+        }
+    }
+
     /** @return array{tree_sha256:string,files:int,bytes:int} */
     public function fingerprint(string $installedDirectory): array
     {
@@ -142,9 +156,14 @@ final class PluginPackageRecoveryStore
 
     private function privateRoot(): string
     {
-        $root=realpath(function_exists('get_temp_dir') ? get_temp_dir() : sys_get_temp_dir());
+        $candidate=$this->privateDirectory ?? (function_exists('get_temp_dir') ? get_temp_dir() : sys_get_temp_dir());
+        $root=realpath($candidate);
         if ($root===false || ! is_dir($root) || ! is_writable($root)) {
             throw new DomainException('plugin_recovery_storage_unavailable');
+        }
+        if ($this->privateDirectory!==null && ($root!==$candidate || is_link($candidate)
+            || (fileperms($root)&0077)!==0)) {
+            throw new DomainException('plugin_recovery_requires_private_storage');
         }
         foreach ([defined('ABSPATH') ? ABSPATH : null,defined('WP_CONTENT_DIR') ? WP_CONTENT_DIR : null,
             $_SERVER['DOCUMENT_ROOT'] ?? null] as $webRoot) {
