@@ -18,7 +18,8 @@ try {
     $request=json_decode($raw,true,16,JSON_THROW_ON_ERROR);
     $keys=['site','home','connection_id','nonce'];
     if (! is_array($request) || count($request)!==count($keys) || array_diff($keys,array_keys($request))
-        || $request['site']!=='emmake-produccion' || $request['home']!=='https://emmake.com/'
+        || ! is_string($request['site']) || ! preg_match('/^[a-z0-9][a-z0-9-]{2,63}$/D',$request['site'])
+        || ! is_string($request['home']) || ! preg_match('~^https://[a-zA-Z0-9.-]+(?:/[a-zA-Z0-9_-]+)*/$~D',$request['home'])
         || ! is_string($request['connection_id']) || ! preg_match('/^smc_[a-f0-9]{32}$/D',$request['connection_id'])
         || ! is_string($request['nonce']) || ! preg_match('/^[a-f0-9]{64}$/D',$request['nonce'])) {
         throw new RuntimeException('worker_input_invalid');
@@ -27,7 +28,8 @@ try {
     if (! is_file($configPath) || is_link($configPath) || (fileperms($configPath)&0077)!==0
         || filesize($configPath)>4096) { throw new RuntimeException('worker_config_invalid'); }
     $config=json_decode((string)file_get_contents($configPath),true,8,JSON_THROW_ON_ERROR);
-    if (! is_array($config) || array_keys($config)!==['wordpress_root'] || ! is_string($config['wordpress_root'])
+    if (! is_array($config) || count($config)!==3 || ($config['site'] ?? null)!==$request['site'] || ($config['home'] ?? null)!==$request['home']
+        || ! is_string($config['wordpress_root'] ?? null)
         || ! str_starts_with($config['wordpress_root'],'/')) {
         throw new RuntimeException('worker_config_invalid');
     }
