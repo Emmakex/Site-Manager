@@ -16,18 +16,28 @@ final class PluginPackageInstallEngine
     private const PLUGIN='site-manager/site-manager.php';
     private const JOURNAL='site_manager_self_update_journal';
 
+    public function __construct(private readonly ?string $privateRecoveryDirectory=null) {}
+
+    private function recoveryStore(): PluginPackageRecoveryStore
+    {
+        return new PluginPackageRecoveryStore($this->privateRecoveryDirectory);
+    }
+
     public function apply(string $package,string $version,string $sha,string $beforeTree,string $afterTree,bool $confirmed): array
     {
         if (! $confirmed) { throw new DomainException('plugin_update_confirmation_required'); }
         $root=$this->eligible();
         $proof=(new PluginPackageArchiveGuard())->inspect($package,$version,$sha);
-        $store=new PluginPackageRecoveryStore();
+        $store=$this->recoveryStore();
         $before=$store->fingerprint($root);
         $current=$this->installedVersion($root);
         if (! hash_equals($beforeTree,$before['tree_sha256']) || ! hash_equals($afterTree,$proof['tree_sha256'])
             || ! version_compare($version,$current,'>') || version_compare(PHP_VERSION,$proof['requires_php'],'<')
             || version_compare((string) get_bloginfo('version'),$proof['requires_wordpress'],'<')) {
             throw new DomainException('plugin_update_stale_or_incompatible');
+        }
+        if (! $store->storageReady()) {
+            throw new DomainException('plugin_update_private_storage_required');
         }
         // Persist the exclusive claim before touching code. Never release an
         // ambiguous claim automatically or blindly retry a failed replacement.
@@ -79,7 +89,7 @@ final class PluginPackageInstallEngine
             throw new DomainException('plugin_update_recovery_unavailable');
         }
         $backup=$journal['backup'];
-        $store=new PluginPackageRecoveryStore();
+        $store=$this->recoveryStore();
         $proof=$store->verify($backup);
         if ($proof['tree_sha256']!==$journal['before_tree']) { throw new DomainException('plugin_update_backup_mismatch'); }
         // A successful installation must still match the approved tree before
@@ -129,7 +139,7 @@ final class PluginPackageInstallEngine
             || SITE_MANAGER_VERSION!==$expectedVersion
             || get_option('site_manager_runtime_version')!==$expectedVersion
             || $this->installedVersion($root)!==$expectedVersion
-            || (new PluginPackageRecoveryStore())->fingerprint($root)['tree_sha256']!==$expectedTree
+            || $this->recoveryStore()->fingerprint($root)['tree_sha256']!==$expectedTree
             || $this->runtimeBinding()!==$journal['runtime_binding']) {
             throw new DomainException('plugin_update_runtime_binding_mismatch');
         }
@@ -158,7 +168,7 @@ final class PluginPackageInstallEngine
         $receipt=$this->runtimeReceipt($operationId);
         $journal=get_option(self::JOURNAL);
         $backup=$journal['backup'];
-        $store=new PluginPackageRecoveryStore();
+        $store=$this->recoveryStore();
         $store->verify($backup);
         $lock=$this->lockArchive($backup['path']);
         try {
