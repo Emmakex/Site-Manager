@@ -130,6 +130,7 @@ jobs:
           set -euo pipefail
           container="$(docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml ps -q wordpress)"
           docker exec "$container" mkdir -p /tmp/sm-plugin-recovery-worker
+          docker exec "$container" install -d -m 0700 -o www-data -g www-data /tmp/sm-plugin-recovery-worker/storage
           for class in PluginPackageArchiveGuard PluginPackageRecoveryStore PluginPackageInstallEngine; do
             docker cp "src/Adapters/WordPress/$class.php" "$container:/tmp/sm-plugin-recovery-worker/$class.php"
           done
@@ -165,7 +166,7 @@ jobs:
             echo json_encode(["site"=>"fixture-site","home"=>"https://fixture.invalid/","connection_id"=>$state["connection_id"],"nonce"=>str_repeat("b",64)]);
           ' > /tmp/sm-host-challenge.json
           docker exec -i --user www-data -e SSH_ORIGINAL_COMMAND=site-manager-preflight-v1 "$container" php /tmp/sm-host-preflight/preflight.php < /tmp/sm-host-challenge.json > /tmp/sm-host-receipt.json
-          PYTHONPATH=scripts python3 -c 'import json; from site_manager_host_preflight import verify_receipt; r=verify_receipt(json.load(open("/tmp/sm-host-receipt.json")),json.load(open("/tmp/sm-host-challenge.json"))); assert r["independent_access_verified"] and not r["mutation_performed"]; print("DISPOSABLE_WP_INDEPENDENT_HOST_PREFLIGHT=PASSED")'
+          PYTHONPATH=scripts python3 -c 'import json; from site_manager_host_preflight import verify_receipt; r=verify_receipt(json.load(open("/tmp/sm-host-receipt.json")),json.load(open("/tmp/sm-host-challenge.json"))); assert r["independent_access_verified"] and not r["mutation_performed"] and r["readiness_checks"]["private_temp_available"]; print("DISPOSABLE_WP_INDEPENDENT_HOST_PREFLIGHT=PASSED")'
           if docker exec -i --user www-data -e SSH_ORIGINAL_COMMAND=arbitrary "$container" php /tmp/sm-host-preflight/preflight.php < /tmp/sm-host-challenge.json; then
             echo 'Unexpected arbitrary command acceptance' >&2
             exit 1
