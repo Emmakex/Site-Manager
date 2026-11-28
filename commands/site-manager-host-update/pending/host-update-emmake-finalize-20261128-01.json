@@ -1,0 +1,9 @@
+{
+  "site": "emmake-produccion",
+  "stage": "finalize",
+  "request_id": "host-update-emmake-finalize-20261128-01",
+  "payload": {
+    "operation_id": "e2a5f6c971ad89b2684a1f57f291e249",
+    "confirmed": true
+  }
+}
