@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-prod-editorial-alt-apply-20261128-01",
+  "site": "emmake-produccion",
+  "action": "content.image_alt",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-bab53fc5224e3a97da95cb6c",
+    "confirmed": true
+  }
+}
