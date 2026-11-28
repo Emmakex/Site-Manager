@@ -1,0 +1,23 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-prod-editorial-webp-plan-20261128-01",
+  "site": "emmake-produccion",
+  "action": "content.image_upload",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "parent_id": 54410,
+    "manifest": {
+      "filename": "emmake-automatizacion-ia-pymes.jpg",
+      "mime": "image/jpeg",
+      "sha256": "bbc331848b39cf7db103711efe0c292ce774e328e3431dd21481f34e7ec60e13",
+      "bytes": 623780,
+      "width": 1536,
+      "height": 1024
+    },
+    "source": {
+      "provider": "google_drive",
+      "optimization": "featured_webp_v1"
+    }
+  }
+}
