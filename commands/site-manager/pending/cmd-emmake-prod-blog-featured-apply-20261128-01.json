@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-prod-blog-featured-apply-20261128-01",
+  "site": "emmake-produccion",
+  "action": "content.update",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "apply",
+    "plan_id": "sm-plan-df8c9a4df979794c92e711dc",
+    "confirmed": true
+  }
+}
