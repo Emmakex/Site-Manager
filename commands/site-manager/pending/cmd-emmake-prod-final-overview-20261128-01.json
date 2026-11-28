@@ -1,0 +1,8 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-prod-final-overview-20261128-01",
+  "site": "emmake-produccion",
+  "action": "site.overview",
+  "requested_by": "chatgpt",
+  "payload": {}
+}
