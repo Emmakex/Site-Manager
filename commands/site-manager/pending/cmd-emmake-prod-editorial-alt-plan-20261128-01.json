@@ -1,0 +1,14 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-prod-editorial-alt-plan-20261128-01",
+  "site": "emmake-produccion",
+  "action": "content.image_alt",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "attachment_id": 54414,
+    "parent_id": 54410,
+    "alt": "Tres profesionales revisan gráficos y procesos de trabajo junto a un ordenador portátil.",
+    "reason": "Describe the editorial image accurately for accessibility without keyword stuffing."
+  }
+}
