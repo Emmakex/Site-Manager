@@ -6,6 +6,8 @@ on:
       - 'src/Adapters/WordPress/ThemePackage*.php'
       - 'src/Adapters/WordPress/PluginPackage*.php'
       - 'tests/wordpress_plugin_package_live_acceptance.php'
+      - 'scripts/site-manager-host-worker-preflight.php'
+      - 'scripts/site_manager_host_preflight.py'
       - 'src/Adapters/WordPress/*DraftCreation*.php'
       - 'src/Adapters/WordPress/*FeaturedImage*.php'
       - 'src/Adapters/WordPress/PublicImageInventory.php'
@@ -143,6 +145,31 @@ jobs:
           docker exec --user www-data "$container" php /tmp/site-manager-plugin-live-acceptance.php verify
           docker exec --user www-data "$container" php /tmp/site-manager-plugin-live-acceptance.php apply-healthy
           docker exec --user www-data "$container" php /tmp/site-manager-plugin-live-acceptance.php verify-healthy
+
+      - name: Prove independent host read-only worker against disposable WordPress
+        run: |
+          set -euo pipefail
+          container="$(docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml ps -q wordpress)"
+          docker exec "$container" install -d -m 0700 -o www-data -g www-data /tmp/sm-host-preflight
+          docker cp scripts/site-manager-host-worker-preflight.php "$container:/tmp/sm-host-preflight/preflight.php"
+          docker cp src/Adapters/WordPress/PluginPackageRecoveryStore.php "$container:/tmp/sm-host-preflight/PluginPackageRecoveryStore.php"
+          docker exec --user www-data "$container" php -r '
+            require "/var/www/html/wp-load.php";
+            if (wp_get_environment_type() !== "staging" || get_option("blog_public") !== "0") { exit(1); }
+            update_option("home","https://fixture.invalid");
+            update_option("siteurl","https://fixture.invalid");
+            $config=["wordpress_root"=>"/var/www/html","site"=>"fixture-site","home"=>"https://fixture.invalid/"];
+            $dir="/tmp/sm-host-preflight/";
+            file_put_contents($dir."config.json",json_encode($config)); chmod($dir."config.json",0600);
+            $state=get_option("site_manager_remote_connection");
+            echo json_encode(["site"=>"fixture-site","home"=>"https://fixture.invalid/","connection_id"=>$state["connection_id"],"nonce"=>str_repeat("b",64)]);
+          ' > /tmp/sm-host-challenge.json
+          docker exec -i --user www-data -e SSH_ORIGINAL_COMMAND=site-manager-preflight-v1 "$container" php /tmp/sm-host-preflight/preflight.php < /tmp/sm-host-challenge.json > /tmp/sm-host-receipt.json
+          PYTHONPATH=scripts python3 -c 'import json; from site_manager_host_preflight import verify_receipt; r=verify_receipt(json.load(open("/tmp/sm-host-receipt.json")),json.load(open("/tmp/sm-host-challenge.json"))); assert r["independent_access_verified"] and not r["mutation_performed"]; print("DISPOSABLE_WP_INDEPENDENT_HOST_PREFLIGHT=PASSED")'
+          if docker exec -i --user www-data -e SSH_ORIGINAL_COMMAND=arbitrary "$container" php /tmp/sm-host-preflight/preflight.php < /tmp/sm-host-challenge.json; then
+            echo 'Unexpected arbitrary command acceptance' >&2
+            exit 1
+          fi
 
       - name: Capture disposable WordPress failures
         if: failure()
