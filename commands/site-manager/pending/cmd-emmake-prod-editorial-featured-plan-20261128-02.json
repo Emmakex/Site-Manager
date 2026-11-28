@@ -1,0 +1,13 @@
+{
+  "version": "1",
+  "command_id": "cmd-emmake-prod-editorial-featured-plan-20261128-02",
+  "site": "emmake-produccion",
+  "action": "content.featured_image",
+  "requested_by": "chatgpt",
+  "payload": {
+    "stage": "plan",
+    "post_id": 54410,
+    "attachment_id": 54414,
+    "reason": "Replace provisional featured image with approved editorial WebP attached to draft 54410; no publication."
+  }
+}
