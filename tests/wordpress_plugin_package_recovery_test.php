@@ -38,14 +38,26 @@ try {
         if (! is_dir(dirname($path))) { mkdir(dirname($path),0700,true); }
         file_put_contents($path,$content);
     }
-    $store=new PluginPackageRecoveryStore();
+    $private=$dir.'/private';
+    mkdir($private,0700);
+    $store=new PluginPackageRecoveryStore($private);
+    check($store->storageReady(),'explicit private directory accepted');
+    chmod($private,0755);
+    clearstatcache(true,$private);
+    check(! $store->storageReady(),'non-private directory denied');
+    chmod($private,0700);
+    clearstatcache(true,$private);
+    symlink($private,$dir.'/alias');
+    check(! (new PluginPackageRecoveryStore($dir.'/alias'))->storageReady(),'symlink storage denied');
+    unlink($dir.'/alias');
+    check(! (new PluginPackageRecoveryStore($dir.'/absent'))->storageReady(),'missing storage denied');
     $before=$store->fingerprint($root);
     check($before['files']===count($files),'complete fixture tree');
     reject(fn()=>$store->capture($root,'0.12.3',str_repeat('0',64)),'stale tree');
     reject(fn()=>$store->capture($root,'0.12.4',$before['tree_sha256']),'wrong installed version');
     $backup=$store->capture($root,'0.12.3',$before['tree_sha256']);
     check($backup['tree_sha256']===$before['tree_sha256'] && $backup['bytes']===$before['bytes'],'exact snapshot');
-    check((fileperms($backup['path'])&0077)===0,'archive private');
+    check((fileperms($backup['path'])&0077)===0 && dirname($backup['path'])===$private,'archive private and pinned');
     check($store->verify($backup)['version']==='0.12.3','retained archive readback');
     file_put_contents($root.'/readme.txt','new code tree');
     check($store->fingerprint($root)['tree_sha256']!==$before['tree_sha256'],'live drift detected');
