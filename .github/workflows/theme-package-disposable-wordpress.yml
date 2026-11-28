@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'src/Adapters/WordPress/ThemePackage*.php'
+      - 'src/Adapters/WordPress/PluginPackage*.php'
+      - 'tests/wordpress_plugin_package_live_acceptance.php'
       - 'src/Adapters/WordPress/*DraftCreation*.php'
       - 'src/Adapters/WordPress/*FeaturedImage*.php'
       - 'src/Adapters/WordPress/PublicImageInventory.php'
@@ -120,6 +122,25 @@ jobs:
           test -n "$container"
           docker cp tests/wordpress_image_ingress_live_acceptance.php "$container":/tmp/site-manager-image-ingress-live-acceptance.php
           docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml exec -T --user www-data wordpress php /tmp/site-manager-image-ingress-live-acceptance.php
+
+      - name: Exercise actual plugin installation and recovery outside the failed plugin
+        run: |
+          set -euo pipefail
+          container="$(docker compose -p sm-theme-acceptance -f tests/fixtures/theme-package-wordpress.compose.yml ps -q wordpress)"
+          docker exec "$container" mkdir -p /tmp/sm-plugin-recovery-worker
+          for class in PluginPackageArchiveGuard PluginPackageRecoveryStore PluginPackageInstallEngine; do
+            docker cp "src/Adapters/WordPress/$class.php" "$container:/tmp/sm-plugin-recovery-worker/$class.php"
+          done
+          docker cp tests/wordpress_plugin_package_live_acceptance.php "$container":/tmp/site-manager-plugin-live-acceptance.php
+          docker exec --user www-data "$container" php /tmp/site-manager-plugin-live-acceptance.php apply
+          if docker exec --user www-data "$container" php /tmp/site-manager-plugin-live-acceptance.php verify > /tmp/sm-broken-plugin.log 2>&1; then
+            echo 'Broken candidate unexpectedly booted' >&2
+            exit 1
+          fi
+          grep -q DISPOSABLE_PLUGIN_FATAL_FIXTURE /tmp/sm-broken-plugin.log
+          echo DISPOSABLE_WP_PLUGIN_BOOT_FAILURE=PROVEN
+          docker exec --user www-data "$container" php /tmp/site-manager-plugin-live-acceptance.php restore
+          docker exec --user www-data "$container" php /tmp/site-manager-plugin-live-acceptance.php verify
 
       - name: Capture disposable WordPress failures
         if: failure()
