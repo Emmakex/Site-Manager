@@ -1,0 +1,48 @@
+{
+  "action": "content.image_alt",
+  "command_id": "cmd-emmake-prod-editorial-alt-plan-20261128-01",
+  "command_sha256": "2db1b35551fde8e1bffd0dfdc1297f9a07dac47ea996dc0dabf059feb1cdc729",
+  "data": {
+    "attachment_id": 54414,
+    "parent_id": 54410,
+    "plan": {
+      "applied_at": "",
+      "capability_id": "content.write",
+      "confirmation_required": true,
+      "created_at": "2026-11-28T10:25:57+00:00",
+      "expires_at": "2026-11-28T10:40:57+00:00",
+      "fields": [
+        "alt"
+      ],
+      "operation": "content.image_alt",
+      "plan_id": "sm-plan-bab53fc5224e3a97da95cb6c",
+      "reversible": true,
+      "rollback_retained_until": "2026-11-29T10:25:57+00:00",
+      "rolled_back_at": "",
+      "status": "planned",
+      "target": {
+        "attachment_id": 54414,
+        "parent_id": 54410,
+        "post_type": "attachment"
+      }
+    },
+    "preview": {
+      "before_present": [
+        "alt"
+      ],
+      "changed_fields": [
+        "alt"
+      ],
+      "values_retained_in_github": false
+    },
+    "shared_attachment_property": true,
+    "stage": "plan"
+  },
+  "gateway_generation": "sm-4f-v1-20261022",
+  "required_scope": "content.write",
+  "site": "emmake-produccion",
+  "stage": "plan",
+  "status": "success",
+  "verified": false,
+  "version": "1"
+}
