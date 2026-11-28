@@ -1,0 +1,45 @@
+name: Site Manager Hostinger Independent Preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    if: github.actor == 'Emmakex' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    environment: site-manager-emmake-produccion
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify registered production site
+        run: python3 scripts/site_manager_site_catalog.py check --site emmake-produccion
+      - name: Check independent host connection
+        env:
+          HOSTINGER_SM_HOST: ${{ secrets.HOSTINGER_SM_HOST }}
+          HOSTINGER_SM_USER: ${{ secrets.HOSTINGER_SM_USER }}
+          HOSTINGER_SM_PORT: ${{ vars.HOSTINGER_SM_PORT }}
+          HOSTINGER_SM_SSH_KEY: ${{ secrets.HOSTINGER_SM_SSH_KEY }}
+          HOSTINGER_SM_SSH_KNOWN_HOSTS: ${{ secrets.HOSTINGER_SM_SSH_KNOWN_HOSTS }}
+          SITE_MANAGER_EXPECTED_CONNECTION_ID: ${{ secrets.SITE_MANAGER_EXPECTED_CONNECTION_ID }}
+          SITE_MANAGER_EXPECTED_SITE_URL: ${{ vars.SITE_MANAGER_EXPECTED_SITE_URL }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${HOSTINGER_SM_SSH_KEY:?Dedicated Hostinger preflight key required}"
+          : "${HOSTINGER_SM_SSH_KNOWN_HOSTS:?Verified Hostinger host key required}"
+          key="$(mktemp)"
+          known="$(mktemp)"
+          trap 'rm -f "$key" "$known"' EXIT
+          printf '%s\n' "$HOSTINGER_SM_SSH_KEY" > "$key"
+          printf '%s\n' "$HOSTINGER_SM_SSH_KNOWN_HOSTS" > "$known"
+          python3 scripts/site_manager_host_preflight.py "$key" "$known" "$RUNNER_TEMP/host-preflight.json"
+      - name: Retain sanitized receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-manager-emmake-host-preflight
+          path: ${{ runner.temp }}/host-preflight.json
+          if-no-files-found: error
+          retention-days: 7
