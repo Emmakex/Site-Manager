@@ -1,0 +1,14 @@
+{
+  "site": "emmake-produccion",
+  "stage": "plan",
+  "request_id": "host-update-emmake-plan-20261128-01",
+  "payload": {
+    "version": "0.12.4",
+    "package_sha256": "f2e88cb2c440d56b41a2b4695dc95421d75c944190b5fc94ba56f348515e0117",
+    "source": {
+      "commit_sha": "20bbbf2e8e5c19f73a04d0bd230789477cd94235",
+      "run_id": 46130520272,
+      "artifact_id": 15256634941
+    }
+  }
+}
