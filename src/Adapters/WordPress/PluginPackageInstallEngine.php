@@ -136,7 +136,7 @@ final class PluginPackageInstallEngine
         // Exercise the real read handlers locally. This is intentionally not
         // a claim of external network or bearer authentication success.
         foreach (['discovery','capabilities','connection'] as $resource) {
-            $response=rest_do_request(new \\WP_REST_Request('GET','/site-manager/v1/'.$resource));
+            $response=rest_do_request(new \WP_REST_Request('GET','/site-manager/v1/'.$resource));
             $data=$response->get_data()['data'] ?? null;
             if ($response->get_status()!==200 || ! is_array($data) || $data===[]) {
                 throw new DomainException('plugin_update_local_readback_failed');
