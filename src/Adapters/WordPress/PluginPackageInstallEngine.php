@@ -32,7 +32,8 @@ final class PluginPackageInstallEngine
         // Persist the exclusive claim before touching code. Never release an
         // ambiguous claim automatically or blindly retry a failed replacement.
         $id=bin2hex(random_bytes(16));
-        $journal=['id'=>$id,'status'=>'preparing','before_tree'=>$beforeTree,'after_tree'=>$afterTree,'version'=>$version];
+        $journal=['id'=>$id,'status'=>'preparing','before_tree'=>$beforeTree,'after_tree'=>$afterTree,'version'=>$version,
+            'runtime_binding'=>$this->runtimeBinding()];
         if (! add_option(self::JOURNAL,$journal,'',false)) { throw new DomainException('plugin_update_reconciliation_required'); }
         $archiveLock=null;
         try {
@@ -104,6 +105,92 @@ final class PluginPackageInstallEngine
             // Retain journal and archive for subsequent fresh runtime readback.
             fclose($archiveLock);
         }
+    }
+
+    /**
+     * Called by the trusted host worker in a NEW normal WordPress process.
+     * Local runtime proof is distinct from an external authenticated MCP check.
+     * No paths, raw connection data, or contents are returned.
+     */
+    public function runtimeReceipt(string $operationId): array
+    {
+        $root=$this->eligible();
+        $journal=get_option(self::JOURNAL,[]);
+        if (! preg_match('/^[a-f0-9]{32}$/D',$operationId) || ! is_array($journal)
+            || ($journal['id'] ?? null)!==$operationId
+            || ! in_array($journal['status'] ?? '',['installed_pending_runtime','restored_pending_runtime'],true)
+            || ! is_array($journal['backup'] ?? null) || ! is_array($journal['runtime_binding'] ?? null)) {
+            throw new DomainException('plugin_update_runtime_receipt_unavailable');
+        }
+        $restored=$journal['status']==='restored_pending_runtime';
+        $expectedVersion=$restored ? $journal['backup']['version'] : $journal['version'];
+        $expectedTree=$restored ? $journal['before_tree'] : $journal['after_tree'];
+        if (! did_action('plugins_loaded') || ! defined('SITE_MANAGER_VERSION')
+            || SITE_MANAGER_VERSION!==$expectedVersion
+            || get_option('site_manager_runtime_version')!==$expectedVersion
+            || $this->installedVersion($root)!==$expectedVersion
+            || (new PluginPackageRecoveryStore())->fingerprint($root)['tree_sha256']!==$expectedTree
+            || $this->runtimeBinding()!==$journal['runtime_binding']) {
+            throw new DomainException('plugin_update_runtime_binding_mismatch');
+        }
+        // Exercise the real read handlers locally. This is intentionally not
+        // a claim of external network or bearer authentication success.
+        foreach (['discovery','capabilities','connection'] as $resource) {
+            $response=rest_do_request(new \\WP_REST_Request('GET','/site-manager/v1/'.$resource));
+            $data=$response->get_data()['data'] ?? null;
+            if ($response->get_status()!==200 || ! is_array($data) || $data===[]) {
+                throw new DomainException('plugin_update_local_readback_failed');
+            }
+        }
+        return ['operation_id'=>$operationId,'status'=>$restored?'restored_runtime_verified_local':'installed_runtime_verified_local',
+            'version'=>$expectedVersion,'tree_sha256'=>$expectedTree,'local_verified'=>true,
+            'remote_verified'=>false,'rollback_available'=>true];
+    }
+
+    /**
+     * Release one journal after the operator has independently verified the
+     * registered external MCP and explicitly accepted the resulting runtime.
+     * Internal worker only; never register a remote API for this method.
+     */
+    public function finalize(string $operationId,bool $confirmed): array
+    {
+        if (! $confirmed) { throw new DomainException('plugin_update_confirmation_required'); }
+        $receipt=$this->runtimeReceipt($operationId);
+        $journal=get_option(self::JOURNAL);
+        $backup=$journal['backup'];
+        $store=new PluginPackageRecoveryStore();
+        $store->verify($backup);
+        $lock=$this->lockArchive($backup['path']);
+        try {
+            if (get_option(self::JOURNAL)!==$journal || $this->runtimeReceipt($operationId)!==$receipt) {
+                throw new DomainException('plugin_update_reconciliation_required');
+            }
+            $store->verify($backup);
+            // The archive remains available if finalization cannot release the journal.
+            if (! delete_option(self::JOURNAL) || get_option(self::JOURNAL,false)!==false) {
+                throw new DomainException('plugin_update_journal_release_failed');
+            }
+            $removed=@unlink($backup['path']);
+            $receipt['status']='finalized_local';
+            $receipt['rollback_available']=false;
+            $receipt['archive_removed']=$removed;
+            return $receipt;
+        } finally {
+            fclose($lock);
+        }
+    }
+
+    /** Stable site and scope identity, never the token/hash or last-use timestamps. */
+    private function runtimeBinding(): array
+    {
+        $state=(new RemoteConnectionStore())->publicState();
+        if (! $state['enabled'] || ! preg_match('/^smc_[a-f0-9]{32}$/D',$state['connection_id'])
+            || $state['generation']<1 || ! in_array('site.read',$state['scopes'],true)) {
+            throw new DomainException('plugin_update_read_connection_required');
+        }
+        return ['home'=>home_url('/'),'site'=>site_url('/'),'active_plugins'=>get_option('active_plugins'),
+            'connection_id'=>$state['connection_id'],'generation'=>$state['generation'],'scopes'=>$state['scopes'],
+            'write_principal_bound'=>$state['write_principal_bound']];
     }
 
     private function eligible(bool $recovery=false): string
